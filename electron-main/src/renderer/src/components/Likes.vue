@@ -7,7 +7,3 @@
     <div class="bg-cyan-400/20 size-12"></div>
   </div>
 </template>
-
-<style scoped>
-
-</style>

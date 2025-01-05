@@ -3,12 +3,13 @@ import {join} from 'path'
 import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {debounce} from "./debounce";
+import {audio_scan} from "./audio_scan";
 
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1000,
-    height: 750,
+    height: 600,
     minWidth: 800,
     minHeight: 600,
     show: false,
@@ -44,13 +45,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-
   electronApp.setAppUserModelId('com.vega-player')
-
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
   ipcMain.handle('windowAction', (event, action) => {
     const window = BrowserWindow.getFocusedWindow();
     if (action === 'close') {
@@ -65,13 +63,16 @@ app.whenReady().then(() => {
     }
     return false;
   })
-
-
   createWindow()
-
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+ipcMain.handle('select_files', async (_,flag) => {
+  if (!app.isReady()) {
+    return null;
+  }
+  return audio_scan(flag);
 })
 
 app.on('window-all-closed', () => {
