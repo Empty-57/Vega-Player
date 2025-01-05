@@ -1,7 +1,8 @@
 <script setup>
-import {onActivated, onMounted, useTemplateRef} from "vue";
+import {onActivated, onMounted, ref, useTemplateRef} from "vue";
 
 const theme_sw = useTemplateRef('theme_sw')
+const isMaximized=ref(false)
 localStorage.theme = 'dark'
 let html_ = null;
 onMounted(() => {
@@ -13,6 +14,10 @@ onActivated(() => {
   theme_sw.value.checked = localStorage.theme === 'light';
 })
 
+window.electron.ipcRenderer.on('resize',()=>{
+  isMaximized.value = false;
+});
+
 function themeSwitch(event) {
   if (event.target.checked) {
     localStorage.setItem("theme", "light")
@@ -23,25 +28,14 @@ function themeSwitch(event) {
   }
 }
 
-function windowAction(action) {
-  window.electron.ipcRenderer.send('windowAction', action);
+async function windowAction(action) {
+  isMaximized.value = await window.electron.ipcRenderer.invoke('windowAction', action);
 }
 </script>
 
 <template>
   <div id="diy_bar"
        class="fixed w-screen h-11 bg-transparent top-0 left-0 z-10 flex items-center justify-center *:duration-200">
-    <span class="no_drag p-3 flex items-center justify-center">
-      <span>
-        <svg class=" stroke-zinc-900 dark:stroke-zinc-200" fill="none" height="32" stroke-width="1"
-             viewBox="0 -12 64 64" width="32" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 32 L20 10 L25 15 L30 12 L35 20 L40 10 L50 32"/>
-  <path d="M54 32 L44 10 L39 15 L34 12 L29 20 L24 10 L14 32"/>
-</svg>
-      </span>
-
-      <span class="text-zinc-900 dark:text-zinc-200 text-xs">Vega Player</span>
-    </span>
     <span class="grow"></span>
     <span class="no_drag p-3 flex items-center justify-center">
       <label class="swap swap-rotate">
@@ -51,7 +45,6 @@ function windowAction(action) {
                  xmlns="http://www.w3.org/2000/svg">
   <path d="M21 12.79A9 9 0 0 1 11.21 3a7 7 0 1 0 9.58 9.79z"/>
 </svg>
-
             <svg class="swap-on stroke-zinc-900 dark:stroke-zinc-200" fill="none"
                  height="20" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" viewBox="0 0 24 24" width="20"
                  xmlns="http://www.w3.org/2000/svg">
@@ -75,10 +68,13 @@ function windowAction(action) {
 </svg>
     </span>
     <span class=" no_drag dark:hover:bg-zinc-600/40 hover:bg-zinc-400/20 p-3" @click="windowAction('maximize')">
-      <svg class=" stroke-zinc-900 dark:stroke-zinc-200" height="16" viewBox="0 0 24 24" width="16"
+      <svg class=" stroke-zinc-900 dark:stroke-zinc-200" height="16" viewBox="0 0 24 24" width="16" v-if="!isMaximized"
            xmlns="http://www.w3.org/2000/svg">
   <rect fill="none" height="16" rx="2" ry="2" stroke-width="1" width="16" x="4" y="4"/>
 </svg>
+      <svg v-if="isMaximized" class=" fill-zinc-900 dark:fill-zinc-200" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+        <path d="M812.2 65H351.6c-78.3 0-142.5 61.1-147.7 138.1-77 5.1-138.1 69.4-138.1 147.7v460.6c0 81.6 66.4 148 148 148h460.6c78.3 0 142.5-61.1 147.7-138.1 77-5.1 138.1-69.4 138.1-147.7V213c0-81.6-66.4-148-148-148z m-45.8 746.3c0 50.7-41.3 92-92 92H213.8c-50.7 0-92-41.3-92-92V350.7c0-50.7 41.3-92 92-92h460.6c50.7 0 92 41.3 92 92v460.6z m137.8-137.7c0 47.3-35.8 86.3-81.8 91.4V350.7c0-81.6-66.4-148-148-148H260.2c5.1-45.9 44.2-81.8 91.4-81.8h460.6c50.7 0 92 41.3 92 92v460.7z">
+      </path></svg>
     </span>
     <span class=" no_drag dark:hover:bg-red-800 hover:bg-red-600 p-3 rounded-tr" @click="windowAction('close')">
       <svg class=" stroke-zinc-900 dark:stroke-zinc-200" height="20" viewBox="0 0 24 24" width="20"

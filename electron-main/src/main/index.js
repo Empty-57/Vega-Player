@@ -2,12 +2,15 @@ import {app, BrowserWindow, ipcMain, shell} from 'electron'
 import {join} from 'path'
 import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import {debounce} from "./debounce";
 
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1000,
+    height: 750,
+    minWidth: 800,
+    minHeight: 600,
     show: false,
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明
@@ -32,6 +35,12 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  mainWindow.on('resize', debounce(() => {
+    if (!mainWindow.isMaximized()){
+      mainWindow.webContents.send('resize')
+    }
+  },200))
 }
 
 app.whenReady().then(() => {
@@ -42,7 +51,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.on('windowAction', (event, action) => {
+  ipcMain.handle('windowAction', (event, action) => {
     const window = BrowserWindow.getFocusedWindow();
     if (action === 'close') {
       window.close()
@@ -52,8 +61,11 @@ app.whenReady().then(() => {
     }
     if (action === 'maximize') {
       window.isMaximized() ? window.unmaximize() : window.maximize();
+      return window.isMaximized();
     }
+    return false;
   })
+
 
   createWindow()
 
