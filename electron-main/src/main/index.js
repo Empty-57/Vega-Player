@@ -38,10 +38,10 @@ function createWindow() {
   }
 
   mainWindow.on('resize', debounce(() => {
-    if (!mainWindow.isMaximized()){
+    if (!mainWindow.isMaximized()) {
       mainWindow.webContents.send('resize')
     }
-  },200))
+  }, 200))
 }
 
 app.whenReady().then(() => {
@@ -68,11 +68,15 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
-ipcMain.handle('select_files', async (_,flag) => {
+ipcMain.handle('select_files', async (_, flag) => {
   if (!app.isReady()) {
     return null;
   }
-  return audio_scan(flag);
+  const startTime = performance.now();
+  const audio_metadata = await audio_scan(flag)
+  const endTime = performance.now();
+  console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
+  return audio_metadata;
 })
 
 app.on('window-all-closed', () => {

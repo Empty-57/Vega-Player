@@ -1,27 +1,45 @@
 <script setup>
 import {reactive} from "vue";
-const fileMeta_list=reactive([])
+
+const fileMeta_list = reactive([])
+
 async function SelectFile(flag) {
-    fileMeta_list.value = await window.electron.ipcRenderer.invoke('select_files',flag)
+  fileMeta_list.length = 0;
+  fileMeta_list.push(...await window.electron.ipcRenderer.invoke('select_files', flag))
+  console.log(fileMeta_list)
+}
+
+function uint8ArrayToBase64(array) {
+  // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
+  let binaryString = '';
+  const length = array.length;
+  for (let i = 0; i < length; i++) {
+    binaryString += String.fromCharCode(array[i]);
+  }
+  // 使用 btoa 将二进制字符串转换为 Base64
+  return btoa(binaryString);
 }
 </script>
 
 <template>
-  <div class="relative top-0 left-0 flex flex-col items-start justify-start w-full h-screen p-4 gap-y-2">
-    <span id="title"
-          class="text-zinc-900 dark:text-zinc-200 text-2xl grow-[1] flex items-center justify-center font-semibold px-4 pt-4">本地音乐</span>
-    <div id="tool_bar" class="bg-red-400/0 w-full grow-[1] flex items-center justify-start gap-x-4 px-4">
+  <div class="relative top-0 left-0 flex flex-col items-start justify-start h-screen w-full p-4 gap-y-2">
+    <span
+      class="text-zinc-900 dark:text-zinc-200 text-2xl basis-1/6 flex items-center justify-center font-semibold px-4 pt-4">本地音乐</span>
+    <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <div class="dropdown">
-        <div class="flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-zinc-700 bg-zinc-400/20 active:bg-[#a6adbb1a] p-2 px-4 rounded duration-200 outline-none" role="button"
-             tabindex="0">
+        <div
+          class="flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-zinc-700 bg-zinc-400/20 hover:bg-[#a6adbb1a] p-2 px-4 rounded duration-200 outline-none"
+          role="button"
+          tabindex="0">
           <svg class="stroke-zinc-900 dark:stroke-zinc-200" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
             <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
             <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
           </svg>
           添加
         </div>
-        <ul class="w-36 dropdown-content menu shadow dark:bg-zinc-800 bg-zinc-200 *:text-zinc-900 *:dark:text-zinc-200 rounded"
-            tabindex="0">
+        <ul
+          class="w-36 dropdown-content menu shadow dark:bg-zinc-800 bg-zinc-200 *:text-zinc-900 *:dark:text-zinc-200 rounded"
+          tabindex="0">
           <li>
             <a class="active:bg-transparent active:text-inherit" @click="SelectFile('file')">
               手动添加
@@ -39,16 +57,24 @@ async function SelectFile(flag) {
       <span>sort</span>
       <span>view</span>
     </div>
-    <div id="music_list" class="bg-cyan-400/20 w-full grow-[10] p-4 gap-y-4 flex flex-col items-start justify-start">
-      <div class="flex items-center justify-center even:bg-red-400/20 odd:bg-cyan-400/20 w-full h-12 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded *:truncate">
-        <img alt="" src="./test.jpg" class="rounded h-10 w-10 object-cover bg-cover grow-[0]"/>
-        <div class="flex flex-col items-start justify-end mx-2 grow-[8] overflow-hidden max-w-[40%]">
-          <span class="text-sm">测试</span>
-          <span class="text-xs">测试</span>
+    <div class="basis-9/12 w-full p-4 flex flex-col items-start justify-start overflow-x-hidden overflow-y-auto">
+      <div
+        v-for="metadata in fileMeta_list"
+        class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-900/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded duration-200">
+        <img :src="metadata.picture? 'data:'+metadata.picture[0].format+';base64,'+uint8ArrayToBase64(metadata.picture[0].data):'src/assets/placeholder.jpg'"
+             alt=""
+             class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
+        <div class="flex flex-col items-start justify-center mx-2 w-0 flex-auto max-w-[25%] *:truncate">
+          <span class="text-sm w-full">{{ metadata.title }}</span>
+          <span class="text-xs w-full">{{ metadata.artist }}</span>
         </div>
-        <span class="text-xs grow-[4]">收藏</span>
-        <span class="text-xs grow-[4] overflow-hidden max-w-[20%] mx-2">测试</span>
-        <span class="text-xs grow-[1]">00:00</span>
+        <span class="text-xs mx-8 mr-16 w-fit">Likes</span>
+        <span class="text-xs w-0 flex-auto truncate">
+          {{ metadata.album }}
+        </span>
+        <div class="text-xs text-center w-10 mx-8 truncate">
+          {{ Math.floor(metadata.duration / 60).toString().padStart(2, '0') }}:{{ Math.floor(metadata.duration % 60).toString().padStart(2, '0') }}
+        </div>
       </div>
     </div>
   </div>
