@@ -1,13 +1,27 @@
 <script setup>
 import {reactive} from "vue";
+import { useVirtualList } from '@vueuse/core'
 
 const fileMeta_list = reactive([])
-
+const { list, containerProps, wrapperProps }=useVirtualList(
+  fileMeta_list,
+  {
+    itemHeight: 56,
+    overscan:5
+  },)
 async function SelectFile(flag) {
   fileMeta_list.length = 0;
   fileMeta_list.push(...await window.electron.ipcRenderer.invoke('select_files', flag))
   console.log(fileMeta_list)
 }
+
+window.electron.ipcRenderer.on('update_files', (_,item)=>{
+  if (item === 'start'){
+    fileMeta_list.length=0;
+  }
+  fileMeta_list.push(item)
+  console.log(item);
+})
 
 function uint8ArrayToBase64(array) {
   // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
@@ -57,25 +71,35 @@ function uint8ArrayToBase64(array) {
       <span>sort</span>
       <span>view</span>
     </div>
-    <div class="basis-9/12 w-full p-4 flex flex-col items-start justify-start overflow-x-hidden overflow-y-auto">
-      <div
-        v-for="metadata in fileMeta_list"
-        class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-900/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded duration-200">
-        <img :src="metadata.picture? 'data:'+metadata.picture[0].format+';base64,'+uint8ArrayToBase64(metadata.picture[0].data):'src/assets/placeholder.jpg'"
-             alt=""
-             class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
-        <div class="flex flex-col items-start justify-center mx-2 w-0 flex-auto max-w-[25%] *:truncate">
-          <span class="text-sm w-full">{{ metadata.title }}</span>
-          <span class="text-xs w-full">{{ metadata.artist }}</span>
-        </div>
-        <span class="text-xs mx-8 mr-16 w-fit">Likes</span>
-        <span class="text-xs w-0 flex-auto truncate">
-          {{ metadata.album }}
+    <div class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-xs px-6 pr-8 *:select-none">
+      <span class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
+      <span class="w-10"></span>
+      <span class="text-xs mx-8 mr-16 w-7"></span>
+      <span class="w-0 flex-auto text-left">专辑</span>
+      <span class="w-10 mx-8 text-center">时长</span>
+    </div>
+    <div v-bind="containerProps" class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4">
+      <div v-bind="wrapperProps" class="w-full flex flex-col items-start justify-start overflow-hidden">
+        <div
+          v-for="metadata in list" :key="metadata.index"
+          class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-900/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded duration-200">
+          <img :src="metadata.data.picture? 'data:'+metadata.data.picture[0].format+';base64,'+uint8ArrayToBase64(metadata.data.picture[0].data):'src/assets/placeholder.jpg'"
+               alt=""
+               class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
+          <div class="flex flex-col items-start justify-center mx-2 w-0 flex-auto max-w-[25%] *:truncate">
+            <span class="text-sm w-full">{{ metadata.data.title }}</span>
+            <span class="text-xs w-full">{{ metadata.data.artist }}</span>
+          </div>
+          <span class="text-xs mx-8 mr-16 w-7">Likes</span>
+          <span class="text-xs w-0 text-left flex-auto truncate">
+          {{ metadata.data.album }}
         </span>
-        <div class="text-xs text-center w-10 mx-8 truncate">
-          {{ Math.floor(metadata.duration / 60).toString().padStart(2, '0') }}:{{ Math.floor(metadata.duration % 60).toString().padStart(2, '0') }}
+          <div class="text-xs text-center w-10 mx-8 truncate">
+            {{ Math.floor(metadata.data.duration / 60).toString().padStart(2, '0') }}:{{ Math.floor(metadata.data.duration % 60).toString().padStart(2, '0') }}
+          </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>

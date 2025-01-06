@@ -8,7 +8,7 @@ const audio_ext = new Set(_ext.map(item => {
   return '.' + item
 }))
 
-export async function audio_scan(flag) {
+export async function audio_scan(event,flag) {
   const window = BrowserWindow.getFocusedWindow();
   const mm = await loadMusicMetadata()
   if (flag === 'file') {
@@ -50,6 +50,26 @@ export async function audio_scan(flag) {
         audioFiles.push(file.name);
       }
     }
+
+    // const audio_metadata = [];
+    // event.sender.send('update_files','start')
+    // for await (const file of audioFiles) {
+    //   const filePath = path.join(folderPath, file);
+    //   const metadata = await mm.parseFile(filePath, { skipPostHeaders: true, includeChapters: false });
+    //   // 实时发送元数据
+    //   event.sender.send('update_files', {
+    //     title: metadata.common.title,
+    //     artist: metadata.common.artist,
+    //     album: metadata.common.album,
+    //     numberOfChannels: metadata.format.numberOfChannels, // 声道
+    //     sampleRate: metadata.format.sampleRate, // 音频采样率
+    //     duration: metadata.format.duration, // 时长 s
+    //     bitrate: metadata.format.bitrate, // 比特率
+    //     picture: metadata.common.picture,
+    //     path: filePath
+    //   });
+    // }
+
     const audio_metadata = await Promise.all(audioFiles.map(async (file) => {
       const filePath = path.join(folderPath, file);
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
@@ -65,7 +85,7 @@ export async function audio_scan(flag) {
         path: filePath
       };
     }));
-    console.log(audio_metadata[0]);
+    console.log(audio_metadata);
     return audio_metadata;
   }
 }

@@ -60,7 +60,9 @@ const tabs = {
     </div>
     <div class="bg-transparent h-screen w-full">
       <transition mode="out-in" name="slide-fade">
-        <component :is="tabs[tabIndex]"></component>
+        <keep-alive>
+          <component :is="tabs[tabIndex]"></component>
+        </keep-alive>
       </transition>
     </div>
   </div>
