@@ -4,6 +4,7 @@ import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {debounce} from "./debounce";
 import {audio_scan} from "./audio_scan";
+import IndexDB from "./indexDB";
 
 function createWindow() {
   // Create the browser window.
@@ -68,15 +69,14 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
-ipcMain.handle('select_files', async (event, flag) => {
+ipcMain.on('select_files', async (event, flag) => {
   if (!app.isReady()) {
     return null;
   }
   const startTime = performance.now();
-  const audio_metadata = await audio_scan(event, flag)
+  await audio_scan(event, flag)
   const endTime = performance.now();
   console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
-  return audio_metadata;
 })
 
 app.on('window-all-closed', () => {

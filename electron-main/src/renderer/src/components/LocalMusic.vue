@@ -8,21 +8,19 @@ const { list, containerProps, wrapperProps }=useVirtualList(
   {
     itemHeight: 56,
     overscan:5
-  },)
+  })
 async function SelectFile(flag) {
   fileMeta_list.length = 0;
-  fileMeta_list.push(...await window.electron.ipcRenderer.invoke('select_files', flag))
-  console.log(fileMeta_list)
+  await window.electron.ipcRenderer.send('select_files', flag)
 }
 
 window.electron.ipcRenderer.on('update_files', (_,item)=>{
-  if (item === 'start'){
-    fileMeta_list.length=0;
-  }
   fileMeta_list.push(item)
   console.log(item);
 })
+function SwitchLikes(){
 
+}
 function uint8ArrayToBase64(array) {
   // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
   let binaryString = '';
@@ -71,12 +69,12 @@ function uint8ArrayToBase64(array) {
       <span>sort</span>
       <span>view</span>
     </div>
-    <div class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-xs px-6 pr-8 *:select-none">
+    <div class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-xs px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
       <span class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
       <span class="w-10"></span>
       <span class="text-xs mx-8 mr-16 w-7"></span>
       <span class="w-0 flex-auto text-left">专辑</span>
-      <span class="w-10 mx-8 text-center">时长</span>
+      <span class="w-10 mx-8 text-right">时长</span>
     </div>
     <div v-bind="containerProps" class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4">
       <div v-bind="wrapperProps" class="w-full flex flex-col items-start justify-start overflow-hidden">
@@ -90,7 +88,20 @@ function uint8ArrayToBase64(array) {
             <span class="text-sm w-full">{{ metadata.data.title }}</span>
             <span class="text-xs w-full">{{ metadata.data.artist }}</span>
           </div>
-          <span class="text-xs mx-8 mr-16 w-7">Likes</span>
+          <span class="text-xs mx-8 mr-16 w-7">
+            <label class="swap">
+            <input ref="theme_sw" type="checkbox" @change="SwitchLikes"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" class="swap-off stroke-zinc-500 dark:stroke-zinc-400">
+  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke-width="2"/>
+</svg>
+
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" class="swap-on dark:fill-red-900 fill-red-600">
+  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" stroke-width="2"/>
+</svg>
+
+
+          </label>
+          </span>
           <span class="text-xs w-0 text-left flex-auto truncate">
           {{ metadata.data.album }}
         </span>

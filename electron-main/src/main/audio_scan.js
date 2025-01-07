@@ -19,9 +19,10 @@ export async function audio_scan(event,flag) {
       ]
     });
     if (result.canceled) return null; // 如果用户取消选择
+
     const folderPath = result.filePaths[0];
     const metadata = await mm.parseFile(folderPath, {skipPostHeaders: true, includeChapters: false});
-    const audio_metadata = [{
+    event.sender.send('update_files',{
       title: metadata.common.title,
       artist: metadata.common.artist,
       album: metadata.common.album,
@@ -31,17 +32,15 @@ export async function audio_scan(event,flag) {
       bitrate: metadata.format.bitrate,//比特率
       picture: metadata.common.picture,
       path: folderPath
-    }];
-    console.log(audio_metadata[0]);
-    return audio_metadata;
+    })
   }
-
 
   if (flag === 'folder') {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openDirectory'], // 打开文件夹选择对话框
     });
     if (result.canceled) return null; // 如果用户取消选择
+
     const folderPath = result.filePaths[0];
     const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
     const audioFiles = [];  // 过滤音频文件
@@ -51,29 +50,10 @@ export async function audio_scan(event,flag) {
       }
     }
 
-    // const audio_metadata = [];
-    // event.sender.send('update_files','start')
-    // for await (const file of audioFiles) {
-    //   const filePath = path.join(folderPath, file);
-    //   const metadata = await mm.parseFile(filePath, { skipPostHeaders: true, includeChapters: false });
-    //   // 实时发送元数据
-    //   event.sender.send('update_files', {
-    //     title: metadata.common.title,
-    //     artist: metadata.common.artist,
-    //     album: metadata.common.album,
-    //     numberOfChannels: metadata.format.numberOfChannels, // 声道
-    //     sampleRate: metadata.format.sampleRate, // 音频采样率
-    //     duration: metadata.format.duration, // 时长 s
-    //     bitrate: metadata.format.bitrate, // 比特率
-    //     picture: metadata.common.picture,
-    //     path: filePath
-    //   });
-    // }
-
-    const audio_metadata = await Promise.all(audioFiles.map(async (file) => {
+    await Promise.all(audioFiles.map(async (file) => {
       const filePath = path.join(folderPath, file);
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
-      return {
+      event.sender.send('update_files',{
         title: metadata.common.title,
         artist: metadata.common.artist,
         album: metadata.common.album,
@@ -83,9 +63,11 @@ export async function audio_scan(event,flag) {
         bitrate: metadata.format.bitrate,//比特率
         picture: metadata.common.picture,
         path: filePath
-      };
+      })
     }));
-    console.log(audio_metadata);
-    return audio_metadata;
   }
+}
+
+function updateCache(){
+  
 }
