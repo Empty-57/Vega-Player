@@ -4,7 +4,6 @@ import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {debounce} from "./debounce";
 import {audio_scan} from "./audio_scan";
-import IndexDB from "./indexDB";
 
 function createWindow() {
   // Create the browser window.

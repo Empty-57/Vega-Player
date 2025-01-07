@@ -18,7 +18,8 @@ const tabs = {
       class="relative left-0 top-0 flex flex-col items-stretch justify-center h-screen min-w-36 bg-zinc-300 p-2 dark:bg-zinc-900 gap-y-4">
     <span class="select-none flex items-center justify-center">
       <span>
-        <svg class=" stroke-zinc-900 dark:stroke-zinc-200" fill="none" height="32" stroke-width="1" viewBox="0 -12 64 64"
+        <svg class=" stroke-zinc-900 dark:stroke-zinc-200" fill="none" height="32" stroke-width="1"
+             viewBox="0 -12 64 64"
              width="32" xmlns="http://www.w3.org/2000/svg">
   <path d="M10 32 L20 10 L25 15 L30 12 L35 20 L40 10 L50 32"/>
   <path d="M54 32 L44 10 L39 15 L34 12 L29 20 L24 10 L14 32"/>
@@ -27,9 +28,10 @@ const tabs = {
       <span class="text-zinc-900 dark:text-zinc-200 text-sm">Vega Player</span>
     </span>
       <span class="grow"></span>
-      <span :class="[tabIndex==='LocalMusic'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/20':'text-zinc-600 dark:text-zinc-400']"
-            class="select-none py-2 h-10 rounded flex items-center justify-center"
-            @click="()=>tabIndex='LocalMusic'">
+      <span
+        :class="[tabIndex==='LocalMusic'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40':'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20']"
+        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        @click="()=>tabIndex='LocalMusic'">
       <svg class="stroke-zinc-900 dark:stroke-zinc-200" height="24" viewBox="0 0 24 24" width="24"
            xmlns="http://www.w3.org/2000/svg">
   <line stroke-width="1" x1="5" x2="19" y1="20" y2="20"/>
@@ -37,9 +39,10 @@ const tabs = {
 </svg>
       <span class="ml-2 text-sm">本地</span>
     </span>
-      <span :class="[tabIndex==='Likes'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/20':'text-zinc-600 dark:text-zinc-400']"
-            class="select-none py-2 h-10 rounded flex items-center justify-center"
-            @click="()=>tabIndex='Likes'">
+      <span
+        :class="[tabIndex==='Likes'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40':'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20']"
+        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        @click="()=>tabIndex='Likes'">
       <svg class="fill-zinc-900 dark:fill-zinc-200" height="20" viewBox="0 0 1024 1024"
            width="20" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -47,9 +50,10 @@ const tabs = {
       </path></svg>
 <span class="ml-2 text-sm">收藏</span>
     </span>
-      <span :class="[tabIndex==='Setting'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/20':'text-zinc-600 dark:text-zinc-400']"
-            class="select-none py-2 h-10 rounded flex items-center justify-center"
-            @click="()=>tabIndex='Setting'">
+      <span
+        :class="[tabIndex==='Setting'? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40':'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20']"
+        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        @click="()=>tabIndex='Setting'">
       <svg class="fill-zinc-900 dark:fill-zinc-200" height="20" viewBox="0 0 1024 1024"
            width="20" xmlns="http://www.w3.org/2000/svg"><path
         d="M944.48 552.458667l-182.357333 330.666666a73.792 73.792 0 0 1-64.565334 38.325334h-362.133333a73.792 73.792 0 0 1-64.565333-38.325334l-182.357334-330.666666a75.338667 75.338667 0 0 1 0-72.682667l182.357334-330.666667a73.792 73.792 0 0 1 64.565333-38.325333h362.133333a73.792 73.792 0 0 1 64.565334 38.325333l182.357333 330.666667a75.338667 75.338667 0 0 1 0 72.682667z m-55.989333-31.146667a10.773333 10.773333 0 0 0 0-10.378667l-182.037334-330.666666a10.517333 10.517333 0 0 0-9.205333-5.482667H335.733333a10.517333 10.517333 0 0 0-9.205333 5.482667l-182.037333 330.666666a10.773333 10.773333 0 0 0 0 10.378667l182.037333 330.666667a10.517333 10.517333 0 0 0 9.205333 5.472h361.514667a10.517333 10.517333 0 0 0 9.205333-5.472l182.037334-330.666667zM513.738667 682.666667c-94.261333 0-170.666667-76.405333-170.666667-170.666667s76.405333-170.666667 170.666667-170.666667c94.250667 0 170.666667 76.405333 170.666666 170.666667s-76.416 170.666667-170.666666 170.666667z m0-64c58.912 0 106.666667-47.754667 106.666666-106.666667s-47.754667-106.666667-106.666666-106.666667-106.666667 47.754667-106.666667 106.666667 47.754667 106.666667 106.666667 106.666667z">

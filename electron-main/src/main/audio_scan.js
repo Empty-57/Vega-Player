@@ -18,12 +18,17 @@ export async function audio_scan(event,flag) {
         {name: 'Audio Files', extensions: _ext}, // 只显示音频文件
       ]
     });
-    if (result.canceled) return null; // 如果用户取消选择
+    if (result.canceled)
+    {
+      event.sender.send('close_db')
+      return null
+    } // 如果用户取消选择
 
-    const folderPath = result.filePaths[0];
-    const metadata = await mm.parseFile(folderPath, {skipPostHeaders: true, includeChapters: false});
-    event.sender.send('update_files',{
-      title: metadata.common.title,
+    const filePath = result.filePaths[0];
+    const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
+    event.sender.send('update_cache_file',{
+      audio_id:filePath,
+      title: metadata.common.title? metadata.common.title:path.basename(filePath,path.extname(filePath)),
       artist: metadata.common.artist,
       album: metadata.common.album,
       numberOfChannels: metadata.format.numberOfChannels,//声道
@@ -31,16 +36,21 @@ export async function audio_scan(event,flag) {
       duration: metadata.format.duration,//时长 s
       bitrate: metadata.format.bitrate,//比特率
       picture: metadata.common.picture,
-      path: folderPath
+      path: filePath
     })
+    event.sender.send('close_db')
   }
 
   if (flag === 'folder') {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openDirectory'], // 打开文件夹选择对话框
     });
-    if (result.canceled) return null; // 如果用户取消选择
-
+    if (result.canceled)
+    {
+      event.sender.send('close_db')
+      return null
+    } // 如果用户取消选择
+    event.sender.send('clear_db')
     const folderPath = result.filePaths[0];
     const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
     const audioFiles = [];  // 过滤音频文件
@@ -53,8 +63,9 @@ export async function audio_scan(event,flag) {
     await Promise.all(audioFiles.map(async (file) => {
       const filePath = path.join(folderPath, file);
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
-      event.sender.send('update_files',{
-        title: metadata.common.title,
+      event.sender.send('update_cache_folder',{
+        audio_id:filePath,
+        title: metadata.common.title? metadata.common.title:path.basename(file,path.extname(file)),
         artist: metadata.common.artist,
         album: metadata.common.album,
         numberOfChannels: metadata.format.numberOfChannels,//声道
@@ -65,9 +76,10 @@ export async function audio_scan(event,flag) {
         path: filePath
       })
     }));
+    event.sender.send('close_db')
   }
 }
 
 function updateCache(){
-  
+
 }
