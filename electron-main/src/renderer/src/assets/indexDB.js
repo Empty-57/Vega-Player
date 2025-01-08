@@ -14,9 +14,9 @@ class IndexDB {
       this._request = indexDB.open(this._dbName, this._version);
 
       this._request.onupgradeneeded = event => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(this._tableName)) {
-          const store = db.createObjectStore(this._tableName, {
+        this._db = event.target.result;
+        if (!this._db.objectStoreNames.contains(this._tableName)) {
+          const store = this._db.createObjectStore(this._tableName, {
             keyPath: 'audio_id', // 设置主键
             autoIncrement: false,
           })
@@ -31,7 +31,7 @@ class IndexDB {
       this._request.onsuccess = event => {
         this._db = event.target.result;
         console.log('db open success: ', event);
-        resolve(true)
+        resolve(event)
       }
       this._request.onerror = event => {
         console.log('db open error: ', event);
@@ -44,9 +44,9 @@ class IndexDB {
     console.log('db closed');
   }
 
-  addData(data) {
-    const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
-    const store = transaction.objectStore(this._tableName);
+  addData(data,table_name=this._tableName) {
+    const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
+    const store = transaction.objectStore(table_name);
     const add_response = store.put(data);
 
     add_response.onsuccess = event => {
@@ -99,37 +99,41 @@ class IndexDB {
     }
   }
 
-  searchData(text = '', flag = 0, args = null) {
-    const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
-    const store = transaction.objectStore(this._tableName);
-    let search_requests;
-    let pathIndex;
-    switch (flag) {
-      case 0:
-        search_requests = store.openCursor();
-        break;
-      case 1:
-        pathIndex = store.index('path')
-        search_requests = pathIndex.openCursor(IDBKeyRange.only(text));
-        break;
-      case 2:
-        break;
-    }
+  searchData(text = '', flag = 0, args = []) {
+    return new Promise((resolve, reject) => {
+      const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
+      const store = transaction.objectStore(this._tableName);
+      let search_requests;
+      let pathIndex;
+      switch (flag) {
+        case 0:
+          search_requests = store.openCursor();
+          break;
+        case 1:
+          pathIndex = store.index('path')
+          search_requests = pathIndex.openCursor(IDBKeyRange.only(text));
+          break;
+        case 2:
+          break;
+      }
 
-    search_requests.onsuccess = event => {
-      const cursor = event.target.result;
-      if (cursor) {
-        console.log('search success: ', cursor.value);
-        args.push(cursor.value);
-        cursor.continue()
-      } else {
+      search_requests.onsuccess = event => {
+        const cursor = event.target.result;
+        if (cursor) {
+          console.log('search success: ', cursor.value,text);
+          args.push(cursor.value);
+          resolve(1)
+          cursor.continue()
+        } else {
+          console.log('search not found: ', event,text);
+          resolve(0)
+        }
+      }
+      search_requests.onerror = event => {
         console.log('search error: ', event);
       }
-    }
-    search_requests.onerror = event => {
-      console.log('search error: ', event);
-    }
-    return [];
+      return [];
+    })
   }
 }
 

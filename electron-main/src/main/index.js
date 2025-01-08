@@ -7,11 +7,13 @@ import {audio_scan} from "./audio_scan";
 
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  let mainWindow = new BrowserWindow({
     width: 1000,
     height: 600,
     minWidth: 800,
     minHeight: 600,
+    title:'Vega Player',
+    backgroundColor: '0x00000000',
     show: false,
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明
@@ -22,6 +24,8 @@ function createWindow() {
       sandbox: false
     }
   })
+  mainWindow.setMenu(null)
+  mainWindow.setMaximizable(false)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -42,6 +46,10 @@ function createWindow() {
       mainWindow.webContents.send('resize')
     }
   }, 200))
+
+  mainWindow.on('close', () => {
+    mainWindow = null
+  })
 }
 
 app.whenReady().then(() => {

@@ -22,36 +22,47 @@ onBeforeMount(() => {
 
 async function SelectFile(flag) {
   await db.init_DB()
-  await window.electron.ipcRenderer.send('select_files', flag)
+  window.electron.ipcRenderer.send('select_files', flag)
 }
 
-window.electron.ipcRenderer.on('close_db', async (_, item) => {
+window.electron.ipcRenderer.on('close_db', () => {
   db.close_db()
 })
-window.electron.ipcRenderer.on('clear_db', async (_, item) => {
+window.electron.ipcRenderer.on('clear_db', () => {
+  const music_list=document.querySelector('#music_list')
+  music_list.scrollTop = 0
   fileMeta_list.length = 0
   db.clearData()
 })
 
-window.electron.ipcRenderer.on('update_cache_folder', async (_, item) => {
+window.electron.ipcRenderer.on('update_cache_folder', (_, item) => {
   db.addData(item)
   fileMeta_list.push(item)
   console.log(item);
 })
 
-window.electron.ipcRenderer.on('update_cache_file', async (_, item) => {
-  const check = []
-  db.searchData(item.path, 1, check)
-  if (check) {
-    return;
-  }
-  db.addData(item)
-  fileMeta_list.push(item)
+window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   console.log(item);
+  db.searchData(item.path, 1).then(flag=>{
+    if (flag === 0) {
+      db.addData(item)
+      fileMeta_list.push(item)
+    }
+  })
 })
 
-function SwitchLikes() {
-
+function SwitchLikes(event) {
+// if (event.target.checked) {
+//   db.init_DB().then(() => {
+//     db.addData([],'audioCache')
+//   })
+//   db.close_db()
+// }else {
+//   db.init_DB().then(() => {
+//     db.deleteData()
+//   })
+//   db.close_db()
+// }
 }
 
 function uint8ArrayToBase64(array) {
@@ -69,7 +80,7 @@ function uint8ArrayToBase64(array) {
 <template>
   <div class="relative top-0 left-0 flex flex-col items-start justify-start h-screen w-full p-4 gap-y-2">
     <span
-      class="text-zinc-900 dark:text-zinc-200 text-2xl basis-1/6 flex items-center justify-center font-semibold px-4 pt-4">本地音乐</span>
+      class="select-none text-zinc-900 dark:text-zinc-200 text-2xl basis-1/6 flex items-center justify-center font-semibold px-4 pt-4">本地音乐</span>
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <div class="dropdown">
         <div
@@ -110,8 +121,8 @@ function uint8ArrayToBase64(array) {
       <span class="w-0 flex-auto text-left">专辑</span>
       <span class="w-10 mx-8 text-center">时长</span>
     </div>
-    <div class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4" v-bind="containerProps">
-      <div class="w-full flex flex-col items-start justify-start overflow-hidden" v-bind="wrapperProps">
+    <div class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4" v-bind="containerProps" id="music_list">
+      <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
         <div
           v-for="metadata in list" :key="metadata.index"
           class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-900/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded duration-200">

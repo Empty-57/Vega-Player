@@ -26,19 +26,23 @@ export async function audio_scan(event,flag) {
 
     const filePath = result.filePaths[0];
     const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
-    event.sender.send('update_cache_file',{
-      audio_id:filePath,
-      title: metadata.common.title? metadata.common.title:path.basename(filePath,path.extname(filePath)),
-      artist: metadata.common.artist,
-      album: metadata.common.album,
-      numberOfChannels: metadata.format.numberOfChannels,//声道
-      sampleRate: metadata.format.sampleRate,//音频采样率
-      duration: metadata.format.duration,//时长 s
-      bitrate: metadata.format.bitrate,//比特率
-      picture: metadata.common.picture,
-      path: filePath
+
+    new Promise(() => {
+      event.sender.send('update_cache_file', {
+        audio_id: filePath,
+        title: metadata.common.title ? metadata.common.title : path.basename(filePath, path.extname(filePath)),
+        artist: metadata.common.artist,
+        album: metadata.common.album,
+        numberOfChannels: metadata.format.numberOfChannels,//声道
+        sampleRate: metadata.format.sampleRate,//音频采样率
+        duration: metadata.format.duration,//时长 s
+        bitrate: metadata.format.bitrate,//比特率
+        picture: metadata.common.picture,
+        path: filePath
+      })
+    }).then(()=>{
+      event.sender.send('close_db')
     })
-    event.sender.send('close_db')
   }
 
   if (flag === 'folder') {
@@ -50,7 +54,12 @@ export async function audio_scan(event,flag) {
       event.sender.send('close_db')
       return null
     } // 如果用户取消选择
-    event.sender.send('clear_db')
+    new Promise(()=>{
+      event.sender.send('clear_db')
+    }).then(()=>{
+      console.log('')
+    })
+
     const folderPath = result.filePaths[0];
     const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
     const audioFiles = [];  // 过滤音频文件
@@ -60,7 +69,7 @@ export async function audio_scan(event,flag) {
       }
     }
 
-    await Promise.all(audioFiles.map(async (file) => {
+    Promise.all(audioFiles.map(async (file) => {
       const filePath = path.join(folderPath, file);
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
       event.sender.send('update_cache_folder',{
@@ -75,11 +84,8 @@ export async function audio_scan(event,flag) {
         picture: metadata.common.picture,
         path: filePath
       })
-    }));
-    event.sender.send('close_db')
+    })).then(()=>{
+      event.sender.send('close_db')
+    });
   }
-}
-
-function updateCache(){
-
 }
