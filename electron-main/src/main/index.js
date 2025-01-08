@@ -12,7 +12,7 @@ function createWindow() {
     height: 600,
     minWidth: 800,
     minHeight: 600,
-    title:'Vega Player',
+    title: 'Vega Player',
     backgroundColor: '0x00000000',
     show: false,
     frame: false, // 禁用默认边框

@@ -8,7 +8,7 @@ const audio_ext = new Set(_ext.map(item => {
   return '.' + item
 }))
 
-export async function audio_scan(event,flag) {
+export async function audio_scan(event, flag) {
   const window = BrowserWindow.getFocusedWindow();
   const mm = await loadMusicMetadata()
   if (flag === 'file') {
@@ -18,8 +18,7 @@ export async function audio_scan(event,flag) {
         {name: 'Audio Files', extensions: _ext}, // 只显示音频文件
       ]
     });
-    if (result.canceled)
-    {
+    if (result.canceled) {
       event.sender.send('close_db')
       return null
     } // 如果用户取消选择
@@ -40,7 +39,7 @@ export async function audio_scan(event,flag) {
         picture: metadata.common.picture,
         path: filePath
       })
-    }).then(()=>{
+    }).then(() => {
       event.sender.send('close_db')
     })
   }
@@ -49,16 +48,11 @@ export async function audio_scan(event,flag) {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openDirectory'], // 打开文件夹选择对话框
     });
-    if (result.canceled)
-    {
+    if (result.canceled) {
       event.sender.send('close_db')
       return null
     } // 如果用户取消选择
-    new Promise(()=>{
-      event.sender.send('clear_db')
-    }).then(()=>{
-      console.log('')
-    })
+    event.sender.send('clear_db')
 
     const folderPath = result.filePaths[0];
     const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
@@ -72,9 +66,9 @@ export async function audio_scan(event,flag) {
     Promise.all(audioFiles.map(async (file) => {
       const filePath = path.join(folderPath, file);
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
-      event.sender.send('update_cache_folder',{
-        audio_id:filePath,
-        title: metadata.common.title? metadata.common.title:path.basename(file,path.extname(file)),
+      event.sender.send('update_cache_folder', {
+        audio_id: filePath,
+        title: metadata.common.title ? metadata.common.title : path.basename(file, path.extname(file)),
         artist: metadata.common.artist,
         album: metadata.common.album,
         numberOfChannels: metadata.format.numberOfChannels,//声道
@@ -84,7 +78,7 @@ export async function audio_scan(event,flag) {
         picture: metadata.common.picture,
         path: filePath
       })
-    })).then(()=>{
+    })).then(() => {
       event.sender.send('close_db')
     });
   }

@@ -1,8 +1,9 @@
 <script setup>
-import {onBeforeMount, reactive} from "vue";
+import {reactive} from "vue";
 import {useVirtualList} from '@vueuse/core'
 import IndexDB from "../assets/indexDB";
 import placeholder from "../assets/placeholder.jpg";
+import FloatLocalTopBtn from "./FloatLocalTopBtn.vue";
 
 const db = new IndexDB()
 
@@ -14,10 +15,8 @@ const {list, containerProps, wrapperProps} = useVirtualList(
     overscan: 5
   })
 
-onBeforeMount(() => {
-  db.init_DB().then(() => {
-    db.searchData('', 0, fileMeta_list)
-  })
+db.init_DB().then(() => {
+  db.searchData('', 0, fileMeta_list)
 })
 
 async function SelectFile(flag) {
@@ -29,7 +28,7 @@ window.electron.ipcRenderer.on('close_db', () => {
   db.close_db()
 })
 window.electron.ipcRenderer.on('clear_db', () => {
-  const music_list=document.querySelector('#music_list')
+  const music_list = document.querySelector('#music_list')
   music_list.scrollTop = 0
   fileMeta_list.length = 0
   db.clearData()
@@ -43,7 +42,7 @@ window.electron.ipcRenderer.on('update_cache_folder', (_, item) => {
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   console.log(item);
-  db.searchData(item.path, 1).then(flag=>{
+  db.searchData(item.path, 1).then(flag => {
     if (flag === 0) {
       db.addData(item)
       fileMeta_list.push(item)
@@ -114,27 +113,27 @@ function uint8ArrayToBase64(array) {
       <span>view</span>
     </div>
     <div
-      class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-xs px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
+      class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-[10px] px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
       <span class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
       <span class="w-10"></span>
       <span class="text-xs mx-8 mr-16 w-7"></span>
       <span class="w-0 flex-auto text-left">专辑</span>
       <span class="w-10 mx-8 text-center">时长</span>
     </div>
-    <div class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4" v-bind="containerProps" id="music_list">
+    <div id="music_list" class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4" v-bind="containerProps">
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
         <div
           v-for="metadata in list" :key="metadata.index"
-          class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-900/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 *:dark:text-zinc-200 rounded duration-200">
+          class="flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
           <img
             :src="metadata.data.picture? 'data:'+metadata.data.picture[0].format+';base64,'+uint8ArrayToBase64(metadata.data.picture[0].data):placeholder"
             alt=""
             class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
-          <div class="flex flex-col items-start justify-center mx-2 w-0 flex-auto max-w-[25%] *:truncate">
-            <span class="text-sm w-full">{{ metadata.data.title }}</span>
-            <span class="text-xs w-full">{{ metadata.data.artist }}</span>
+          <div class="flex flex-col items-start justify-between h-8 mx-2 w-0 flex-auto max-w-[25%] *:truncate">
+            <span class="text-xs w-full dark:text-zinc-200">{{ metadata.data.title }}</span>
+            <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{ metadata.data.artist }}</span>
           </div>
-          <span class="text-xs mx-8 mr-16 w-7">
+          <span class="mx-8 mr-16 w-7">
             <label class="swap">
             <input ref="theme_sw" type="checkbox" @change="SwitchLikes"/>
             <svg class="swap-off stroke-zinc-500 dark:stroke-zinc-400" height="16" viewBox="0 0 24 24" width="16"
@@ -152,10 +151,10 @@ function uint8ArrayToBase64(array) {
 </svg>
           </label>
           </span>
-          <span class="text-xs w-0 text-left flex-auto truncate">
+          <span class="text-[10px] w-0 text-left flex-auto truncate dark:text-zinc-400">
           {{ metadata.data.album }}
         </span>
-          <div class="text-xs text-center w-10 mx-8 truncate">
+          <div class="text-[10px] font-thin text-center w-10 mx-8 truncate dark:text-zinc-400">
             {{
               Math.floor(metadata.data.duration / 60).toString().padStart(2, '0')
             }}:{{ Math.floor(metadata.data.duration % 60).toString().padStart(2, '0') }}
@@ -163,6 +162,6 @@ function uint8ArrayToBase64(array) {
         </div>
       </div>
     </div>
-
+    <float-local-top-btn></float-local-top-btn>
   </div>
 </template>

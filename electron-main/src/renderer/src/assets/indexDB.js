@@ -44,7 +44,7 @@ class IndexDB {
     console.log('db closed');
   }
 
-  addData(data,table_name=this._tableName) {
+  addData(data, table_name = this._tableName) {
     const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
     const store = transaction.objectStore(table_name);
     const add_response = store.put(data);
@@ -120,12 +120,12 @@ class IndexDB {
       search_requests.onsuccess = event => {
         const cursor = event.target.result;
         if (cursor) {
-          console.log('search success: ', cursor.value,text);
+          console.log('search success: ', cursor.value, text);
           args.push(cursor.value);
           resolve(1)
           cursor.continue()
         } else {
-          console.log('search not found: ', event,text);
+          console.log('search not found: ', event, text);
           resolve(0)
         }
       }
