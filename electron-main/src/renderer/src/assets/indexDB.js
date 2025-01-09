@@ -26,6 +26,17 @@ class IndexDB {
           store.createIndex('album', 'album', {unique: false})
           console.log('onupgradeneeded: ', event)
         }
+        if (!this._db.objectStoreNames.contains('LikesCache')) {
+          const store = this._db.createObjectStore('LikesCache', {
+            keyPath: 'audio_id', // 设置主键
+            autoIncrement: false,
+          })
+          store.createIndex('path', 'path', {unique: false})
+          store.createIndex('title', 'title', {unique: false})
+          store.createIndex('artist', 'artist', {unique: false})
+          store.createIndex('album', 'album', {unique: false})
+          console.log('onupgradeneeded: ', event)
+        }
       }
 
       this._request.onsuccess = event => {
@@ -70,14 +81,14 @@ class IndexDB {
     }
   }
 
-  deleteData(title = '') {
-    const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
-    const store = transaction.objectStore(this._tableName);
-    const titleIndex = store.index('title')
-    const title_requests = titleIndex.openCursor(IDBKeyRange.only(title));
+  deleteData(path = '', table_name = this._tableName) {
+    const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
+    const store = transaction.objectStore(table_name);
+    const pathIndex = store.index('path')
+    const path_requests = pathIndex.openCursor(IDBKeyRange.only(path));
 
 
-    title_requests.onsuccess = event => {
+    path_requests.onsuccess = event => {
       const record = event.target.result;
       if (record) {
         // 删除当前记录
@@ -91,18 +102,18 @@ class IndexDB {
         // 继续游标，查找下一条匹配记录
         record.continue();
       } else {
-        console.log('title not found: ', event);
+        console.log('path not found: ', event);
       }
     }
-    title_requests.onerror = event => {
+    path_requests.onerror = event => {
       console.log('delete error: ', event);
     }
   }
 
-  searchData(text = '', flag = 0, args = []) {
+  searchData(text = '', flag = 0, args = [], table_name = this._tableName) {
     return new Promise((resolve, reject) => {
-      const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
-      const store = transaction.objectStore(this._tableName);
+      const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
+      const store = transaction.objectStore(table_name);
       let search_requests;
       let pathIndex;
       switch (flag) {

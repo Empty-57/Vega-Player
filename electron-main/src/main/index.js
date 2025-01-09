@@ -2,7 +2,7 @@ import {app, BrowserWindow, ipcMain, shell} from 'electron'
 import {join} from 'path'
 import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import {debounce} from "./debounce";
+import {useDebounceFn} from '@vueuse/core'
 import {audio_scan} from "./audio_scan";
 
 function createWindow() {
@@ -41,7 +41,7 @@ function createWindow() {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  mainWindow.on('resize', debounce(() => {
+  mainWindow.on('resize', useDebounceFn(() => {
     if (!mainWindow.isMaximized()) {
       mainWindow.webContents.send('resize')
     }

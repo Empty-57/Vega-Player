@@ -37,7 +37,8 @@ export async function audio_scan(event, flag) {
         duration: metadata.format.duration,//时长 s
         bitrate: metadata.format.bitrate,//比特率
         picture: metadata.common.picture,
-        path: filePath
+        path: filePath,
+        isLike: false
       })
     }).then(() => {
       event.sender.send('close_db')
@@ -76,7 +77,8 @@ export async function audio_scan(event, flag) {
         duration: metadata.format.duration,//时长 s
         bitrate: metadata.format.bitrate,//比特率
         picture: metadata.common.picture,
-        path: filePath
+        path: filePath,
+        isLike: false
       })
     })).then(() => {
       event.sender.send('close_db')

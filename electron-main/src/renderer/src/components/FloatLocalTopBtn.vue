@@ -1,11 +1,21 @@
 <script setup>
+const emit = defineEmits(["ToTop", "ToLocal"])
+const {isTop, isPlay} = defineProps(["isTop", "isPlay"])
 
+function ToTop() {
+  emit("ToTop");
+}
+
+function ToLocal() {
+  emit("ToLocal");
+}
 </script>
 
 <template>
   <div class="fixed w-fit h-fit bottom-20 right-8 flex flex-col">
-    <div
-      class="size-6 border dark:border-zinc-600 border-zinc-500 dark:hover:border-cyan-600 hover:border-cyan-400 hover:cursor-pointer group flex items-center justify-center">
+    <div v-if="isPlay"
+         class="size-6 border dark:border-zinc-600 border-zinc-500 dark:hover:border-cyan-600 hover:border-cyan-400 hover:cursor-pointer group flex items-center justify-center"
+         @click="ToLocal">
       <svg class="fill-zinc-500 dark:fill-zinc-400 dark:group-hover:fill-cyan-600 group-hover:fill-cyan-400"
            height="14" viewBox="0 0 1024 1024" width="14" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -14,8 +24,9 @@
         </path>
       </svg>
     </div>
-    <div
-      class="size-6 border dark:border-zinc-600 border-zinc-500 dark:hover:border-cyan-600 hover:border-cyan-400 hover:cursor-pointer group flex items-center justify-center">
+    <div v-if="!isTop"
+         class="size-6 border dark:border-zinc-600 border-zinc-500 dark:hover:border-cyan-600 hover:border-cyan-400 hover:cursor-pointer group flex items-center justify-center"
+         @click="ToTop">
       <svg class="fill-zinc-500 dark:fill-zinc-400 dark:group-hover:fill-cyan-600 group-hover:fill-cyan-400"
            height="14" viewBox="0 0 1024 1024" width="14" xmlns="http://www.w3.org/2000/svg">
         <path

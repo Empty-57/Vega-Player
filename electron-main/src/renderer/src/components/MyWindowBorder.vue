@@ -1,36 +1,24 @@
 <script setup>
-import {onActivated, onMounted, ref, useTemplateRef} from "vue";
+import {ref} from "vue";
+import {useDark, useToggle} from "@vueuse/core";
 
-const theme_sw = useTemplateRef('theme_sw')
 const isMaximized = ref(false)
-localStorage.theme = 'dark'
-let html_ = null;
-onMounted(() => {
-  html_ = document.querySelector('html');
-  theme_sw.value.checked = localStorage.theme === 'light';
-  html_.className = localStorage.theme
-})
-onActivated(() => {
-  theme_sw.value.checked = localStorage.theme === 'light';
-})
 
-window.electron.ipcRenderer.on('resize', () => {
-  isMaximized.value = false;
-});
-
-function themeSwitch(event) {
-  if (event.target.checked) {
-    localStorage.setItem("theme", "light")
-    html_.className = 'light'
-  } else {
-    localStorage.setItem("theme", "dark")
-    html_.className = 'dark'
-  }
-}
+const isDark = useDark({
+  storageKey: 'theme',
+  valueDark: 'dark',
+  valueLight: 'light',
+  disableTransition: false
+})
+const toggleDark = useToggle(isDark)
 
 async function windowAction(action) {
   isMaximized.value = await window.electron.ipcRenderer.invoke('windowAction', action);
 }
+
+window.electron.ipcRenderer.on('resize', () => {
+  isMaximized.value = false;
+});
 </script>
 
 <template>
@@ -39,7 +27,7 @@ async function windowAction(action) {
     <span class="grow"></span>
     <span class="no_drag p-3 flex items-center justify-center">
       <label class="swap swap-rotate">
-            <input ref="theme_sw" type="checkbox" @change="themeSwitch"/>
+            <input ref="theme_sw" :checked="!isDark" class="outline-none" type="checkbox" @change="toggleDark()"/>
             <svg class="swap-off stroke-zinc-900 dark:stroke-zinc-200" fill="none"
                  height="20" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" viewBox="0 -1 24 24"
                  width="20"
@@ -60,7 +48,6 @@ async function windowAction(action) {
   <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"/>
   <line x1="18.36" x2="19.78" y1="5.64" y2="4.22"/>
 </svg>
-
           </label>
     </span>
     <span class=" no_drag dark:hover:bg-zinc-600/40 hover:bg-zinc-400/20 p-3" @click="windowAction('minimize')">
