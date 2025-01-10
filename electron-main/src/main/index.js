@@ -76,12 +76,12 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
-ipcMain.on('select_files', async (event, flag) => {
+ipcMain.on('select_files', async (event, args) => {
   if (!app.isReady()) {
     return null;
   }
   const startTime = performance.now();
-  await audio_scan(event, flag)
+  await audio_scan(event, args.flag, args.cacheList)
   const endTime = performance.now();
   console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
 })

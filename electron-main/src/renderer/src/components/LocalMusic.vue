@@ -1,5 +1,5 @@
 <script setup>
-import {nextTick, reactive, ref, toRaw, useTemplateRef} from "vue";
+import {nextTick, ref, toRaw, useTemplateRef} from "vue";
 import {useScroll, useVirtualList} from '@vueuse/core'
 import IndexDB from "../assets/indexDB";
 import placeholder from "../assets/placeholder.jpg";
@@ -9,15 +9,15 @@ import {vOnClickOutside} from "@vueuse/components";
 const db = new IndexDB()
 const music_dropdown = ref(false)
 const music_menu = useTemplateRef('music_menu')
-const music_local = reactive({
+const music_local = ref({
   x: 0,
   y: 0,
   path: '',
   music_index: 0,
 })
-const fileMeta_list = reactive([])
+const fileMeta_list = ref([])
 const {list, containerProps, wrapperProps} = useVirtualList(
-  fileMeta_list,
+  fileMeta_list.value,
   {
     itemHeight: 56,
     overscan: 5
@@ -27,27 +27,30 @@ const {arrivedState} = useScroll(music_list)
 
 
 db.init_DB().then(() => {
-  db.searchData('', 0, fileMeta_list)
+  db.searchData('', 0, fileMeta_list.value)
 })
 
-async function SelectFile(flag) {
+async function SelectFile(flag, cacheList = []) {
   await db.init_DB()
-  window.electron.ipcRenderer.send('select_files', flag)
+  window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)})
 }
 
 window.electron.ipcRenderer.on('close_db', () => {
   db.close_db()
 })
-window.electron.ipcRenderer.on('clear_db', () => {
+window.electron.ipcRenderer.on('to_top', () => {
   music_list.value.scrollTop = 0
-  fileMeta_list.length = 0
-  db.clearData()
 })
 
-window.electron.ipcRenderer.on('update_cache_folder', (_, item) => {
+window.electron.ipcRenderer.on('delete_db', (_, path, index) => {
+  db.deleteData(path)
+  db.deleteData(path, 'LikesCache')
+  fileMeta_list.value.splice(index, 1)
+})
+
+window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item)
-  fileMeta_list.push(item)
-  console.log(item);
+  fileMeta_list.value.push(item)
 })
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
@@ -55,25 +58,25 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   db.searchData(item.path, 1).then(flag => {
     if (flag === 0) {
       db.addData(item)
-      fileMeta_list.push(item)
+      fileMeta_list.value.push(item)
     }
   })
 })
 
 function SwitchLikes(event, args) {
-  console.log('likes: ', toRaw(fileMeta_list[args.index]))
+  console.log('likes: ', toRaw(fileMeta_list.value[args.index]))
   if (event.target.checked) {
     db.init_DB().then(() => {
-      fileMeta_list[args.index].isLike = true
-      db.addData(toRaw(fileMeta_list[args.index]))
-      db.addData(toRaw(fileMeta_list[args.index]), 'LikesCache')
+      fileMeta_list.value[args.index].isLike = true
+      db.addData(toRaw(fileMeta_list.value[args.index]))
+      db.addData(toRaw(fileMeta_list.value[args.index]), 'LikesCache')
       db.close_db()
     })
   } else {
     db.init_DB().then(() => {
       db.deleteData(args.path, 'LikesCache')
-      fileMeta_list[args.index].isLike = false
-      db.addData(toRaw(fileMeta_list[args.index]))
+      fileMeta_list.value[args.index].isLike = false
+      db.addData(toRaw(fileMeta_list.value[args.index]))
       db.close_db()
     })
   }
@@ -81,32 +84,22 @@ function SwitchLikes(event, args) {
 
 function music_delete() {
   db.init_DB().then(() => {
-    db.deleteData(music_local.path)
-    db.deleteData(music_local.path, 'LikesCache')
+    db.deleteData(music_local.value.path)
+    db.deleteData(music_local.value.path, 'LikesCache')
     db.close_db()
-    fileMeta_list.splice(music_local.music_index, 1)
+    fileMeta_list.value.splice(music_local.value.music_index, 1)
   })
   music_dropdown.value = false
 }
 
-function uint8ArrayToBase64(array) {
-  // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
-  let binaryString = '';
-  const length = array.length;
-  for (let i = 0; i < length; i++) {
-    binaryString += String.fromCharCode(array[i]);
-  }
-  // 使用 btoa 将二进制字符串转换为 Base64
-  return btoa(binaryString);
-}
 
 async function click_menu(event, args) {
   music_dropdown.value = !music_dropdown.value;
   await nextTick(() => {
-    music_local.x = event.clientX - 6;
-    music_local.y = event.clientY - music_menu.value.clientHeight - 6;
-    music_local.path = args.path;
-    music_local.music_index = args.index
+    music_local.value.x = event.clientX - 6;
+    music_local.value.y = event.clientY - music_menu.value.clientHeight - 6;
+    music_local.value.path = args.path;
+    music_local.value.music_index = args.index
   })
 
 }
@@ -147,8 +140,9 @@ function ToLocal() {
             </a>
           </li>
           <li>
-            <a class="active:bg-transparent active:text-inherit p-2 h-8 rounded-none" @click="SelectFile('folder')">
-              添加文件夹
+            <a class="active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+               @click="SelectFile('folder',fileMeta_list)">
+              扫描文件夹
             </a>
           </li>
         </ul>
@@ -172,7 +166,7 @@ function ToLocal() {
           v-for="metadata in list" :key="metadata.index"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
           <img
-            :src="metadata.data.picture? 'data:'+metadata.data.picture[0].format+';base64,'+uint8ArrayToBase64(metadata.data.picture[0].data):placeholder"
+            :src="metadata.data.picture? metadata.data.picture:placeholder"
             alt=""
             class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
           <div class="flex flex-col items-start justify-between h-8 mx-2 w-0 flex-auto max-w-[25%] *:truncate">

@@ -8,7 +8,18 @@ const audio_ext = new Set(_ext.map(item => {
   return '.' + item
 }))
 
-export async function audio_scan(event, flag) {
+function uint8ArrayToBase64(array) {
+  // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
+  let binaryString = '';
+  const length = array.length;
+  for (let i = 0; i < length; i++) {
+    binaryString += String.fromCharCode(array[i]);
+  }
+  // 使用 btoa 将二进制字符串转换为 Base64
+  return btoa(binaryString);
+}
+
+export async function audio_scan(event, flag, cacheList) {
   const window = BrowserWindow.getFocusedWindow();
   const mm = await loadMusicMetadata()
   if (flag === 'file') {
@@ -36,7 +47,7 @@ export async function audio_scan(event, flag) {
         sampleRate: metadata.format.sampleRate,//音频采样率
         duration: metadata.format.duration,//时长 s
         bitrate: metadata.format.bitrate,//比特率
-        picture: metadata.common.picture,
+        picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
         path: filePath,
         isLike: false
       })
@@ -53,7 +64,7 @@ export async function audio_scan(event, flag) {
       event.sender.send('close_db')
       return null
     } // 如果用户取消选择
-    event.sender.send('clear_db')
+    event.sender.send('to_top')
 
     const folderPath = result.filePaths[0];
     const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
@@ -63,25 +74,42 @@ export async function audio_scan(event, flag) {
         audioFiles.push(file.name);
       }
     }
+    const setAudioFiles = new Set(audioFiles.map(item => {
+      return path.join(folderPath, item)
+    }))
+    const itemsToRemove = cacheList.filter(value => !setAudioFiles.has(value.path));//删除缓存里面缓存有而文件夹没有的内容
 
-    Promise.all(audioFiles.map(async (file) => {
-      const filePath = path.join(folderPath, file);
-      const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
-      event.sender.send('update_cache_folder', {
+    itemsToRemove.forEach((item, index) => {
+      event.sender.send('delete_db', item.path, cacheList.indexOf(item) - index)
+    })
+
+    cacheList = cacheList.filter(value => setAudioFiles.has(value.path));
+    const setCacheList = new Set(cacheList.map(item => {
+      return item.path
+    }))
+    const itemsToAdd = audioFiles.filter(value => !setCacheList.has(path.join(folderPath, value)));//向缓存添加缓存里面没有而文件夹有的内容
+
+    Promise.all(itemsToAdd.map(async item => {
+      const filePath = path.join(folderPath, item);
+      const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false})
+      event.sender.send('add_db', {
         audio_id: filePath,
-        title: metadata.common.title ? metadata.common.title : path.basename(file, path.extname(file)),
+        title: metadata.common.title ? metadata.common.title : path.basename(item, path.extname(item)),
         artist: metadata.common.artist,
         album: metadata.common.album,
         numberOfChannels: metadata.format.numberOfChannels,//声道
         sampleRate: metadata.format.sampleRate,//音频采样率
         duration: metadata.format.duration,//时长 s
         bitrate: metadata.format.bitrate,//比特率
-        picture: metadata.common.picture,
+        picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
         path: filePath,
         isLike: false
       })
     })).then(() => {
       event.sender.send('close_db')
-    });
+    }).catch(error => {
+      console.error(error)
+      event.sender.send('close_db')
+    })
   }
 }
