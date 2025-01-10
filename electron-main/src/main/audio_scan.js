@@ -80,7 +80,7 @@ export async function audio_scan(event, flag, cacheList) {
     const itemsToRemove = cacheList.filter(value => !setAudioFiles.has(value.path));//删除缓存里面缓存有而文件夹没有的内容
 
     itemsToRemove.forEach((item, index) => {
-      event.sender.send('delete_db', item.path, cacheList.indexOf(item) - index)
+      event.sender.send('delete_db', item.path, cacheList.indexOf(item) - index, item.isLike)
     })
 
     cacheList = cacheList.filter(value => setAudioFiles.has(value.path));

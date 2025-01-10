@@ -22,6 +22,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@vueuse/components": "^12.3.0",
     "@vueuse/core": "^12.3.0",
+    "mitt": "^3.0.1",
     "music-metadata": "^10.6.5"
   },
   "devDependencies": {

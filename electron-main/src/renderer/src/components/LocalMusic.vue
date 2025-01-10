@@ -5,6 +5,7 @@ import IndexDB from "../assets/indexDB";
 import placeholder from "../assets/placeholder.jpg";
 import FloatLocalTopBtn from "./FloatLocalTopBtn.vue";
 import {vOnClickOutside} from "@vueuse/components";
+import EventBus from "../assets/EventBus";
 
 const db = new IndexDB()
 const music_dropdown = ref(false)
@@ -14,10 +15,11 @@ const music_local = ref({
   y: 0,
   path: '',
   music_index: 0,
+  isLike: false,
 })
-const fileMeta_list = ref([])
+const cache_list = ref([])
 const {list, containerProps, wrapperProps} = useVirtualList(
-  fileMeta_list.value,
+  cache_list.value,
   {
     itemHeight: 56,
     overscan: 5
@@ -27,7 +29,7 @@ const {arrivedState} = useScroll(music_list)
 
 
 db.init_DB().then(() => {
-  db.searchData('', 0, fileMeta_list.value)
+  db.searchData('', 0, cache_list.value)
 })
 
 async function SelectFile(flag, cacheList = []) {
@@ -42,15 +44,18 @@ window.electron.ipcRenderer.on('to_top', () => {
   music_list.value.scrollTop = 0
 })
 
-window.electron.ipcRenderer.on('delete_db', (_, path, index) => {
+window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
   db.deleteData(path)
-  db.deleteData(path, 'LikesCache')
-  fileMeta_list.value.splice(index, 1)
+  if (isLike) {
+    db.deleteData(path, 'LikesCache')
+    EventBus.emit('delete_LikeCache', path)
+  }
+  cache_list.value.splice(index, 1)
 })
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item)
-  fileMeta_list.value.push(item)
+  cache_list.value.push(item)
 })
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
@@ -58,26 +63,37 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   db.searchData(item.path, 1).then(flag => {
     if (flag === 0) {
       db.addData(item)
-      fileMeta_list.value.push(item)
+      cache_list.value.push(item)
     }
   })
 })
 
+EventBus.on('set_Like_false', path => {
+  const cacheSet = cache_list.value.map(item => item.path)
+  cache_list.value[cacheSet.indexOf(path)].isLike = false
+})
+EventBus.on('delete_Cache', path => {
+  const cacheSet = cache_list.value.map(item => item.path)
+  cache_list.value.splice(cacheSet.indexOf(path), 1)
+})
+
 function SwitchLikes(event, args) {
-  console.log('likes: ', toRaw(fileMeta_list.value[args.index]))
+  console.log('likes: ', toRaw(cache_list.value[args.index]))
   if (event.target.checked) {
     db.init_DB().then(() => {
-      fileMeta_list.value[args.index].isLike = true
-      db.addData(toRaw(fileMeta_list.value[args.index]))
-      db.addData(toRaw(fileMeta_list.value[args.index]), 'LikesCache')
+      cache_list.value[args.index].isLike = true
+      db.addData(toRaw(cache_list.value[args.index]))
+      db.addData(toRaw(cache_list.value[args.index]), 'LikesCache')
       db.close_db()
+      EventBus.emit('add_LikeCache', toRaw(cache_list.value[args.index]))
     })
   } else {
     db.init_DB().then(() => {
       db.deleteData(args.path, 'LikesCache')
-      fileMeta_list.value[args.index].isLike = false
-      db.addData(toRaw(fileMeta_list.value[args.index]))
+      cache_list.value[args.index].isLike = false
+      db.addData(toRaw(cache_list.value[args.index]))
       db.close_db()
+      EventBus.emit('delete_LikeCache', args.path)
     })
   }
 }
@@ -87,7 +103,10 @@ function music_delete() {
     db.deleteData(music_local.value.path)
     db.deleteData(music_local.value.path, 'LikesCache')
     db.close_db()
-    fileMeta_list.value.splice(music_local.value.music_index, 1)
+    cache_list.value.splice(music_local.value.music_index, 1)
+    if (music_local.value.isLike) {
+      EventBus.emit('delete_LikeCache', music_local.value.path)
+    }
   })
   music_dropdown.value = false
 }
@@ -100,6 +119,7 @@ async function click_menu(event, args) {
     music_local.value.y = event.clientY - music_menu.value.clientHeight - 6;
     music_local.value.path = args.path;
     music_local.value.music_index = args.index
+    music_local.value.isLike = args.isLike;
   })
 
 }
@@ -141,7 +161,7 @@ function ToLocal() {
           </li>
           <li>
             <a class="active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-               @click="SelectFile('folder',fileMeta_list)">
+               @click="SelectFile('folder',cache_list)">
               扫描文件夹
             </a>
           </li>
@@ -193,7 +213,7 @@ function ToLocal() {
           </label>
           </span>
           <span class="flex items-center justify-center mr-6 w-6"
-                @click.stop="click_menu($event,{path:metadata.data.path,index:metadata.index})">
+                @click.stop="click_menu($event,{path:metadata.data.path,index:metadata.index,isLike:metadata.data.isLike})">
             <svg class="fill-zinc-500 dark:fill-zinc-400" height="16" viewBox="0 0 1024 1024"
                  width="16" xmlns="http://www.w3.org/2000/svg"><path
               d="M929.70745 299.43679 93.792153 299.43679c-16.575514 0-30.013571-13.100366-30.013571-29.67588s13.438057-29.67588 30.013571-29.67588l835.916321 0c16.575514 0 30.013571 13.100366 30.013571 29.67588S946.283987 299.43679 929.70745 299.43679z"></path><path
