@@ -115,7 +115,7 @@ function ToLocal() {
     <div class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4 pb-0" v-bind="containerProps">
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
         <div
-          v-for="metadata in list" :key="metadata.index"
+          v-for="metadata in list" :key="metadata.data.audio_id"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
           <img
             :src="metadata.data.picture? metadata.data.picture:placeholder"
@@ -126,8 +126,8 @@ function ToLocal() {
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{ metadata.data.artist }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
-            <label :class="{'swap-active':metadata.data.isLike}" class="swap">
-            <input ref="theme_sw" class="outline-none" type="checkbox"
+            <label class="swap">
+            <input ref="theme_sw" :checked="metadata.data.isLike" class="outline-none" type="checkbox"
                    @change="SwitchLikes($event,{path:metadata.data.path,index:metadata.index})"/>
             <svg class="swap-off stroke-zinc-500 dark:stroke-zinc-400" height="16" viewBox="0 0 24 24" width="16"
                  xmlns="http://www.w3.org/2000/svg">
