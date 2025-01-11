@@ -22,10 +22,8 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@vueuse/components": "^12.3.0",
     "@vueuse/core": "^12.3.0",
-    "@vueuse/integrations": "^12.4.0",
     "mitt": "^3.0.1",
-    "music-metadata": "^10.6.5",
-    "sortablejs": "^1"
+    "music-metadata": "^10.6.5"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",
