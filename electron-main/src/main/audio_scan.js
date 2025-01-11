@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {loadMusicMetadata} from "music-metadata";
 
-const _ext = ["mp3", "mpeg", "opus", "ogg", "oga", "wav", "aac", "caf", "m4a", "m4b", "mp4", "weba", "webm", "", "flac"]
+const _ext = ["mp3", "mpeg", "opus", "ogg", "oga", "wav", "aac", "caf", "m4a", "m4b", "mp4", "weba", "webm", "dolby", "flac"]
 const audio_ext = new Set(_ext.map(item => {
   return '.' + item
 }))
@@ -17,6 +17,20 @@ function uint8ArrayToBase64(array) {
   }
   // 使用 btoa 将二进制字符串转换为 Base64
   return btoa(binaryString);
+}
+
+async function traverseDirectoryAsync(dir, list) {
+  const files = await fs.promises.opendir(dir)
+  for await (const file of files) {
+    const filePath = path.join(dir, file.name);
+    const stats = await fs.promises.stat(filePath);
+    if (stats.isDirectory()) {
+      await traverseDirectoryAsync(filePath, list);
+    }
+    if (audio_ext.has(path.extname(file.name))) {
+      list.push(filePath);
+    }
+  }
 }
 
 export async function audio_scan(event, flag, cacheList) {
@@ -46,6 +60,7 @@ export async function audio_scan(event, flag, cacheList) {
         numberOfChannels: metadata.format.numberOfChannels,//声道
         sampleRate: metadata.format.sampleRate,//音频采样率
         duration: metadata.format.duration,//时长 s
+        formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
         bitrate: metadata.format.bitrate,//比特率
         picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
         path: filePath,
@@ -64,19 +79,14 @@ export async function audio_scan(event, flag, cacheList) {
       event.sender.send('close_db')
       return null
     } // 如果用户取消选择
-    event.sender.send('to_top')
+    event.sender.send('load_start')
 
     const folderPath = result.filePaths[0];
-    const files = await fs.promises.opendir(folderPath); // 获取文件夹内容
     const audioFiles = [];  // 过滤音频文件
-    for await (const file of files) {
-      if (audio_ext.has(path.extname(file.name))) {
-        audioFiles.push(file.name);
-      }
-    }
-    const setAudioFiles = new Set(audioFiles.map(item => {
-      return path.join(folderPath, item)
-    }))
+
+    await traverseDirectoryAsync(folderPath, audioFiles);
+
+    const setAudioFiles = new Set(audioFiles)
     const itemsToRemove = cacheList.filter(value => !setAudioFiles.has(value.path));//删除缓存里面缓存有而文件夹没有的内容
 
     itemsToRemove.forEach((item, index) => {
@@ -87,19 +97,19 @@ export async function audio_scan(event, flag, cacheList) {
     const setCacheList = new Set(cacheList.map(item => {
       return item.path
     }))
-    const itemsToAdd = audioFiles.filter(value => !setCacheList.has(path.join(folderPath, value)));//向缓存添加缓存里面没有而文件夹有的内容
+    const itemsToAdd = audioFiles.filter(value => !setCacheList.has(value));//向缓存添加缓存里面没有而文件夹有的内容
 
-    Promise.all(itemsToAdd.map(async item => {
-      const filePath = path.join(folderPath, item);
+    Promise.all(itemsToAdd.map(async filePath => {
       const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false})
       event.sender.send('add_db', {
         audio_id: filePath,
-        title: metadata.common.title ? metadata.common.title : path.basename(item, path.extname(item)),
+        title: metadata.common.title ? metadata.common.title : path.basename(filePath.split('\\').pop(), path.extname(filePath.split('\\').pop())),
         artist: metadata.common.artist,
         album: metadata.common.album,
         numberOfChannels: metadata.format.numberOfChannels,//声道
         sampleRate: metadata.format.sampleRate,//音频采样率
         duration: metadata.format.duration,//时长 s
+        formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
         bitrate: metadata.format.bitrate,//比特率
         picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
         path: filePath,

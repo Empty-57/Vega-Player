@@ -6,6 +6,7 @@ import placeholder from "../assets/placeholder.jpg";
 import FloatLocalTopBtn from "./FloatLocalTopBtn.vue";
 import {vOnClickOutside} from "@vueuse/components";
 import EventBus from "../assets/EventBus";
+import {findInsertPosition} from "../assets/BinarySearchPosition";
 
 const db = new IndexDB()
 const music_dropdown = ref(false)
@@ -28,7 +29,13 @@ const {arrivedState} = useScroll(music_list)
 
 
 db.init_DB().then(() => {
-  db.searchData('', 0, cacheLike_list.value, 'LikesCache')
+  db.searchData('', 0, [],'LikesCache').then(data => {
+    data.forEach(item => {
+      const position = findInsertPosition(cacheLike_list.value, item.title)
+      cacheLike_list.value.splice(position, 0, item)
+    })
+    console.log(cacheLike_list.value)
+  })
 })
 
 EventBus.on('delete_LikeCache', path => {
@@ -37,7 +44,8 @@ EventBus.on('delete_LikeCache', path => {
 
 })
 EventBus.on('add_LikeCache', data => {
-  cacheLike_list.value.push(data)
+  const position = findInsertPosition(cacheLike_list.value, data.title)
+  cacheLike_list.value.splice(position, 0, data)
 })
 
 function SwitchLikes(event, args) {
@@ -102,7 +110,7 @@ function ToLocal() {
       <span class="w-10"></span>
       <span class="text-xs mx-8 mr-16 w-6"></span>
       <span class="w-0 flex-auto text-left">专辑</span>
-      <span class="w-10 mx-8 text-center">时长</span>
+      <span class="w-10 mx-8 text-right">时长</span>
     </div>
     <div class="basis-2/3 w-full overflow-x-hidden overflow-y-auto p-4 pb-0" v-bind="containerProps">
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
@@ -138,7 +146,8 @@ function ToLocal() {
           </span>
           <span class="flex items-center justify-center mr-6 w-6"
                 @click="click_menu($event,{path:metadata.data.path,index:metadata.index})">
-            <svg class="fill-zinc-500 dark:fill-zinc-400" height="16" viewBox="0 0 1024 1024"
+            <svg class="fill-zinc-500 dark:fill-zinc-400 dark:hover:fill-cyan-600 hover:fill-cyan-500" height="16"
+                 viewBox="0 0 1024 1024"
                  width="16" xmlns="http://www.w3.org/2000/svg"><path
               d="M929.70745 299.43679 93.792153 299.43679c-16.575514 0-30.013571-13.100366-30.013571-29.67588s13.438057-29.67588 30.013571-29.67588l835.916321 0c16.575514 0 30.013571 13.100366 30.013571 29.67588S946.283987 299.43679 929.70745 299.43679z"></path><path
               d="M775.639492 546.053584 93.792153 546.053584c-16.575514 0-30.013571-13.612019-30.013571-30.187533s13.438057-30.187533 30.013571-30.187533L775.639492 485.678518c16.575514 0 30.013571 13.612019 30.013571 30.187533S792.215006 546.053584 775.639492 546.053584z"></path><path
@@ -149,9 +158,7 @@ function ToLocal() {
           {{ metadata.data.album }}
         </span>
           <div class="text-[10px] font-thin text-center w-10 mx-8 truncate dark:text-zinc-400">
-            {{
-              Math.floor(metadata.data.duration / 60).toString().padStart(2, '0')
-            }}:{{ Math.floor(metadata.data.duration % 60).toString().padStart(2, '0') }}
+            {{ metadata.data.formatTime }}
           </div>
         </div>
       </div>
@@ -164,8 +171,32 @@ function ToLocal() {
       v-on-click-outside.blub="dropdownClose"
       :style="{'left':music_local.x+'px', 'top':music_local.y+'px'}"
       class="*:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200">
-      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80" @click="music_delete">删除</span>
-      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80">播放</span>
+      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+        <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+             width="14" xmlns="http://www.w3.org/2000/svg"><path
+          d="M852.5 533.9L279 864.7c-11.9 6.9-27.2 2.8-34.1-9.1-2.2-3.8-3.3-8.1-3.3-12.5V181.5c0-13.8 11.2-24.9 24.9-24.9 4.4 0 8.7 1.2 12.5 3.3l573.4 330.8c11.9 6.9 16 22.1 9.1 34.1-2.1 3.8-5.2 6.9-9 9.1z">
+
+        </path></svg>
+        <span class="px-2">播放</span>
+      </span>
+      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+        <svg class="fill-zinc-900 dark:fill-zinc-200" height="16" viewBox="0 0 1024 1024"
+             width="16" xmlns="http://www.w3.org/2000/svg"><path
+          d="M655.706179 465.602819L332.053897 218.588294c-38.414608-29.327534-93.791393-1.929039-93.791392 46.396277v494.029051c0 48.325316 55.376785 75.725617 93.791392 46.398084l323.652282-247.014525c30.602722-23.357989 30.602722-69.436372 0-92.794362zM781.064814 780.798397V451.684117v-164.562559c0-19.628152 5.904521-60.475733-17.057907-75.841215-25.523642-17.068744-59.747828 1.210165-59.747828 31.919454v493.676839c0 19.628152-5.915358 60.473927 17.047069 75.841215 25.532673 17.068744 59.758666-1.211971 59.758666-31.919454z">
+
+        </path></svg>
+        <span class="px-2">下一首播放</span>
+      </span>
+      <div
+        class="before:absolute before:left-0 before:h-[0.5px] before:w-full before:dark:bg-gray-300/40 before:bg-neutral-800/60"></div>
+      <span class="dark:hover:bg-red-800/40 hover:bg-red-500/80 flex items-center justify-start" @click="music_delete">
+        <svg class="fill-zinc-900 dark:fill-zinc-200" height="16" viewBox="0 0 1024 1024"
+             width="16" xmlns="http://www.w3.org/2000/svg"><path
+          d="M256 256h554.666667v640H256V256z m42.666667 42.666667v554.666666h469.333333V298.666667H298.666667z m128 128h42.666666v298.666666h-42.666666v-298.666666z m170.666666 0h42.666667v298.666666h-42.666667v-298.666666zM213.333333 256h640v42.666667H213.333333V256z m213.333334-85.333333h213.333333v42.666666h-213.333333V170.666667z">
+
+        </path></svg>
+        <span class="px-2">删除</span>
+      </span>
     </div>
   </div>
 </template>
