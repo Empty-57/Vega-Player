@@ -1,12 +1,13 @@
-export function findInsertPosition(array, sort_key) {
+export function findInsertPosition(array, str, sort_key) {
   let left = 0;
   let right = array.length - 1;
 
   while (left <= right) {
     const mid = Math.floor((left + right) / 2);
-    const comparison = sort_key.localeCompare(array[mid].title, 'en', {
+    const comparison = str.localeCompare(array[mid][sort_key] || '', 'en', {
       sensitivity: 'base',
       ignorePunctuation: true,
+      numeric: true,
       caseFirst: "upper",
       collation: "pinyin"
     });

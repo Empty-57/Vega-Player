@@ -133,16 +133,16 @@ class IndexDB {
         if (cursor) {
           console.log('search success: ', cursor.value, text);
           args.push(cursor.value);
-          if (flag ===1) {
+          if (flag === 1) {
             resolve(1)
           }
           cursor.continue()
         } else {
           console.log('search not found: ', event, text);
-          if (flag ===1){
+          if (flag === 1) {
             resolve(0)
           }
-          if (flag ===0){
+          if (flag === 0) {
             resolve(args)
           }
         }
