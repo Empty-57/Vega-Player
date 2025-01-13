@@ -1,5 +1,5 @@
 <script setup>
-import {ref, toRaw} from "vue";
+import {ref, toRaw, watch} from "vue";
 import IndexDB from "../assets/indexDB";
 import EventBus from "../assets/EventBus";
 import {findInsertPosition} from "../assets/BinarySearchPosition";
@@ -11,18 +11,25 @@ const cache_list = ref([])
 const isLoading = ref(false)
 const loadCount = ref(0)
 const delCount = ref(0)
-const local_cfg = useStorage('local_cfg', {sort_key: 'title'})
+const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false})
 let sort_key = ref(local_cfg.value.sort_key)
+let isReverse = ref(local_cfg.value.isReverse)
 
-db.init_DB().then(() => {
-  db.searchData('', 0).then(data => {
-    data.forEach(item => {
-      const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
-      cache_list.value.splice(position, 0, item)
+watch([sort_key, isReverse], async () => {
+  cache_list.value.length = 0;
+  db.init_DB().then(() => {
+    db.searchData('', 0).then(data => {
+      data.forEach(item => {
+        const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+        cache_list.value.splice(position, 0, item)
+      })
+      if (isReverse.value) {
+        cache_list.value.reverse()
+      }
     })
-    console.log(cache_list.value)
   })
-})
+}, {immediate: true})
+
 
 async function SelectFile(flag, cacheList = []) {
   await db.init_DB()
@@ -108,13 +115,25 @@ function music_delete(music_local) {
     }
   })
 }
+
+function select_sort(key_) {
+  local_cfg.value.sort_key = key_
+  sort_key.value = key_
+}
+
+function sw_reverse() {
+  isReverse.value = !isReverse.value
+  local_cfg.value.isReverse = isReverse.value
+}
 </script>
 
 <template>
   <div class="relative w-full h-screen left-0 top-0">
-    <music-list :cache_list="cache_list" title="本地音乐"
+    <music-list :cache_list="cache_list" :is-reverse="isReverse" :sort_key="sort_key" title="本地音乐"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
-                @music_delete="music_local => music_delete(music_local)">
+                @music_delete="music_local => music_delete(music_local)"
+                @select_sort="key_ => select_sort(key_)"
+                @sw_reverse="sw_reverse">
       <div class="dropdown">
         <button
           class="flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
@@ -129,13 +148,16 @@ function music_delete(music_local) {
           class="w-36 p-0 py-2 dropdown-content menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0">
           <li>
-            <a class="active:bg-transparent active:text-inherit p-2 h-8 rounded-none" @click="SelectFile('file')">
+            <a
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="SelectFile('file')">
               手动添加
             </a>
           </li>
           <li>
-            <a class="active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-               @click="SelectFile('folder',cache_list)">
+            <a
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="SelectFile('folder',cache_list)">
               扫描文件夹
             </a>
           </li>

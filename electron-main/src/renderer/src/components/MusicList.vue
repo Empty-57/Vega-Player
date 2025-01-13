@@ -6,8 +6,8 @@ import {useScroll, useVirtualList} from "@vueuse/core";
 import {vOnClickOutside} from "@vueuse/components";
 import EventBus from "../assets/EventBus";
 
-const emit = defineEmits(["SwitchLikes", "music_delete"])
-const {cache_list, title} = defineProps(["cache_list", "title"]);
+const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse"])
+const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "title", "sort_key", "isReverse"]);
 
 const music_dropdown = ref(false)
 const music_menu = useTemplateRef('music_menu')
@@ -51,6 +51,14 @@ async function click_menu(event, args) {
   })
 }
 
+function select_sort(sort_key) {
+  emit("select_sort", sort_key)
+}
+
+function sw_reverse() {
+  emit("sw_reverse")
+}
+
 function dropdownClose() {
   music_dropdown.value = false
 }
@@ -72,9 +80,81 @@ function ToLocal() {
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <slot></slot>
       <span>mul_action</span>
-      <span>search</span>
-      <span>sort</span>
       <span>view</span>
+      <span class="grow"></span>
+      <span>search</span>
+      <div class="dropdown dropdown-end">
+        <button
+          class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
+          tabindex="0">
+          <svg class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
+               height="18" viewBox="0 0 1024 1024" width="18" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M419.84 563.2h-202.752l-67.584 133.12c-6.144 10.24-18.432 14.336-26.624 8.192-10.24-6.144-14.336-18.432-8.192-26.624l180.224-356.352c12.288-24.576 43.008-24.576 55.296 0l169.984 356.352c4.096 10.24 0 22.528-10.24 26.624-10.24 4.096-22.528 0-26.624-10.24l-63.488-131.072z m-18.432-40.96l-77.824-163.84-83.968 163.84h161.792z m161.792 114.688l268.288-278.528H583.68c-12.288 0-20.48-8.192-20.48-20.48s8.192-20.48 20.48-20.48h276.48c28.672 0 40.96 28.672 20.48 49.152l-268.288 278.528h268.288c12.288 0 20.48 8.192 20.48 20.48s-8.192 20.48-20.48 20.48H583.68c-28.672 0-40.96-28.672-20.48-49.152z m-40.96-534.528l102.4 122.88h-204.8l102.4-122.88z m0 819.2l-102.4-122.88h204.8l-102.4 122.88z">
+            </path>
+          </svg>
+        </button>
+        <ul
+          class="w-24 p-0 py-2 dropdown-content menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+          tabindex="0">
+          <li>
+            <a
+              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='default'}"
+              class="text-center active:bg-transparent active:text-inherit p-2 h-8 rounded-none dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20"
+              @click="select_sort('default')">
+              默认
+            </a>
+          </li>
+          <li>
+            <a
+              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='title'}"
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="select_sort('title')">
+              标题
+            </a>
+          </li>
+          <li>
+            <a
+              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='artist'}"
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="select_sort('artist')">
+              艺术家
+            </a>
+          </li>
+          <li>
+            <a
+              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='album'}"
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="select_sort('album')">
+              专辑
+            </a>
+          </li>
+          <li>
+            <a
+              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='duration'}"
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="select_sort('duration')">
+              时长
+            </a>
+          </li>
+          <li>
+            <div
+              class="hover:bg-transparent active:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full before:dark:bg-gray-300/40 before:bg-neutral-800/60"></div>
+          </li>
+          <li>
+            <span
+              class="rounded-none active:text-inherit p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent"
+              @click="sw_reverse">
+              <svg v-if="isReverse" class="fill-zinc-900 dark:fill-zinc-200" height="16"
+                   viewBox="0 0 1024 1024" width="16" xmlns="http://www.w3.org/2000/svg"><path
+                d="M392.533333 806.4L85.333333 503.466667l59.733334-59.733334 247.466666 247.466667L866.133333 213.333333l59.733334 59.733334L392.533333 806.4z">
+
+              </path></svg>
+        <span>倒序</span>
+      </span>
+          </li>
+        </ul>
+      </div>
     </div>
     <div
       class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-[10px] px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
