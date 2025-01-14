@@ -1,5 +1,5 @@
 <script setup>
-import {ref, toRaw, watch} from "vue";
+import {computed, onActivated, ref, toRaw, watch} from "vue";
 import IndexDB from "../assets/indexDB";
 import EventBus from "../assets/EventBus";
 import {findInsertPosition} from "../assets/BinarySearchPosition";
@@ -20,12 +20,13 @@ watch([sort_key, isReverse], async () => {
   db.init_DB().then(() => {
     db.searchData('', 0).then(data => {
       data.forEach(item => {
-        const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+        const position = findInsertPosition(cache_list.value, (item[sort_key.value] || -1).toString(), sort_key.value)
         cache_list.value.splice(position, 0, item)
       })
       if (isReverse.value) {
         cache_list.value.reverse()
       }
+      search()
     })
   })
 }, {immediate: true})
@@ -39,6 +40,7 @@ async function SelectFile(flag, cacheList = []) {
 window.electron.ipcRenderer.on('close_db', () => {
   db.close_db()
   isLoading.value = false
+  search()
 })
 window.electron.ipcRenderer.on('load_start', () => {
   EventBus.emit('load_start')
@@ -69,8 +71,10 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   db.searchData(item.path, 1).then(flag => {
     if (flag === 0) {
       db.addData(item)
-      cache_list.value.push(item)
+      const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+      cache_list.value.splice(position, 0, item)
     }
+    search()
   })
 })
 
@@ -84,32 +88,40 @@ EventBus.on('delete_Cache', path => {
 })
 
 function SwitchLikes(event, args) {
-  console.log('likes: ', toRaw(cache_list.value[args.index]))
+  const cacheSet = cache_list.value.map(item => item.path)
+  console.log('likes: ', toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
   if (event.target.checked) {
     db.init_DB().then(() => {
-      cache_list.value[args.index].isLike = true
-      db.addData(toRaw(cache_list.value[args.index]))
-      db.addData(toRaw(cache_list.value[args.index]), 'LikesCache')
+      cache_list.value[cacheSet.indexOf(args.path)].isLike = true
+      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
+      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]), 'LikesCache')
       db.close_db()
-      EventBus.emit('add_LikeCache', toRaw(cache_list.value[args.index]))
+      EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
     })
   } else {
     db.init_DB().then(() => {
       db.deleteData(args.path, 'LikesCache')
-      cache_list.value[args.index].isLike = false
-      db.addData(toRaw(cache_list.value[args.index]))
+      cache_list.value[cacheSet.indexOf(args.path)].isLike = false
+      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
       db.close_db()
       EventBus.emit('delete_LikeCache', args.path)
     })
   }
 }
 
+onActivated(() => {
+  search()
+})
+
 function music_delete(music_local) {
+  const cacheSet = cache_list.value.map(item => item.path)
+  const f_CacheSet = f_cache_list.value.map(item => item.path)
   db.init_DB().then(() => {
     db.deleteData(music_local.value.path)
     db.deleteData(music_local.value.path, 'LikesCache')
     db.close_db()
-    cache_list.value.splice(music_local.value.music_index, 1)
+    cache_list.value.splice(cacheSet.indexOf(music_local.value.path), 1)
+    f_cache_list.value.splice(f_CacheSet.indexOf(music_local.value.path), 1)
     if (music_local.value.isLike) {
       EventBus.emit('delete_LikeCache', music_local.value.path)
     }
@@ -125,13 +137,26 @@ function sw_reverse() {
   isReverse.value = !isReverse.value
   local_cfg.value.isReverse = isReverse.value
 }
+
+const f_cache_list = ref([]);
+
+function search(search_text = '') {
+  const regex = new RegExp(search_text.split('').join('|'), 'i');
+  f_cache_list.value.length = 0;
+  f_cache_list.value.push(...computed(() => {
+    return cache_list.value.filter(item => (item.title && regex.test(item.title)) ||
+      (item.artist && regex.test(item.artist)) ||
+      (item.album && regex.test(item.album)))
+  }).value)
+}
 </script>
 
 <template>
   <div class="relative w-full h-screen left-0 top-0">
-    <music-list :cache_list="cache_list" :is-reverse="isReverse" :sort_key="sort_key" title="本地音乐"
+    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key" title="本地音乐"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
                 @music_delete="music_local => music_delete(music_local)"
+                @search="search_text=>search(search_text)"
                 @select_sort="key_ => select_sort(key_)"
                 @sw_reverse="sw_reverse">
       <div class="dropdown">
