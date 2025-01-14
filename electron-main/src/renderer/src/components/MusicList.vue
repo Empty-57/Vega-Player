@@ -1,14 +1,18 @@
 <script setup>
 import placeholder from "../assets/placeholder.jpg";
 import FloatLocalTopBtn from "./FloatLocalTopBtn.vue";
-import {nextTick, ref, useTemplateRef} from "vue";
+import {nextTick, onWatcherCleanup, ref, useTemplateRef, watchEffect} from "vue";
 import {useScroll, useVirtualList} from "@vueuse/core";
 import {vOnClickOutside} from "@vueuse/components";
 import EventBus from "../assets/EventBus";
 
-const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse"])
+const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse", "search"])
 const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "title", "sort_key", "isReverse"]);
 
+let timer = null;
+const search_box = useTemplateRef('search_box')
+const isFocused = ref(false)
+const search_text = ref('')
 const music_dropdown = ref(false)
 const music_menu = useTemplateRef('music_menu')
 const music_local = ref({
@@ -59,6 +63,27 @@ function sw_reverse() {
   emit("sw_reverse")
 }
 
+
+watchEffect(() => {
+  const search_text_ = search_text.value
+  timer = setTimeout(() => {
+    emit("search", search_text_);
+  }, 300)
+  onWatcherCleanup(() => {
+    clearTimeout(timer)
+  })
+})
+
+function sw_search(e){
+  if (e.target.checked){
+    isFocused.value=true;
+    search_box.value.focus()
+  }else{
+    isFocused.value=false;
+    search_text.value=''
+  }
+}
+
 function dropdownClose() {
   music_dropdown.value = false
 }
@@ -82,10 +107,29 @@ function ToLocal() {
       <span>mul_action</span>
       <span>view</span>
       <span class="grow"></span>
-      <span>search</span>
+      <div class="flex items-center justify-center gap-x-2">
+        <input ref="search_box"
+               v-model="search_text"
+               :class="{'w-36 p-1 px-2':isFocused,'w-0 p-0':!isFocused}" class=" text-zinc-900  dark:text-zinc-200 dark:bg-neutral-900/40 bg-gray-300/80 peer placeholder:italic placeholder:text-xs rounded h-8 outline-none text-xs duration-200"
+               placeholder="搜索歌单歌曲">
+
+        <label class="swap swap-rotate *:dark:hover:fill-cyan-600 *:hover:fill-cyan-500">
+          <input type="checkbox" @change="sw_search" class="outline-none"/>
+          <svg class="swap-off fill-zinc-900 dark:fill-zinc-200 "
+               height="16"
+               viewBox="0 0 1024 1024" width="16" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M966.4 924.8l-230.4-227.2c60.8-67.2 96-156.8 96-256 0-217.6-176-390.4-390.4-390.4-217.6 0-390.4 176-390.4 390.4 0 217.6 176 390.4 390.4 390.4 99.2 0 188.8-35.2 256-96l230.4 227.2c9.6 9.6 28.8 9.6 38.4 0C979.2 950.4 979.2 934.4 966.4 924.8zM102.4 441.6c0-185.6 150.4-339.2 339.2-339.2s339.2 150.4 339.2 339.2c0 89.6-35.2 172.8-92.8 233.6-3.2 0-3.2 3.2-6.4 3.2-3.2 3.2-3.2 3.2-3.2 6.4-60.8 57.6-144 92.8-233.6 92.8C256 780.8 102.4 627.2 102.4 441.6z">
+            </path>
+          </svg>
+          <svg class="swap-on fill-zinc-900 dark:fill-zinc-200" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M851.416 217.84l-45.256-45.248L512 466.744l-294.152-294.16-45.256 45.256L466.744 512l-294.152 294.16 45.248 45.256L512 557.256l294.16 294.16 45.256-45.256L557.256 512z">
+
+          </path></svg>
+        </label>
+      </div>
       <div class="dropdown dropdown-end">
         <button
-          class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
+          class="flex items-center justify-center pr-2 rounded duration-200 outline-none" :class="{'pointer-events-none': isFocused}"
           tabindex="0">
           <svg class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
                height="18" viewBox="0 0 1024 1024" width="18" xmlns="http://www.w3.org/2000/svg">
