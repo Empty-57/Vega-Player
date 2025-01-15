@@ -33,6 +33,25 @@ async function traverseDirectoryAsync(dir, list) {
   }
 }
 
+async function cacheSender(filePath, event, channel, mm) {
+  const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
+  event.sender.send(channel, {
+    audio_id: filePath,
+    title: metadata.common.title ? metadata.common.title : path.basename(filePath, path.extname(filePath)),
+    artist: metadata.common.artist,
+    album: metadata.common.album,
+    numberOfChannels: metadata.format.numberOfChannels,//声道
+    sampleRate: metadata.format.sampleRate,//音频采样率
+    duration: metadata.format.duration,//时长 s
+    formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
+    bitrate: metadata.format.bitrate,//比特率
+    picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
+    path: filePath,
+    isLike: false
+  })
+}
+
+
 export async function audio_scan(event, flag, cacheList) {
   const window = BrowserWindow.getFocusedWindow();
   const mm = await loadMusicMetadata()
@@ -44,30 +63,15 @@ export async function audio_scan(event, flag, cacheList) {
       ]
     });
     if (result.canceled) {
-      event.sender.send('close_db')
+      event.sender.send('load_end')
       return null
     } // 如果用户取消选择
 
     const filePath = result.filePaths[0];
-    const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
 
-    new Promise(() => {
-      event.sender.send('update_cache_file', {
-        audio_id: filePath,
-        title: metadata.common.title ? metadata.common.title : path.basename(filePath, path.extname(filePath)),
-        artist: metadata.common.artist,
-        album: metadata.common.album,
-        numberOfChannels: metadata.format.numberOfChannels,//声道
-        sampleRate: metadata.format.sampleRate,//音频采样率
-        duration: metadata.format.duration,//时长 s
-        formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
-        bitrate: metadata.format.bitrate,//比特率
-        picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
-        path: filePath,
-        isLike: false
-      })
-    }).then(() => {
-      event.sender.send('close_db')
+
+    Promise.all([await cacheSender(filePath, event, 'update_cache_file', mm)]).then(() => {
+      event.sender.send('load_end')
     })
   }
 
@@ -76,7 +80,7 @@ export async function audio_scan(event, flag, cacheList) {
       properties: ['openDirectory'], // 打开文件夹选择对话框
     });
     if (result.canceled) {
-      event.sender.send('close_db')
+      event.sender.send('load_end')
       return null
     } // 如果用户取消选择
     event.sender.send('load_start')
@@ -99,27 +103,16 @@ export async function audio_scan(event, flag, cacheList) {
     }))
     const itemsToAdd = audioFiles.filter(value => !setCacheList.has(value));//向缓存添加缓存里面没有而文件夹有的内容
 
+    if (!itemsToAdd.length > 0) {
+      event.sender.send('load_end')
+    }
     Promise.all(itemsToAdd.map(async filePath => {
-      const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false})
-      event.sender.send('add_db', {
-        audio_id: filePath,
-        title: metadata.common.title ? metadata.common.title : path.basename(filePath.split('\\').pop(), path.extname(filePath.split('\\').pop())),
-        artist: metadata.common.artist,
-        album: metadata.common.album,
-        numberOfChannels: metadata.format.numberOfChannels,//声道
-        sampleRate: metadata.format.sampleRate,//音频采样率
-        duration: metadata.format.duration,//时长 s
-        formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
-        bitrate: metadata.format.bitrate,//比特率
-        picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
-        path: filePath,
-        isLike: false
-      })
+      await cacheSender(filePath, event, 'add_db', mm)
     })).then(() => {
-      event.sender.send('close_db')
+      event.sender.send('load_end')
     }).catch(error => {
       console.error(error)
-      event.sender.send('close_db')
+      event.sender.send('load_end')
     })
   }
 }

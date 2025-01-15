@@ -2,35 +2,32 @@
 import {computed, onActivated, ref, toRaw, watch} from "vue";
 import IndexDB from "../assets/indexDB";
 import EventBus from "../assets/EventBus";
-import {findInsertPosition} from "../assets/BinarySearchPosition";
+import {compareSorts, findInsertPosition} from "../assets/BinarySearchPosition";
 import MusicList from "./MusicList.vue";
 import {useStorage} from "@vueuse/core";
 
 const db = new IndexDB()
 const cacheLike_list = ref([])
+const f_cacheLike_list = ref([]);
 const like_cfg = useStorage('like_cfg', {sort_key: 'title', isReverse: false})
 let sort_key = ref(like_cfg.value.sort_key)
 let isReverse = ref(like_cfg.value.isReverse)
 
-watch([sort_key, isReverse], async () => {
-  cacheLike_list.value.length = 0;
-  db.init_DB().then(() => {
-    db.searchData('', 0, [], 'LikesCache').then(data => {
-      data.forEach(item => {
-        const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value)
-        cacheLike_list.value.splice(position, 0, item)
-      })
-      if (isReverse.value) {
-        cacheLike_list.value.reverse()
-      }
-      search()
-    })
+db.init_DB().then(() => {
+  db.searchData('', 0, [], 'LikesCache').then(data => {
+    cacheLike_list.value.push(...data)
+    cacheLike_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
+    search()
   })
+})
+
+watch([sort_key, isReverse], async () => {
+  cacheLike_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
+  search()
 }, {immediate: true})
 
 EventBus.on('delete_LikeCache', path => {
-  const LikeCacheSet = cacheLike_list.value.map(item => item.path)
-  cacheLike_list.value.splice(LikeCacheSet.indexOf(path), 1)
+  cacheLike_list.value.splice(cacheLike_list.value.findIndex(item => item.path === path), 1)
 })
 EventBus.on('add_LikeCache', item => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value)
@@ -41,15 +38,13 @@ function SwitchLikes(event, args) {
   const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === args.path)
   const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === args.path)
   console.log('likes: ', toRaw(cacheLike_list.value[cacheLikeIndex]))
-  db.init_DB().then(() => {
-    db.deleteData(args.path, 'LikesCache')
-    cacheLike_list.value[cacheLikeIndex].isLike = false
-    db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
-    db.close_db()
-    cacheLike_list.value.splice(cacheLikeIndex, 1)
-    f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
-    EventBus.emit('set_Like_false', args.path)
-  })
+  db.deleteData(args.path, 'LikesCache')
+  cacheLike_list.value[cacheLikeIndex].isLike = false
+  db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
+
+  cacheLike_list.value.splice(cacheLikeIndex, 1)
+  f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
+  EventBus.emit('set_Like_false', args.path)
 }
 
 onActivated(() => {
@@ -60,15 +55,13 @@ function music_delete(music_local) {
   const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
   const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
 
-  db.init_DB().then(() => {
-    db.deleteData(music_local.value.path, 'LikesCache')
-    cacheLike_list.value[cacheLikeIndex].isLike = false
-    db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
-    db.close_db()
-    cacheLike_list.value.splice(cacheLikeIndex, 1)
-    f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
-    EventBus.emit('set_Like_false', music_local.value.path)
-  })
+  db.deleteData(music_local.value.path, 'LikesCache')
+  cacheLike_list.value[cacheLikeIndex].isLike = false
+  db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
+
+  cacheLike_list.value.splice(cacheLikeIndex, 1)
+  f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
+  EventBus.emit('set_Like_false', music_local.value.path)
 }
 
 function select_sort(key_) {
@@ -81,10 +74,9 @@ function sw_reverse() {
   like_cfg.value.isReverse = isReverse.value
 }
 
-const f_cacheLike_list = ref([]);
 
 function search(search_text = '') {
-  const regex = new RegExp(search_text.split('').join('|'), 'i');
+  const regex = new RegExp(search_text.split('').join(''), 'i');
   f_cacheLike_list.value.length = 0;
   f_cacheLike_list.value.push(...computed(() => {
     return cacheLike_list.value.filter(item => (item.title && regex.test(item.title)) ||

@@ -50,36 +50,17 @@ class IndexDB {
     })
   }
 
-  close_db() {
-    this._db.close();
-    console.log('db closed');
-  }
 
   addData(data, table_name = this._tableName) {
     const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
     const store = transaction.objectStore(table_name);
     const add_response = store.put(data);
 
-    add_response.onsuccess = event => {
-      console.log('add success: ', event);
-    }
     add_response.onerror = event => {
       console.log('add error: ', event);
     }
   }
 
-  clearData() {
-    const transaction = this._db.transaction(this._tableName, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
-    const store = transaction.objectStore(this._tableName);
-    const clear_response = store.clear();
-
-    clear_response.onsuccess = event => {
-      console.log('clear success: ', event);
-    }
-    clear_response.onerror = event => {
-      console.log('clear error: ', event);
-    }
-  }
 
   deleteData(path = '', table_name = this._tableName) {
     const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
@@ -93,16 +74,11 @@ class IndexDB {
       if (record) {
         // 删除当前记录
         const deleteRequest = store.delete(record.primaryKey);
-        deleteRequest.onsuccess = () => {
-          console.log('Deleted record with key:', event);
-        };
         deleteRequest.onerror = (e) => {
           console.error('Error deleting record with key:', e);
         };
         // 继续游标，查找下一条匹配记录
         record.continue();
-      } else {
-        console.log('path not found: ', event);
       }
     }
     path_requests.onerror = event => {
@@ -110,8 +86,9 @@ class IndexDB {
     }
   }
 
-  searchData(text = '', flag = 0, args = [], table_name = this._tableName) {
+  searchData(text = '', flag = 0, arr = [], table_name = this._tableName) {
     return new Promise((resolve, reject) => {
+      let allData = [];
       const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
       const store = transaction.objectStore(table_name);
       let search_requests;
@@ -131,19 +108,17 @@ class IndexDB {
       search_requests.onsuccess = event => {
         const cursor = event.target.result;
         if (cursor) {
-          console.log('search success: ', cursor.value, text);
-          args.push(cursor.value);
+          allData.push(cursor.value);
           if (flag === 1) {
             resolve(1)
           }
           cursor.continue()
         } else {
-          console.log('search not found: ', event, text);
           if (flag === 1) {
             resolve(0)
           }
           if (flag === 0) {
-            resolve(args)
+            resolve(allData)
           }
         }
       }

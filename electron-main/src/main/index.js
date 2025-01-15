@@ -50,6 +50,8 @@ function createWindow() {
   mainWindow.on('close', () => {
     mainWindow = null
   })
+
+  mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {

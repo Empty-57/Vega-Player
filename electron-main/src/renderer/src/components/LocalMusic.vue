@@ -2,12 +2,13 @@
 import {computed, onActivated, ref, toRaw, watch} from "vue";
 import IndexDB from "../assets/indexDB";
 import EventBus from "../assets/EventBus";
-import {findInsertPosition} from "../assets/BinarySearchPosition";
+import {compareSorts, findInsertPosition} from "../assets/BinarySearchPosition";
 import MusicList from "./MusicList.vue";
 import {useStorage} from '@vueuse/core'
 
 const db = new IndexDB()
 const cache_list = ref([])
+const f_cache_list = ref([]);
 const isLoading = ref(false)
 const loadCount = ref(0)
 const delCount = ref(0)
@@ -15,31 +16,28 @@ const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false})
 let sort_key = ref(local_cfg.value.sort_key)
 let isReverse = ref(local_cfg.value.isReverse)
 
-watch([sort_key, isReverse], async () => {
-  cache_list.value.length = 0;
-  db.init_DB().then(() => {
-    db.searchData('', 0).then(data => {
-      data.forEach(item => {
-        const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value)
-        cache_list.value.splice(position, 0, item)
-      })
-      if (isReverse.value) {
-        cache_list.value.reverse()
-      }
-      search()
-    })
+db.init_DB().then(() => {
+  db.searchData('', 0).then(data => {
+    cache_list.value.push(...data)
+    cache_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
+    search()
   })
+})
+
+
+watch([sort_key, isReverse], async () => {
+  cache_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
+  search()
 }, {immediate: true})
 
 
-async function SelectFile(flag, cacheList = []) {
-  await db.init_DB()
+function SelectFile(flag, cacheList = []) {
   window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)})
 }
 
-window.electron.ipcRenderer.on('close_db', () => {
-  db.close_db()
+window.electron.ipcRenderer.on('load_end', () => {
   isLoading.value = false
+  cache_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
   search()
 })
 window.electron.ipcRenderer.on('load_start', () => {
@@ -61,8 +59,7 @@ window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item)
-  const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value)
-  cache_list.value.splice(position, 0, item)
+  cache_list.value.push(item)
   loadCount.value++;
 })
 
@@ -89,21 +86,17 @@ function SwitchLikes(event, args) {
 
   console.log('likes: ', toRaw(cache_list.value[cacheIndex]))
   if (event.target.checked) {
-    db.init_DB().then(() => {
-      cache_list.value[cacheIndex].isLike = true
-      db.addData(toRaw(cache_list.value[cacheIndex]))
-      db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache')
-      db.close_db()
-      EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]))
-    })
+    cache_list.value[cacheIndex].isLike = true
+    db.addData(toRaw(cache_list.value[cacheIndex]))
+    db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache')
+
+    EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]))
   } else {
-    db.init_DB().then(() => {
-      db.deleteData(args.path, 'LikesCache')
-      cache_list.value[cacheIndex].isLike = false
-      db.addData(toRaw(cache_list.value[cacheIndex]))
-      db.close_db()
-      EventBus.emit('delete_LikeCache', args.path)
-    })
+    db.deleteData(args.path, 'LikesCache')
+    cache_list.value[cacheIndex].isLike = false
+    db.addData(toRaw(cache_list.value[cacheIndex]))
+
+    EventBus.emit('delete_LikeCache', args.path)
   }
 }
 
@@ -115,16 +108,14 @@ function music_delete(music_local) {
   const cacheIndex = cache_list.value.findIndex(item => item.path === music_local.value.path)
   const f_cacheIndex = f_cache_list.value.findIndex(item => item.path === music_local.value.path)
 
-  db.init_DB().then(() => {
-    db.deleteData(music_local.value.path)
-    db.deleteData(music_local.value.path, 'LikesCache')
-    db.close_db()
-    cache_list.value.splice(cacheIndex, 1)
-    f_cache_list.value.splice(f_cacheIndex, 1)
-    if (music_local.value.isLike) {
-      EventBus.emit('delete_LikeCache', music_local.value.path)
-    }
-  })
+  db.deleteData(music_local.value.path)
+  db.deleteData(music_local.value.path, 'LikesCache')
+
+  cache_list.value.splice(cacheIndex, 1)
+  f_cache_list.value.splice(f_cacheIndex, 1)
+  if (music_local.value.isLike) {
+    EventBus.emit('delete_LikeCache', music_local.value.path)
+  }
 }
 
 function select_sort(key_) {
@@ -137,10 +128,9 @@ function sw_reverse() {
   local_cfg.value.isReverse = isReverse.value
 }
 
-const f_cache_list = ref([]);
 
 function search(search_text = '') {
-  const regex = new RegExp(search_text.split('').join('|'), 'i');
+  const regex = new RegExp(search_text.split('').join(''), 'i');
   f_cache_list.value.length = 0;
   f_cache_list.value.push(...computed(() => {
     return cache_list.value.filter(item => (item.title && regex.test(item.title)) ||
@@ -190,7 +180,7 @@ function search(search_text = '') {
     </music-list>
     <div v-if="isLoading"
          class="fixed w-full h-screen z-[9] m-auto bg-zinc-800/40 left-0 right-0 top-0 bottom-0 flex items-center justify-center">
-      <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300">
+      <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300 *:select-none">
         已添加：{{ loadCount }}
         <br>
         已删除：{{ delCount }}
