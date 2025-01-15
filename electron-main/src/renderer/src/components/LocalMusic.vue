@@ -20,7 +20,7 @@ watch([sort_key, isReverse], async () => {
   db.init_DB().then(() => {
     db.searchData('', 0).then(data => {
       data.forEach(item => {
-        const position = findInsertPosition(cache_list.value, (item[sort_key.value] || -1).toString(), sort_key.value)
+        const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value)
         cache_list.value.splice(position, 0, item)
       })
       if (isReverse.value) {
@@ -61,17 +61,16 @@ window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item)
-  const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+  const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value)
   cache_list.value.splice(position, 0, item)
   loadCount.value++;
 })
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
-  console.log(item);
   db.searchData(item.path, 1).then(flag => {
     if (flag === 0) {
       db.addData(item)
-      const position = findInsertPosition(cache_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+      const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value)
       cache_list.value.splice(position, 0, item)
     }
     search()
@@ -79,30 +78,29 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
 })
 
 EventBus.on('set_Like_false', path => {
-  const cacheSet = cache_list.value.map(item => item.path)
-  cache_list.value[cacheSet.indexOf(path)].isLike = false
+  cache_list.value[cache_list.value.findIndex(item => item.path === path)].isLike = false
 })
 EventBus.on('delete_Cache', path => {
-  const cacheSet = cache_list.value.map(item => item.path)
-  cache_list.value.splice(cacheSet.indexOf(path), 1)
+  cache_list.value.splice(cache_list.value.findIndex(item => item.path === path), 1)
 })
 
 function SwitchLikes(event, args) {
-  const cacheSet = cache_list.value.map(item => item.path)
-  console.log('likes: ', toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
+  const cacheIndex = cache_list.value.findIndex(item => item.path === args.path)
+
+  console.log('likes: ', toRaw(cache_list.value[cacheIndex]))
   if (event.target.checked) {
     db.init_DB().then(() => {
-      cache_list.value[cacheSet.indexOf(args.path)].isLike = true
-      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
-      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]), 'LikesCache')
+      cache_list.value[cacheIndex].isLike = true
+      db.addData(toRaw(cache_list.value[cacheIndex]))
+      db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache')
       db.close_db()
-      EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
+      EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]))
     })
   } else {
     db.init_DB().then(() => {
       db.deleteData(args.path, 'LikesCache')
-      cache_list.value[cacheSet.indexOf(args.path)].isLike = false
-      db.addData(toRaw(cache_list.value[cacheSet.indexOf(args.path)]))
+      cache_list.value[cacheIndex].isLike = false
+      db.addData(toRaw(cache_list.value[cacheIndex]))
       db.close_db()
       EventBus.emit('delete_LikeCache', args.path)
     })
@@ -114,14 +112,15 @@ onActivated(() => {
 })
 
 function music_delete(music_local) {
-  const cacheSet = cache_list.value.map(item => item.path)
-  const f_CacheSet = f_cache_list.value.map(item => item.path)
+  const cacheIndex = cache_list.value.findIndex(item => item.path === music_local.value.path)
+  const f_cacheIndex = f_cache_list.value.findIndex(item => item.path === music_local.value.path)
+
   db.init_DB().then(() => {
     db.deleteData(music_local.value.path)
     db.deleteData(music_local.value.path, 'LikesCache')
     db.close_db()
-    cache_list.value.splice(cacheSet.indexOf(music_local.value.path), 1)
-    f_cache_list.value.splice(f_CacheSet.indexOf(music_local.value.path), 1)
+    cache_list.value.splice(cacheIndex, 1)
+    f_cache_list.value.splice(f_cacheIndex, 1)
     if (music_local.value.isLike) {
       EventBus.emit('delete_LikeCache', music_local.value.path)
     }

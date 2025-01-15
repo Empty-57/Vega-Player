@@ -17,7 +17,7 @@ watch([sort_key, isReverse], async () => {
   db.init_DB().then(() => {
     db.searchData('', 0, [], 'LikesCache').then(data => {
       data.forEach(item => {
-        const position = findInsertPosition(cacheLike_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+        const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value)
         cacheLike_list.value.splice(position, 0, item)
       })
       if (isReverse.value) {
@@ -33,21 +33,21 @@ EventBus.on('delete_LikeCache', path => {
   cacheLike_list.value.splice(LikeCacheSet.indexOf(path), 1)
 })
 EventBus.on('add_LikeCache', item => {
-  const position = findInsertPosition(cacheLike_list.value, (item[sort_key.value] || 0).toString(), sort_key.value)
+  const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value)
   cacheLike_list.value.splice(position, 0, item)
 })
 
 function SwitchLikes(event, args) {
-  const LikeCacheSet = cacheLike_list.value.map(item => item.path)
-  const f_CacheSet = f_cacheLike_list.value.map(item => item.path)
-  console.log('likes: ', toRaw(cacheLike_list.value[LikeCacheSet.indexOf(args.path)]))
+  const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === args.path)
+  const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === args.path)
+  console.log('likes: ', toRaw(cacheLike_list.value[cacheLikeIndex]))
   db.init_DB().then(() => {
     db.deleteData(args.path, 'LikesCache')
-    cacheLike_list.value[LikeCacheSet.indexOf(args.path)].isLike = false
-    db.addData(toRaw(cacheLike_list.value[LikeCacheSet.indexOf(args.path)]))
+    cacheLike_list.value[cacheLikeIndex].isLike = false
+    db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
     db.close_db()
-    cacheLike_list.value.splice(LikeCacheSet.indexOf(args.path), 1)
-    f_cacheLike_list.value.splice(f_CacheSet.indexOf(args.path), 1)
+    cacheLike_list.value.splice(cacheLikeIndex, 1)
+    f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
     EventBus.emit('set_Like_false', args.path)
   })
 }
@@ -57,16 +57,16 @@ onActivated(() => {
 })
 
 function music_delete(music_local) {
-  const LikeCacheSet = cacheLike_list.value.map(item => item.path)
-  const f_CacheSet = f_cacheLike_list.value.map(item => item.path)
-  console.log("music_delete: ", music_local)
+  const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
+  const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
+
   db.init_DB().then(() => {
     db.deleteData(music_local.value.path, 'LikesCache')
-    cacheLike_list.value[LikeCacheSet.indexOf(music_local.value.path)].isLike = false
-    db.addData(toRaw(cacheLike_list.value[LikeCacheSet.indexOf(music_local.value.path)]))
+    cacheLike_list.value[cacheLikeIndex].isLike = false
+    db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
     db.close_db()
-    cacheLike_list.value.splice(LikeCacheSet.indexOf(music_local.value.path), 1)
-    f_cacheLike_list.value.splice(f_CacheSet.indexOf(music_local.value.path), 1)
+    cacheLike_list.value.splice(cacheLikeIndex, 1)
+    f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
     EventBus.emit('set_Like_false', music_local.value.path)
   })
 }
