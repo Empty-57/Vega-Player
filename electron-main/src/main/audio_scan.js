@@ -105,13 +105,11 @@ export async function audio_scan(event, flag, cacheList) {
 
     if (!itemsToAdd.length > 0) {
       event.sender.send('load_end')
+      return null;
     }
     Promise.all(itemsToAdd.map(async filePath => {
       await cacheSender(filePath, event, 'add_db', mm)
     })).then(() => {
-      event.sender.send('load_end')
-    }).catch(error => {
-      console.error(error)
       event.sender.send('load_end')
     })
   }

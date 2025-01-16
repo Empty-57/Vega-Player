@@ -180,7 +180,7 @@ function search(search_text = '') {
     </music-list>
     <div v-if="isLoading"
          class="fixed w-full h-screen z-[9] m-auto bg-zinc-800/40 left-0 right-0 top-0 bottom-0 flex items-center justify-center">
-      <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300 *:select-none">
+      <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300 select-none">
         已添加：{{ loadCount }}
         <br>
         已删除：{{ delCount }}
