@@ -1,7 +1,7 @@
 import {BrowserWindow, dialog} from "electron";
-import fs from "node:fs";
-import path from "node:path";
-import {loadMusicMetadata} from "music-metadata";
+import fs from "fs";
+import path from "path";
+import {parseFile} from "music-metadata";
 
 const _ext = ["mp3", "mpeg", "opus", "ogg", "oga", "wav", "aac", "caf", "m4a", "m4b", "mp4", "weba", "webm", "dolby", "flac"]
 const audio_ext = new Set(_ext.map(item => {
@@ -19,22 +19,9 @@ function uint8ArrayToBase64(array) {
   return btoa(binaryString);
 }
 
-async function traverseDirectoryAsync(dir, list) {
-  const files = await fs.promises.opendir(dir)
-  for await (const file of files) {
-    const filePath = path.join(dir, file.name);
-    const stats = await fs.promises.stat(filePath);
-    if (stats.isDirectory()) {
-      await traverseDirectoryAsync(filePath, list);
-    }
-    if (audio_ext.has(path.extname(file.name))) {
-      list.push(filePath);
-    }
-  }
-}
 
-async function cacheSender(filePath, event, channel, mm) {
-  const metadata = await mm.parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
+async function cacheSender(filePath, event, channel) {
+  const metadata = await parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
   event.sender.send(channel, {
     audio_id: filePath,
     title: metadata.common.title ? metadata.common.title : path.basename(filePath, path.extname(filePath)),
@@ -54,7 +41,6 @@ async function cacheSender(filePath, event, channel, mm) {
 
 export async function audio_scan(event, flag, cacheList) {
   const window = BrowserWindow.getFocusedWindow();
-  const mm = await loadMusicMetadata()
   if (flag === 'file') {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openFile'], // 打开文件选择对话框
@@ -70,7 +56,7 @@ export async function audio_scan(event, flag, cacheList) {
     const filePath = result.filePaths[0];
 
 
-    Promise.all([await cacheSender(filePath, event, 'update_cache_file', mm)]).then(() => {
+    Promise.all([await cacheSender(filePath, event, 'update_cache_file')]).then(() => {
       event.sender.send('load_end')
     })
   }
@@ -88,7 +74,14 @@ export async function audio_scan(event, flag, cacheList) {
     const folderPath = result.filePaths[0];
     const audioFiles = [];  // 过滤音频文件
 
-    await traverseDirectoryAsync(folderPath, audioFiles);
+
+    const files = await fs.promises.readdir(folderPath, {recursive: true})
+    files.forEach(file => {
+      const filePath = path.join(folderPath, file);
+      if (audio_ext.has(path.extname(file))) {
+        audioFiles.push(filePath);
+      }
+    })
 
     const setAudioFiles = new Set(audioFiles)
     const itemsToRemove = cacheList.filter(value => !setAudioFiles.has(value.path));//删除缓存里面缓存有而文件夹没有的内容
@@ -108,7 +101,7 @@ export async function audio_scan(event, flag, cacheList) {
       return null;
     }
     Promise.all(itemsToAdd.map(async filePath => {
-      await cacheSender(filePath, event, 'add_db', mm)
+      await cacheSender(filePath, event, 'add_db')
     })).then(() => {
       event.sender.send('load_end')
     })

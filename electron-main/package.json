@@ -5,6 +5,7 @@
   "main": "./out/main/index.js",
   "author": "https://github.com/Empty-57",
   "homepage": "https://electron-vite.org",
+  "type": "module",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
@@ -23,7 +24,7 @@
     "@vueuse/components": "^12.3.0",
     "@vueuse/core": "^12.3.0",
     "mitt": "^3.0.1",
-    "music-metadata": "^10.6.5"
+    "music-metadata": "^10.7.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^1.0.2",
