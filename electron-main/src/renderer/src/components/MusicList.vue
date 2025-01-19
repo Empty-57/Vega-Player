@@ -10,6 +10,7 @@ const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reve
 const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "title", "sort_key", "isReverse"]);
 
 let timer = null;
+let timer2 = null;
 const search_box = useTemplateRef('search_box')
 const search_btn = useTemplateRef('search_btn')
 const isFocused = ref(false)
@@ -27,10 +28,30 @@ const {list, containerProps, wrapperProps} = useVirtualList(
   cache_list,
   {
     itemHeight: 56,
-    overscan: 5,
+    overscan: 2,
   })
 const music_list = containerProps.ref
 const {arrivedState} = useScroll(music_list)
+
+
+watchEffect(() => {
+  const list_ = list.value
+  timer2 = setTimeout(() => {
+    list_.forEach((item, index) => {
+      if (list.value[index] && list.value[index].data.src) {
+        return;
+      }
+      window.electron.ipcRenderer.invoke("getCovers", item.data.path).then(src => {
+        if (list.value[index]) {
+          list.value[index].data.src = src;
+        }
+      })
+    })
+  }, 300)
+  onWatcherCleanup(() => {
+    clearTimeout(timer2)
+  })
+})
 
 onDeactivated(() => {
   isFocused.value = false
@@ -156,14 +177,6 @@ function ToLocal() {
           tabindex="0">
           <li>
             <a
-              :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='default'}"
-              class="text-center active:bg-transparent active:text-inherit p-2 h-8 rounded-none dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20"
-              @click="select_sort('default')">
-              默认
-            </a>
-          </li>
-          <li>
-            <a
               :class="{'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20':sort_key==='title'}"
               class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
               @click="select_sort('title')">
@@ -223,10 +236,10 @@ function ToLocal() {
     <div class="basis-2/3 w-full overflow-x-hidden overflow-y-scroll p-4 pb-0" v-bind="containerProps">
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
         <div
-          v-for="metadata in list" :key="metadata.data.audio_id"
+          v-for="metadata in list" :key="metadata.data.path"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
           <img
-            :src="metadata.data.picture? metadata.data.picture:placeholder"
+            :src="metadata.data.src? metadata.data.src:placeholder"
             alt=""
             class="rounded h-10 w-10 object-cover bg-cover" loading="lazy"/>
           <div class="flex flex-col items-start justify-between h-8 mx-2 w-0 flex-auto max-w-[25%] *:truncate">

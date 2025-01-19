@@ -17,7 +17,7 @@ class IndexDB {
         this._db = event.target.result;
         if (!this._db.objectStoreNames.contains(this._tableName)) {
           const store = this._db.createObjectStore(this._tableName, {
-            keyPath: 'audio_id', // 设置主键
+            keyPath: 'path', // 设置主键
             autoIncrement: false,
           })
           store.createIndex('path', 'path', {unique: false})
@@ -28,7 +28,7 @@ class IndexDB {
         }
         if (!this._db.objectStoreNames.contains('LikesCache')) {
           const store = this._db.createObjectStore('LikesCache', {
-            keyPath: 'audio_id', // 设置主键
+            keyPath: 'path', // 设置主键
             autoIncrement: false,
           })
           store.createIndex('path', 'path', {unique: false})

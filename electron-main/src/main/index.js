@@ -3,7 +3,7 @@ import {join} from 'path'
 import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {useDebounceFn} from '@vueuse/core'
-import {audio_scan} from "./audio_scan";
+import {audio_scan, getCover} from "./audio_scan";
 
 function createWindow() {
   // Create the browser window.
@@ -86,6 +86,10 @@ ipcMain.on('select_files', async (event, args) => {
   await audio_scan(event, args.flag, args.cacheList)
   const endTime = performance.now();
   console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
+})
+
+ipcMain.handle("getCovers", async (_, path) => {
+  return await getCover(path)
 })
 
 app.on('window-all-closed', () => {

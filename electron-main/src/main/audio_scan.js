@@ -1,12 +1,20 @@
 import {BrowserWindow, dialog} from "electron";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import {parseFile} from "music-metadata";
+import pLimit from "p-limit";
 
 const _ext = ["mp3", "mpeg", "opus", "ogg", "oga", "wav", "aac", "caf", "m4a", "m4b", "mp4", "weba", "webm", "dolby", "flac"]
 const audio_ext = new Set(_ext.map(item => {
   return '.' + item
 }))
+
+// 获取 CPU 核心数
+const cpuCount = os.cpus().length
+// 最大并发数
+const maxConcurrency = cpuCount * 2
+const limit = pLimit(maxConcurrency);
 
 function uint8ArrayToBase64(array) {
   // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
@@ -21,23 +29,25 @@ function uint8ArrayToBase64(array) {
 
 
 async function cacheSender(filePath, event, channel) {
-  const metadata = await parseFile(filePath, {skipPostHeaders: true, includeChapters: false});
+  const metadata = await parseFile(filePath, {skipPostHeaders: true, includeChapters: false, skipCovers: true});
   event.sender.send(channel, {
-    audio_id: filePath,
     title: metadata.common.title ? metadata.common.title : path.basename(filePath, path.extname(filePath)),
     artist: metadata.common.artist,
     album: metadata.common.album,
-    numberOfChannels: metadata.format.numberOfChannels,//声道
-    sampleRate: metadata.format.sampleRate,//音频采样率
+    // numberOfChannels: metadata.format.numberOfChannels,//声道
+    // sampleRate: metadata.format.sampleRate,//音频采样率
     duration: metadata.format.duration,//时长 s
     formatTime: metadata.format.duration ? Math.floor(metadata.format.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.format.duration % 60).toString().padStart(2, '0') : '?',
-    bitrate: metadata.format.bitrate,//比特率
-    picture: metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null,
+    // bitrate: metadata.format.bitrate,//比特率
     path: filePath,
     isLike: false
   })
 }
 
+export async function getCover(filePath) {
+  const metadata = await parseFile(filePath, {skipPostHeaders: true, includeChapters: false, duration: false});
+  return metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null
+}
 
 export async function audio_scan(event, flag, cacheList) {
   const window = BrowserWindow.getFocusedWindow();
@@ -100,10 +110,13 @@ export async function audio_scan(event, flag, cacheList) {
       event.sender.send('load_end')
       return null;
     }
-    Promise.all(itemsToAdd.map(async filePath => {
-      await cacheSender(filePath, event, 'add_db')
-    })).then(() => {
-      event.sender.send('load_end')
+
+    const tasks = itemsToAdd.map(filePath => {
+      return limit(() => cacheSender(filePath, event, 'add_db'))
     })
+
+    await Promise.all(tasks)
+    event.sender.send('load_end')
+
   }
 }

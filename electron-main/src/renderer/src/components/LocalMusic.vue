@@ -36,9 +36,9 @@ function SelectFile(flag, cacheList = []) {
 }
 
 window.electron.ipcRenderer.on('load_end', () => {
-  isLoading.value = false
   cache_list.value.sort((item1, item2) => isReverse.value ? compareSorts(item2[sort_key.value], item1[sort_key.value]) : compareSorts(item1[sort_key.value], item2[sort_key.value]))
   search()
+  isLoading.value = false
 })
 window.electron.ipcRenderer.on('load_start', () => {
   EventBus.emit('load_start')
