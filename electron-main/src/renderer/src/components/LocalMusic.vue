@@ -104,17 +104,18 @@ onActivated(() => {
   search()
 })
 
-function music_delete(music_local) {
-  const cacheIndex = cache_list.value.findIndex(item => item.path === music_local.value.path)
-  const f_cacheIndex = f_cache_list.value.findIndex(item => item.path === music_local.value.path)
+function music_delete(path) {
+  const cacheIndex = cache_list.value.findIndex(item => item.path === path)
+  const f_cacheIndex = f_cache_list.value.findIndex(item => item.path === path)
 
-  db.deleteData(music_local.value.path)
-  db.deleteData(music_local.value.path, 'LikesCache')
+  db.deleteData(path)
+  db.deleteData(path, 'LikesCache')
 
-  cache_list.value.splice(cacheIndex, 1)
+  const local = cache_list.value.splice(cacheIndex, 1)
   f_cache_list.value.splice(f_cacheIndex, 1)
-  if (music_local.value.isLike) {
-    EventBus.emit('delete_LikeCache', music_local.value.path)
+  const isLike = local ? local[0].isLike : false;
+  if (isLike) {
+    EventBus.emit('delete_LikeCache', path)
   }
 }
 
@@ -142,22 +143,24 @@ function search(search_text = '') {
 
 <template>
   <div class="relative w-full h-screen left-0 top-0">
-    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key" title="本地音乐"
+    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key"
+                :title="'本地音乐 '+cache_list.length+' 首'"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
-                @music_delete="music_local => music_delete(music_local)"
+                @music_delete="path => music_delete(path)"
                 @search="search_text=>search(search_text)"
                 @select_sort="key_ => select_sort(key_)"
                 @sw_reverse="sw_reverse">
       <div class="dropdown">
-        <button
+        <div
           class="flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
+          role="button"
           tabindex="0">
           <svg class="stroke-zinc-900 dark:stroke-zinc-200" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
             <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
             <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
           </svg>
           添加
-        </button>
+        </div>
         <ul
           class="w-36 p-0 py-2 dropdown-content menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0">

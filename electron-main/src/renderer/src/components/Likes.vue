@@ -51,17 +51,17 @@ onActivated(() => {
   search()
 })
 
-function music_delete(music_local) {
-  const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
-  const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === music_local.value.path)
+function music_delete(path) {
+  const cacheLikeIndex = cacheLike_list.value.findIndex(item => item.path === path)
+  const f_cacheLikeIndex = f_cacheLike_list.value.findIndex(item => item.path === path)
 
-  db.deleteData(music_local.value.path, 'LikesCache')
+  db.deleteData(path, 'LikesCache')
   cacheLike_list.value[cacheLikeIndex].isLike = false
   db.addData(toRaw(cacheLike_list.value[cacheLikeIndex]))
 
   cacheLike_list.value.splice(cacheLikeIndex, 1)
   f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
-  EventBus.emit('set_Like_false', music_local.value.path)
+  EventBus.emit('set_Like_false', path)
 }
 
 function select_sort(key_) {
@@ -88,9 +88,10 @@ function search(search_text = '') {
 </script>
 
 <template>
-  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key" title="喜欢"
+  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key"
+             :title="'喜欢 '+cacheLike_list.length+' 首'"
              @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
-             @music_delete="music_local => music_delete(music_local)"
+             @music_delete="path => music_delete(path)"
              @search="search_text=>search(search_text)"
              @select_sort="key_ => select_sort(key_)"
              @sw_reverse="sw_reverse"></MusicList>

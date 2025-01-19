@@ -11,6 +11,8 @@ const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "tit
 
 let timer = null;
 let timer2 = null;
+const isChoices = ref(false);
+const choicesList = ref([])
 const search_box = useTemplateRef('search_box')
 const search_btn = useTemplateRef('search_btn')
 const isFocused = ref(false)
@@ -21,8 +23,6 @@ const music_local = ref({
   x: 0,
   y: 0,
   path: '',
-  music_index: 0,
-  isLike: false,
 })
 const {list, containerProps, wrapperProps} = useVirtualList(
   cache_list,
@@ -68,7 +68,7 @@ function SwitchLikes(event, args) {
 }
 
 function music_delete() {
-  emit("music_delete", music_local)
+  emit("music_delete", music_local.value.path)
   music_dropdown.value = false
 }
 
@@ -78,8 +78,6 @@ async function click_menu(event, args) {
     music_local.value.x = event.clientX - 6;
     music_local.value.y = event.clientY - music_menu.value.clientHeight - 6;
     music_local.value.path = args.path;
-    music_local.value.music_index = args.index
-    music_local.value.isLike = args.isLike;
   })
 }
 
@@ -112,6 +110,17 @@ function sw_search(e) {
   }
 }
 
+function sw_choices(e) {
+  if (e.target.checked) {
+    isChoices.value = true;
+    isFocused.value = false;
+    search_text.value = ''
+  } else {
+    isChoices.value = false;
+    choicesList.value.length = 0;
+  }
+}
+
 function dropdownClose() {
   music_dropdown.value = false
 }
@@ -121,6 +130,14 @@ function ToTop() {
 }
 
 function ToLocal() {
+}
+
+function Choices(event, path) {
+  if (event.target.checked) {
+    choicesList.value.push(path)
+  } else {
+    choicesList.value.splice(choicesList.value.indexOf(path), 1);
+  }
 }
 </script>
 
@@ -132,8 +149,14 @@ function ToLocal() {
       }}</span>
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <slot></slot>
-      <span>mul_action</span>
-      <span>view</span>
+
+      <label
+        class="swap p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none outline-none duration-200">
+        <input class="outline-none" type="checkbox" @change="sw_choices"/>
+        <span class="swap-on text-center text-red-600">退出多选</span>
+        <span class="swap-off text-center text-zinc-900 dark:text-zinc-200 ">多选</span>
+      </label>
+
       <span class="grow"></span>
       <div class="flex items-center justify-center gap-x-2">
         <input ref="search_box"
@@ -142,7 +165,8 @@ function ToLocal() {
                class=" text-zinc-900  dark:text-zinc-200 dark:bg-neutral-900/40 bg-gray-300/80 peer placeholder:italic placeholder:text-xs rounded h-8 outline-none text-xs duration-200"
                placeholder="搜索歌单歌曲">
 
-        <label class="swap swap-rotate *:dark:hover:fill-cyan-600 *:hover:fill-cyan-500">
+        <label :class="{'pointer-events-none': isChoices}"
+               class="swap swap-rotate *:dark:hover:fill-cyan-600 *:hover:fill-cyan-500">
           <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search"/>
           <svg class="swap-off fill-zinc-900 dark:fill-zinc-200 "
                height="16"
@@ -162,7 +186,7 @@ function ToLocal() {
       </div>
       <div class="dropdown dropdown-end">
         <button
-          :class="{'pointer-events-none': isFocused}"
+          :class="{'pointer-events-none': isFocused || isChoices}"
           class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
           tabindex="0">
           <svg class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
@@ -228,16 +252,20 @@ function ToLocal() {
     </div>
     <div
       class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-[10px] px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
-      <span class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
-      <span class="w-16 text-xs mx-8 mr-16"></span>
-      <span class="w-0 flex-auto text-left">专辑</span>
-      <span class="w-8 mr-7">时长</span>
+      <span v-if="isChoices" class="ml-1 mr-4">已选{{ choicesList.length }}首</span>
+      <span v-if="!isChoices" class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
+      <span v-if="!isChoices" class="w-16 text-xs mx-8 mr-16"></span>
+      <span v-if="!isChoices" class="w-0 flex-auto text-left">专辑</span>
+      <span v-if="!isChoices" class="w-8 mr-7">时长</span>
     </div>
     <div class="basis-2/3 w-full overflow-x-hidden overflow-y-scroll p-4 pb-0" v-bind="containerProps">
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
         <div
           v-for="metadata in list" :key="metadata.data.path"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
+          <input v-if="isChoices" :checked="choicesList.indexOf(metadata.data.path)!==-1" class="checkbox ml-1 mr-4 checkbox-xs dark:border-zinc-600 border-zinc-400"
+                 type="checkbox"
+                 @change="Choices($event,metadata.data.path)"/>
           <img
             :src="metadata.data.src? metadata.data.src:placeholder"
             alt=""
@@ -247,7 +275,7 @@ function ToLocal() {
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{ metadata.data.artist }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
-            <label class="swap">
+            <label v-if="!isChoices" class="swap">
             <input ref="theme_sw" :checked="metadata.data.isLike" class="outline-none" type="checkbox"
                    @change="SwitchLikes($event,{path:metadata.data.path,index:metadata.index})"/>
             <svg class="swap-off stroke-zinc-500 dark:stroke-zinc-400" height="16" viewBox="0 0 24 24" width="16"
@@ -265,7 +293,7 @@ function ToLocal() {
 </svg>
           </label>
           </span>
-          <span class="flex items-center justify-center mr-6 w-6"
+          <span v-if="!isChoices" class="flex items-center justify-center mr-6 w-6"
                 @click="click_menu($event,{path:metadata.data.path,index:metadata.index,isLike:metadata.data.isLike})">
             <svg class="fill-zinc-500 dark:fill-zinc-400 dark:hover:fill-cyan-600 hover:fill-cyan-500" height="16"
                  viewBox="0 0 1024 1024"
@@ -291,8 +319,10 @@ function ToLocal() {
       ref="music_menu"
       v-on-click-outside.blub="dropdownClose"
       :style="{'left':music_local.x+'px', 'top':music_local.y+'px'}"
-      class="*:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200">
-      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+      class="*:cursor-pointer *:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200">
+
+
+      <span class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
         <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
              width="14" xmlns="http://www.w3.org/2000/svg"><path
           d="M852.5 533.9L279 864.7c-11.9 6.9-27.2 2.8-34.1-9.1-2.2-3.8-3.3-8.1-3.3-12.5V181.5c0-13.8 11.2-24.9 24.9-24.9 4.4 0 8.7 1.2 12.5 3.3l573.4 330.8c11.9 6.9 16 22.1 9.1 34.1-2.1 3.8-5.2 6.9-9 9.1z">
@@ -300,17 +330,71 @@ function ToLocal() {
         </path></svg>
         <span class="px-2">播放</span>
       </span>
-      <span class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
-        <svg class="fill-zinc-900 dark:fill-zinc-200" height="16" viewBox="0 0 1024 1024"
-             width="16" xmlns="http://www.w3.org/2000/svg"><path
-          d="M655.706179 465.602819L332.053897 218.588294c-38.414608-29.327534-93.791393-1.929039-93.791392 46.396277v494.029051c0 48.325316 55.376785 75.725617 93.791392 46.398084l323.652282-247.014525c30.602722-23.357989 30.602722-69.436372 0-92.794362zM781.064814 780.798397V451.684117v-164.562559c0-19.628152 5.904521-60.475733-17.057907-75.841215-25.523642-17.068744-59.747828 1.210165-59.747828 31.919454v493.676839c0 19.628152-5.915358 60.473927 17.047069 75.841215 25.532673 17.068744 59.758666-1.211971 59.758666-31.919454z">
 
-        </path></svg>
+
+      <span class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+       <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+            width="14" xmlns="http://www.w3.org/2000/svg"><path
+         d="M192 899.072c-5.632 0-11.264-1.536-15.872-4.096-9.728-5.632-15.872-16.384-15.872-27.648V159.232c0-11.264 6.144-22.016 15.872-27.648 9.728-5.632 22.016-5.632 31.744 0l612.864 353.792c9.728 5.632 15.872 16.384 15.872 27.648s-6.144 22.016-15.872 27.648L207.872 894.464c-4.608 3.072-10.24 4.608-15.872 4.608z"></path><path
+         d="M837.12 898.56h-60.416c-15.36 0-27.648-12.288-27.648-27.648V155.136c0-15.36 12.288-27.648 27.648-27.648h60.416c15.36 0 27.648 12.288 27.648 27.648V870.4c0 15.872-12.288 28.16-27.648 28.16z">
+
+       </path></svg>
         <span class="px-2">下一首播放</span>
       </span>
+
+
+      <div class="h-8 dropdown dropdown-hover dropdown-right dark:hover:bg-neutral-800/40 hover:bg-gray-300/80">
+        <div class="outline-none flex items-center justify-start" role="button" tabindex="0">
+          <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+               width="14" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M621.714286 621.714286v-256h73.142857v256h256v73.142857h-256v256h-73.142857v-256h-256v-73.142857h256z m329.142857-292.571429h-73.142857V146.285714H146.285714v731.428572h182.857143v73.142857H146.285714a73.142857 73.142857 0 0 1-73.142857-73.142857V146.285714a73.142857 73.142857 0 0 1 73.142857-73.142857h731.428572a73.142857 73.142857 0 0 1 73.142857 73.142857v182.857143z">
+            </path>
+          </svg>
+
+
+          <span class="px-2">添加到</span>
+
+          <span class="grow"></span>
+
+          <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+               width="14" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M332.501333 183.168a42.666667 42.666667 0 0 1 57.621334-2.496l2.709333 2.496 298.666667 298.666667a42.666667 42.666667 0 0 1 2.496 57.621333l-2.496 2.709333-298.666667 298.666667a42.666667 42.666667 0 0 1-62.826667-57.621333l2.496-2.709334L600.96 512 332.501333 243.498667a42.666667 42.666667 0 0 1-2.496-57.621334l2.496-2.709333z">
+
+            </path>
+          </svg>
+        </div>
+        <ul class="dropdown-content dark:bg-neutral-900 bg-gray-200 shadow w-36 rounded py-2 *:w-full *:px-4 *:py-2 *:duration-200 *:h-8 ml-1"
+            tabindex="0">
+          <li class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+            <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+                 width="14" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M85.333333 768h426.666667v85.333333H85.333333v-85.333333z m0-298.666667h853.333334v85.333334H85.333333v-85.333334z m0-298.666666h853.333334v85.333333H85.333333V170.666667z m682.666667 597.333333v-128h85.333333v128h128v85.333333h-128v128h-85.333333v-128h-128v-85.333333h128z">
+
+              </path>
+            </svg>
+            <span class="px-2">添加到播放列表</span>
+
+          </li>
+
+          <li class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
+            <div class="h-2 w-[14px]"></div>
+            <span class="px-2">添加到歌单1</span>
+
+          </li>
+
+        </ul>
+      </div>
+
+
       <div
         class="before:absolute before:left-0 before:h-[0.5px] before:w-full before:dark:bg-gray-300/40 before:bg-neutral-800/60"></div>
-      <span class="dark:hover:bg-red-800/40 hover:bg-red-500/80 flex items-center justify-start" @click="music_delete">
+
+
+      <span class="h-8 dark:hover:bg-red-800/40 hover:bg-red-500/80 flex items-center justify-start"
+            @click="music_delete">
         <svg class="fill-zinc-900 dark:fill-zinc-200" height="16" viewBox="0 0 1024 1024"
              width="16" xmlns="http://www.w3.org/2000/svg"><path
           d="M256 256h554.666667v640H256V256z m42.666667 42.666667v554.666666h469.333333V298.666667H298.666667z m128 128h42.666666v298.666666h-42.666666v-298.666666z m170.666666 0h42.666667v298.666666h-42.666667v-298.666666zM213.333333 256h640v42.666667H213.333333V256z m213.333334-85.333333h213.333333v42.666666h-213.333333V170.666667z">
@@ -318,6 +402,8 @@ function ToLocal() {
         </path></svg>
         <span class="px-2">删除</span>
       </span>
+
+
     </div>
   </div>
 </template>
