@@ -6,7 +6,7 @@ import {useScroll, useVirtualList} from "@vueuse/core";
 import {vOnClickOutside} from "@vueuse/components";
 import EventBus from "../assets/EventBus";
 
-const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse", "search"])
+const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse", "search", "mulDelete", "addToLike"])
 const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "title", "sort_key", "isReverse"]);
 
 let timer = null;
@@ -16,6 +16,7 @@ const choicesList = ref([])
 const search_box = useTemplateRef('search_box')
 const search_btn = useTemplateRef('search_btn')
 const isFocused = ref(false)
+const mulAction = ref(false);
 const search_text = ref('')
 const music_dropdown = ref(false)
 const music_menu = useTemplateRef('music_menu')
@@ -139,6 +140,30 @@ function Choices(event, path) {
     choicesList.value.splice(choicesList.value.indexOf(path), 1);
   }
 }
+
+function selectAll(event) {
+  if (event.target.checked) {
+    cache_list.forEach(item => {
+        if (!choicesList.value.includes(item.path)) {
+          choicesList.value.push(item.path)
+        }
+      }
+    )
+  } else {
+    choicesList.value.length = 0;
+  }
+}
+
+function mulDelete() {
+  emit("mulDelete", choicesList.value)
+  choicesList.value.length = 0;
+}
+
+function addToLike() {
+  emit("addToLike", choicesList.value)
+  mulAction.value = false
+}
+
 </script>
 
 <template>
@@ -148,14 +173,78 @@ function Choices(event, path) {
         title
       }}</span>
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
-      <slot></slot>
+      <slot name="slot1"></slot>
 
       <label
-        class="swap p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none outline-none duration-200">
+        class="h-8 swap p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none outline-none duration-200">
         <input class="outline-none" type="checkbox" @change="sw_choices"/>
         <span class="swap-on text-center text-red-600">退出多选</span>
         <span class="swap-off text-center text-zinc-900 dark:text-zinc-200 ">多选</span>
       </label>
+
+      <span :class="{'pointer-events-auto opacity-100':isChoices&&choicesList.length>0}"
+            class="pointer-events-none opacity-0 h-8 text-zinc-900 hover:text-red-600 dark:text-zinc-200 p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none duration-200"
+            @click="mulDelete">
+        删除
+      </span>
+
+
+      <div :class="{'pointer-events-auto opacity-100':isChoices&&choicesList.length>0}"
+           class="duration-200 opacity-0 pointer-events-none">
+        <div
+          class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
+          role="button" tabindex="0"
+          @click="()=>mulAction=!mulAction">
+
+          <svg class="fill-zinc-900 dark:fill-zinc-200" height="16" viewBox="0 0 1024 1024"
+               width="16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M224 512m-80 0a80 80 0 1 0 160 0 80 80 0 1 0-160 0Z"></path>
+            <path d="M512 512m-80 0a80 80 0 1 0 160 0 80 80 0 1 0-160 0Z"></path>
+            <path d="M800 512m-80 0a80 80 0 1 0 160 0 80 80 0 1 0-160 0Z">
+
+            </path>
+          </svg>
+
+          更多操作
+        </div>
+        <ul v-on-click-outside.blub="()=>mulAction=false" :class="{'opacity-100 pointer-events-auto': mulAction}"
+            class="w-36 p-0 py-2 opacity-0 z-[5] duration-200 pointer-events-none absolute menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+            tabindex="0">
+
+          <li>
+            <a
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+            >
+              添加至播放列表
+            </a>
+          </li>
+
+          <li>
+            <a
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+            >
+              替换播放列表
+            </a>
+          </li>
+
+          <li>
+            <a
+              class="max-w-36 truncate hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+            >
+              添加到歌单1
+            </a>
+          </li>
+
+          <li v-if="title.includes('本地')">
+            <a
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              @click="addToLike">
+              添加到喜欢
+            </a>
+          </li>
+        </ul>
+      </div>
+
 
       <span class="grow"></span>
       <div class="flex items-center justify-center gap-x-2">
@@ -252,7 +341,13 @@ function Choices(event, path) {
     </div>
     <div
       class="dark:bg-zinc-800 bg-zinc-200 flex items-center justify-start w-full h-fit *:text-[10px] px-6 pr-8 *:select-none *:text-zinc-900 *:dark:text-zinc-400">
-      <span v-if="isChoices" class="ml-1 mr-4">已选{{ choicesList.length }}首</span>
+      <span v-if="isChoices" class="ml-2">全选</span>
+      <input v-if="isChoices" id="myCheckbox" class="absolute opacity-0 peer" type="checkbox" @change="selectAll">
+      <label v-if="isChoices"
+             class="size-3 dark:border-cyan-800 hover:border-cyan-600 border-cyan-400 border-[1px] rounded-sm ml-1 peer-checked:bg-cyan-400"
+             for="myCheckbox"></label>
+      <span v-if="isChoices" class="mx-2">已选{{ choicesList.length }}首</span>
+
       <span v-if="!isChoices" class="w-0 flex-auto mr-4 max-w-[25%]">歌曲/艺术家</span>
       <span v-if="!isChoices" class="w-16 text-xs mx-8 mr-16"></span>
       <span v-if="!isChoices" class="w-0 flex-auto text-left">专辑</span>
@@ -263,7 +358,8 @@ function Choices(event, path) {
         <div
           v-for="metadata in list" :key="metadata.data.path"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 *:text-zinc-900 rounded duration-200 hover:cursor-pointer">
-          <input v-if="isChoices" :checked="choicesList.indexOf(metadata.data.path)!==-1" class="checkbox ml-1 mr-4 checkbox-xs dark:border-zinc-600 border-zinc-400"
+          <input v-if="isChoices" :checked="choicesList.indexOf(metadata.data.path)!==-1"
+                 class="checkbox ml-1 mr-4 checkbox-xs dark:border-zinc-600 border-zinc-400"
                  type="checkbox"
                  @change="Choices($event,metadata.data.path)"/>
           <img
@@ -275,7 +371,7 @@ function Choices(event, path) {
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{ metadata.data.artist }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
-            <label v-if="!isChoices" class="swap">
+            <label :class="{'pointer-events-none':isChoices}" class="swap">
             <input ref="theme_sw" :checked="metadata.data.isLike" class="outline-none" type="checkbox"
                    @change="SwitchLikes($event,{path:metadata.data.path,index:metadata.index})"/>
             <svg class="swap-off stroke-zinc-500 dark:stroke-zinc-400" height="16" viewBox="0 0 24 24" width="16"
@@ -365,8 +461,9 @@ function Choices(event, path) {
             </path>
           </svg>
         </div>
-        <ul class="dropdown-content dark:bg-neutral-900 bg-gray-200 shadow w-36 rounded py-2 *:w-full *:px-4 *:py-2 *:duration-200 *:h-8 ml-1"
-            tabindex="0">
+        <ul
+          class="dropdown-content dark:bg-neutral-900 bg-gray-200 shadow w-36 rounded py-2 *:w-full *:px-4 *:py-2 *:duration-200 *:h-8 ml-1"
+          tabindex="0">
           <li class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
             <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
                  width="14" xmlns="http://www.w3.org/2000/svg">
@@ -381,7 +478,7 @@ function Choices(event, path) {
 
           <li class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start">
             <div class="h-2 w-[14px]"></div>
-            <span class="px-2">添加到歌单1</span>
+            <span class="px-2 truncate">添加到歌单1</span>
 
           </li>
 

@@ -5,11 +5,13 @@ import EventBus from "../assets/EventBus";
 import {compareSorts, findInsertPosition} from "../assets/BinarySearchPosition";
 import MusicList from "./MusicList.vue";
 import {useStorage} from '@vueuse/core'
+import {vOnClickOutside} from "@vueuse/components";
 
 const db = new IndexDB()
 const cache_list = ref([])
 const f_cache_list = ref([]);
 const isLoading = ref(false)
+const file_dropdown = ref(false)
 const loadCount = ref(0)
 const delCount = ref(0)
 const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false})
@@ -33,6 +35,7 @@ watch([sort_key, isReverse], async () => {
 
 function SelectFile(flag, cacheList = []) {
   window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)})
+  file_dropdown.value = false
 }
 
 window.electron.ipcRenderer.on('load_end', () => {
@@ -139,6 +142,29 @@ function search(search_text = '') {
       (item.album && regex.test(item.album)))
   }).value)
 }
+
+function mulDelete(list) {
+  list.forEach(path => {
+    music_delete(path)
+  })
+}
+
+function addToLike(list) {
+
+  list.forEach(path => {
+    const cacheIndex = cache_list.value.findIndex(item => item.path === path)
+    if (cache_list.value[cacheIndex].isLike) {
+      return;
+    }
+    cache_list.value[cacheIndex].isLike = true
+    db.addData(toRaw(cache_list.value[cacheIndex]))
+    db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache')
+
+    EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]))
+  })
+}
+
+
 </script>
 
 <template>
@@ -146,40 +172,46 @@ function search(search_text = '') {
     <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key"
                 :title="'本地音乐 '+cache_list.length+' 首'"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
+                @addToLike="list=>addToLike(list)"
+                @mulDelete="list=>mulDelete(list)"
                 @music_delete="path => music_delete(path)"
                 @search="search_text=>search(search_text)"
                 @select_sort="key_ => select_sort(key_)"
                 @sw_reverse="sw_reverse">
-      <div class="dropdown">
-        <div
-          class="flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
-          role="button"
-          tabindex="0">
-          <svg class="stroke-zinc-900 dark:stroke-zinc-200" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-            <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
-            <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
-          </svg>
-          添加
+      <template #slot1>
+        <div class="">
+          <div
+            class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
+            role="button" tabindex="0"
+            @click="()=>file_dropdown=!file_dropdown">
+            <svg class="stroke-zinc-900 dark:stroke-zinc-200" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+              <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
+              <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
+            </svg>
+            添加
+          </div>
+          <ul v-on-click-outside.blub="()=>file_dropdown = false"
+              :class="{'opacity-100 pointer-events-auto': file_dropdown}"
+              class="w-36 p-0 opacity-0 z-[5] duration-200 pointer-events-none py-2 absolute menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+              tabindex="0">
+            <li>
+              <a
+                class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+                @click="SelectFile('file')">
+                手动添加
+              </a>
+            </li>
+            <li>
+              <a
+                class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+                @click="SelectFile('folder',cache_list)">
+                扫描文件夹
+              </a>
+            </li>
+          </ul>
         </div>
-        <ul
-          class="w-36 p-0 py-2 dropdown-content menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
-          tabindex="0">
-          <li>
-            <a
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="SelectFile('file')">
-              手动添加
-            </a>
-          </li>
-          <li>
-            <a
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="SelectFile('folder',cache_list)">
-              扫描文件夹
-            </a>
-          </li>
-        </ul>
-      </div>
+      </template>
+
     </music-list>
     <div v-if="isLoading"
          class="fixed w-full h-screen z-[9] m-auto bg-zinc-800/40 left-0 right-0 top-0 bottom-0 flex items-center justify-center">

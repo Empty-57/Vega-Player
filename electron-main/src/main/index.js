@@ -21,7 +21,8 @@ function createWindow() {
     ...(process.platform === 'linux' ? {icon} : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
-      sandbox: false
+      sandbox: false,
+      webSecurity: false,
     }
   })
   mainWindow.setMenu(null)
@@ -55,10 +56,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+
   electronApp.setAppUserModelId('com.vega-player')
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
   ipcMain.handle('windowAction', (event, action) => {
     const window = BrowserWindow.getFocusedWindow();
     if (action === 'close') {
@@ -77,6 +80,7 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
 })
 ipcMain.on('select_files', async (event, args) => {
   if (!app.isReady()) {

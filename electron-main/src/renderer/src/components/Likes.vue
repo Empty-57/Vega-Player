@@ -85,12 +85,19 @@ function search(search_text = '') {
   }).value)
 }
 
+function mulDelete(list) {
+  list.forEach(path => {
+    music_delete(path)
+  })
+}
+
 </script>
 
 <template>
   <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key"
              :title="'喜欢 '+cacheLike_list.length+' 首'"
              @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
+             @mulDelete="list=>mulDelete(list)"
              @music_delete="path => music_delete(path)"
              @search="search_text=>search(search_text)"
              @select_sort="key_ => select_sort(key_)"
