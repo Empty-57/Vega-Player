@@ -44,6 +44,19 @@ async function cacheSender(filePath, event, channel) {
   })
 }
 
+export async function getLocalCover(filePath) {
+  for (const ext of ['.png', '.jpg', '.jpeg']) {
+    let path_ = filePath.substring(0, filePath.lastIndexOf('\\')) + '\\' + path.basename(filePath, path.extname(filePath)) + ext;
+    try {
+      await fs.promises.access(path_, fs.constants.F_OK)
+      path_ = 'file://' + path_
+      return path_;
+    } catch (err) {
+    }
+  }
+  return null
+}
+
 export async function getCover(filePath) {
   const metadata = await parseFile(filePath, {skipPostHeaders: true, includeChapters: false, duration: false});
   return metadata.common.picture ? 'data:' + metadata.common.picture[0].format + ';base64,' + uint8ArrayToBase64(metadata.common.picture[0].data) : null

@@ -3,7 +3,7 @@ import {join} from 'path'
 import {electronApp, is, optimizer} from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import {useDebounceFn} from '@vueuse/core'
-import {audio_scan, getCover} from "./audio_scan";
+import {audio_scan, getCover, getLocalCover} from "./audio_scan";
 
 function createWindow() {
   // Create the browser window.
@@ -94,6 +94,10 @@ ipcMain.on('select_files', async (event, args) => {
 
 ipcMain.handle("getCovers", async (_, path) => {
   return await getCover(path)
+})
+
+ipcMain.handle("getLocalCovers", async (_, path) => {
+  return await getLocalCover(path)
 })
 
 app.on('window-all-closed', () => {

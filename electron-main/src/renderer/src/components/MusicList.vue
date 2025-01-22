@@ -1,16 +1,14 @@
 <script setup>
 import placeholder from "../assets/placeholder.jpg";
 import FloatLocalTopBtn from "./FloatLocalTopBtn.vue";
-import {nextTick, onDeactivated, onWatcherCleanup, ref, useTemplateRef, watchEffect} from "vue";
-import {useScroll, useVirtualList} from "@vueuse/core";
+import {nextTick, onDeactivated, ref, useTemplateRef} from "vue";
+import {useScroll, useVirtualList, watchDebounced} from "@vueuse/core";
 import {vOnClickOutside} from "@vueuse/components";
 import EventBus from "../assets/EventBus";
 
 const emit = defineEmits(["SwitchLikes", "music_delete", "select_sort", "sw_reverse", "search", "mulDelete", "addToLike"])
 const {cache_list, title, sort_key, isReverse} = defineProps(["cache_list", "title", "sort_key", "isReverse"]);
 
-let timer = null;
-let timer2 = null;
 const isChoices = ref(false);
 const choicesList = ref([])
 const search_box = useTemplateRef('search_box')
@@ -34,25 +32,27 @@ const {list, containerProps, wrapperProps} = useVirtualList(
 const music_list = containerProps.ref
 const {arrivedState} = useScroll(music_list)
 
-
-watchEffect(() => {
+watchDebounced(list, () => {
   const list_ = list.value
-  timer2 = setTimeout(() => {
-    list_.forEach((item, index) => {
-      if (list.value[index] && list.value[index].data.src) {
-        return;
-      }
-      window.electron.ipcRenderer.invoke("getCovers", item.data.path).then(src => {
-        if (list.value[index]) {
+  list_.forEach((item, index) => {
+    if (list.value[index] && list.value[index].data.src) {
+      return;
+    }
+    window.electron.ipcRenderer.invoke("getCovers", item.data.path).then(src => {
+      if (list.value[index]) {
+        if (src) {
           list.value[index].data.src = src;
+        } else {
+          window.electron.ipcRenderer.invoke("getLocalCovers", item.data.path).then(src => {
+            list.value[index].data.src = src;
+          })
         }
-      })
+      }
     })
-  }, 300)
-  onWatcherCleanup(() => {
-    clearTimeout(timer2)
   })
-})
+
+}, {debounce: 300, immediate: true})
+
 
 onDeactivated(() => {
   isFocused.value = false
@@ -90,16 +90,10 @@ function sw_reverse() {
   emit("sw_reverse")
 }
 
-
-watchEffect(() => {
+watchDebounced(search_text, () => {
   const search_text_ = search_text.value
-  timer = setTimeout(() => {
-    emit("search", search_text_);
-  }, 300)
-  onWatcherCleanup(() => {
-    clearTimeout(timer)
-  })
-})
+  emit("search", search_text_);
+}, {debounce: 300, immediate: true})
 
 function sw_search(e) {
   if (e.target.checked) {
@@ -229,7 +223,7 @@ function addToLike() {
 
           <li>
             <a
-              class="max-w-36 truncate hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
+              class="max-w-36 truncate dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
             >
               添加到歌单1
             </a>
