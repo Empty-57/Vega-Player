@@ -23,6 +23,7 @@
     "@electron-toolkit/utils": "^3.0.0",
     "@vueuse/components": "^12.3.0",
     "@vueuse/core": "^12.3.0",
+    "howler": "^2.2.4",
     "mitt": "^3.0.1",
     "music-metadata": "^10.7.0",
     "p-limit": "^6.2.0"

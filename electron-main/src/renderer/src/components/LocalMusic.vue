@@ -169,7 +169,7 @@ function addToLike(list) {
 
 <template>
   <div class="relative w-full h-screen left-0 top-0">
-    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key"
+    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key" local-name="Locals"
                 :title="'本地音乐 '+cache_list.length+' 首'"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
                 @addToLike="list=>addToLike(list)"

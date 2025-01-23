@@ -94,7 +94,7 @@ function mulDelete(list) {
 </script>
 
 <template>
-  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key"
+  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key" local-name="Likes"
              :title="'喜欢 '+cacheLike_list.length+' 首'"
              @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
              @mulDelete="list=>mulDelete(list)"
