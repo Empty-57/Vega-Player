@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
+html,
+body {
   background: rgba(0, 0, 0, 0);
 }
 
@@ -49,7 +50,7 @@ html.dark {
 }
 
 body {
-  font-family: "Microsoft YaHei", sans-serif, system-ui;
+  font-family: 'Microsoft YaHei', sans-serif, system-ui;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

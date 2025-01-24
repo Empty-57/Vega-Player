@@ -1,7 +1,7 @@
 <script setup>
-import MainPage from "./components/MainPage.vue";
-import MyWindowBorder from "./components/MyWindowBorder.vue";
-import MusicBar from "./components/MusicBar.vue";
+import MainPage from './components/MainPage.vue';
+import MyWindowBorder from './components/MyWindowBorder.vue';
+import MusicBar from './components/MusicBar.vue';
 </script>
 
 <template>

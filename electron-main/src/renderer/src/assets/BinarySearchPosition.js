@@ -6,8 +6,8 @@ export function compareSorts(str1, str2) {
     sensitivity: 'case',
     ignorePunctuation: true,
     numeric: true,
-    caseFirst: "upper",
-    collation: "pinyin"
+    caseFirst: 'upper',
+    collation: 'pinyin'
   });
 }
 
