@@ -187,10 +187,14 @@ function play(path) {
   if (isChoices.value) {
     return;
   }
+  let playList=[]
+  if(localName_.value!==localName){
+    playList=cache_list.map((item) => item.path)
+  }
   const args = {
     path,
     localName,
-    playList: cache_list.map((item) => item.path)
+    playList: playList
   };
   EventBus.emit('play', args);
   music_dropdown.value = false;
@@ -259,40 +263,23 @@ EventBus.on('setCurrentMusic', (args) => {
         <ul
           v-on-click-outside.blub="() => (mulAction = false)"
           :class="[mulAction ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
-          class="w-36 p-0 py-2 opacity-0 z-[5] duration-200 absolute menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+          class="w-36 p-0 py-2 opacity-0 z-[5] *:select-none *:duration-200 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
-          <li>
-            <a
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-            >
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
               添加至播放列表
-            </a>
           </li>
 
-          <li>
-            <a
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-            >
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
               替换播放列表
-            </a>
           </li>
 
-          <li>
-            <a
-              class="max-w-36 truncate dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-            >
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
               添加到歌单1
-            </a>
           </li>
 
-          <li v-if="title.includes('本地')">
-            <a
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="addToLike"
-            >
+          <li v-if="title.includes('本地')" class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8" @click="addToLike">
               添加到喜欢
-            </a>
           </li>
         </ul>
       </div>
@@ -355,63 +342,44 @@ EventBus.on('setCurrentMusic', (args) => {
           </svg>
         </button>
         <ul
-          class="w-24 p-0 py-2 dropdown-content menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+          class="w-24 p-0 py-2 dropdown-content *:select-none *:duration-200 shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
-          <li>
-            <a
-              :class="{
-                'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'title'
+          <li :class="{
+                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'title'
               }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="select_sort('title')"
-            >
-              标题
-            </a>
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="select_sort('title')">
+            <span>标题</span>
           </li>
-          <li>
-            <a
-              :class="{
-                'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'artist'
+          <li :class="{
+                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'artist'
               }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="select_sort('artist')"
-            >
-              艺术家
-            </a>
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="select_sort('artist')">
+            <span>艺术家</span>
           </li>
-          <li>
-            <a
-              :class="{
-                'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'album'
+          <li :class="{
+                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'album'
               }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="select_sort('album')"
-            >
-              专辑
-            </a>
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="select_sort('album')">
+            <span>专辑</span>
           </li>
-          <li>
-            <a
-              :class="{
-                'text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'duration'
+          <li :class="{
+                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'duration'
               }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-              @click="select_sort('duration')"
-            >
-              时长
-            </a>
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="select_sort('duration')">
+            <span>时长</span>
           </li>
-          <li>
-            <div
-              class="hover:bg-transparent active:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60"
-            ></div>
+
+          <li class="py-2 hover:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60">
+
           </li>
-          <li>
-            <span
-              class="rounded-none active:text-inherit p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent"
-              @click="sw_reverse"
-            >
+          <li class="rounded-none p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 flex items-center justify-start gap-x-2"
+              @click="sw_reverse">
+
               <svg
                 v-if="isReverse"
                 class="fill-zinc-900 dark:fill-zinc-200"
@@ -425,7 +393,7 @@ EventBus.on('setCurrentMusic', (args) => {
                 ></path>
               </svg>
               <span>倒序</span>
-            </span>
+
           </li>
         </ul>
       </div>

@@ -225,24 +225,16 @@ function addToLike(list) {
           <ul
             v-on-click-outside.blub="() => (file_dropdown = false)"
             :class="[file_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
-            class="w-36 p-0 opacity-0 z-[5] duration-200 py-2 absolute menu shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+            class="w-36 p-0 opacity-0 z-[5] *:duration-200 *:select-none py-2 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
             tabindex="0"
           >
-            <li>
-              <a
-                class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-                @click="SelectFile('file')"
-              >
-                手动添加
-              </a>
+            <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+                @click="SelectFile('file')">
+              手动添加
             </li>
-            <li>
-              <a
-                class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 active:bg-transparent active:text-inherit p-2 h-8 rounded-none"
-                @click="SelectFile('folder', cache_list)"
-              >
-                扫描文件夹
-              </a>
+            <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+                @click="SelectFile('folder', cache_list)">
+              扫描文件夹
             </li>
           </ul>
         </div>
