@@ -1,8 +1,8 @@
-import { BrowserWindow, dialog } from 'electron';
+import {BrowserWindow, dialog} from 'electron';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { parseFile } from 'music-metadata';
+import {parseFile} from 'music-metadata';
 import pLimit from 'p-limit';
 
 const _ext = [
@@ -62,12 +62,12 @@ async function cacheSender(filePath, event, channel) {
     duration: metadata.format.duration, //时长 s
     formatTime: metadata.format.duration
       ? Math.floor(metadata.format.duration / 60)
-          .toString()
-          .padStart(2, '0') +
-        ':' +
-        Math.floor(metadata.format.duration % 60)
-          .toString()
-          .padStart(2, '0')
+        .toString()
+        .padStart(2, '0') +
+      ':' +
+      Math.floor(metadata.format.duration % 60)
+        .toString()
+        .padStart(2, '0')
       : '?',
     // bitrate: metadata.format.bitrate,//比特率
     path: filePath,
@@ -86,7 +86,8 @@ export async function getLocalCover(filePath) {
       await fs.promises.access(path_, fs.constants.F_OK);
       path_ = 'file://' + path_;
       return path_;
-    } catch (err) {}
+    } catch (err) {
+    }
   }
   return null;
 }
@@ -99,9 +100,9 @@ export async function getCover(filePath) {
   });
   return metadata.common.picture
     ? 'data:' +
-        metadata.common.picture[0].format +
-        ';base64,' +
-        uint8ArrayToBase64(metadata.common.picture[0].data)
+    metadata.common.picture[0].format +
+    ';base64,' +
+    uint8ArrayToBase64(metadata.common.picture[0].data)
     : null;
 }
 
@@ -111,7 +112,7 @@ export async function audio_scan(event, flag, cacheList) {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openFile'], // 打开文件选择对话框
       filters: [
-        { name: 'Audio Files', extensions: _ext } // 只显示音频文件
+        {name: 'Audio Files', extensions: _ext} // 只显示音频文件
       ]
     });
     if (result.canceled) {
@@ -139,7 +140,7 @@ export async function audio_scan(event, flag, cacheList) {
     const folderPath = result.filePaths[0];
     const audioFiles = []; // 过滤音频文件
 
-    const files = await fs.promises.readdir(folderPath, { recursive: true });
+    const files = await fs.promises.readdir(folderPath, {recursive: true});
     files.forEach((file) => {
       const filePath = path.join(folderPath, file);
       if (audio_ext.has(path.extname(file))) {

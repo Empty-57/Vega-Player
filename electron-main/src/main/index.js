@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { join } from 'path';
-import { electronApp, is, optimizer } from '@electron-toolkit/utils';
+import {app, BrowserWindow, ipcMain, shell} from 'electron';
+import {join} from 'path';
+import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
-import { useDebounceFn } from '@vueuse/core';
-import { audio_scan, getCover, getLocalCover } from './audio_scan';
+import {useDebounceFn} from '@vueuse/core';
+import {audio_scan, getCover, getLocalCover} from './audio_scan';
 
 function createWindow() {
   // Create the browser window.
@@ -18,7 +18,7 @@ function createWindow() {
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? {icon} : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
@@ -34,7 +34,7 @@ function createWindow() {
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
-    return { action: 'deny' };
+    return {action: 'deny'};
   });
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
