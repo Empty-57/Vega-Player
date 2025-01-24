@@ -120,6 +120,8 @@ function music_delete(path) {
   if (isLike) {
     EventBus.emit('delete_LikeCache', path)
   }
+
+  EventBus.emit('delPlayList', {localName: 'Locals', path: path})
 }
 
 function select_sort(key_) {
@@ -169,8 +171,8 @@ function addToLike(list) {
 
 <template>
   <div class="relative w-full h-screen left-0 top-0">
-    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key" local-name="Locals"
-                :title="'本地音乐 '+cache_list.length+' 首'"
+    <music-list :cache_list="f_cache_list" :is-reverse="isReverse" :sort_key="sort_key" :title="'本地音乐 '+cache_list.length+' 首'"
+                local-name="Locals"
                 @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
                 @addToLike="list=>addToLike(list)"
                 @mulDelete="list=>mulDelete(list)"

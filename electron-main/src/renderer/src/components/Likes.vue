@@ -28,6 +28,7 @@ watch([sort_key, isReverse], async () => {
 
 EventBus.on('delete_LikeCache', path => {
   cacheLike_list.value.splice(cacheLike_list.value.findIndex(item => item.path === path), 1)
+  EventBus.emit('delPlayList', {localName: 'Likes', path: path})
 })
 EventBus.on('add_LikeCache', item => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value)
@@ -45,6 +46,7 @@ function SwitchLikes(event, args) {
   cacheLike_list.value.splice(cacheLikeIndex, 1)
   f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
   EventBus.emit('set_Like_false', args.path)
+  EventBus.emit('delPlayList', {localName: 'Likes', path: args.path})
 }
 
 onActivated(() => {
@@ -62,6 +64,8 @@ function music_delete(path) {
   cacheLike_list.value.splice(cacheLikeIndex, 1)
   f_cacheLike_list.value.splice(f_cacheLikeIndex, 1)
   EventBus.emit('set_Like_false', path)
+
+  EventBus.emit('delPlayList', {localName: 'Likes', path: path})
 }
 
 function select_sort(key_) {
@@ -94,8 +98,8 @@ function mulDelete(list) {
 </script>
 
 <template>
-  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key" local-name="Likes"
-             :title="'喜欢 '+cacheLike_list.length+' 首'"
+  <MusicList :cache_list="f_cacheLike_list" :is-reverse="isReverse" :sort_key="sort_key" :title="'喜欢 '+cacheLike_list.length+' 首'"
+             local-name="Likes"
              @SwitchLikes="(event ,args) => SwitchLikes(event,args)"
              @mulDelete="list=>mulDelete(list)"
              @music_delete="path => music_delete(path)"
