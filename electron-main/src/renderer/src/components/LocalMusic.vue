@@ -224,8 +224,8 @@ function addToLike(list) {
           </div>
           <ul
             v-on-click-outside.blub="() => (file_dropdown = false)"
-            :class="[file_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
-            class="w-36 p-0 opacity-0 z-[5] *:duration-200 *:select-none py-2 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+            :class="[file_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
+            class="w-36 p-0 z-[5] *:duration-200 duration-200 *:select-none py-2 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
             tabindex="0"
           >
             <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"

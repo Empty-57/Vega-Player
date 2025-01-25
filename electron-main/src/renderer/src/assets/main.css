@@ -1,9 +1,8 @@
 @import "tailwindcss";
+@config "../../../../tailwind.config.mjs";
 
-@plugin "daisyui" {
-  include: swap, checkbox, dropdown;
-}
-@config "@renderer/../../../tailwind.config.js";
+@plugin "daisyui";
+
 
 
 

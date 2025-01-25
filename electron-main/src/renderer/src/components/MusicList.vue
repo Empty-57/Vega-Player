@@ -24,6 +24,7 @@ const {cache_list, title, sort_key, isReverse, localName} = defineProps([
 ]);
 
 const isChoices = ref(false);
+const sort_dropdown=ref(false)
 const choicesList = ref([]);
 const search_box = useTemplateRef('search_box');
 const search_btn = useTemplateRef('search_btn');
@@ -102,6 +103,7 @@ async function click_menu(event, args) {
 
 function select_sort(sort_key) {
   emit('select_sort', sort_key);
+  sort_dropdown.value = false
 }
 
 function sw_reverse() {
@@ -323,11 +325,12 @@ EventBus.on('setCurrentMusic', (args) => {
           </svg>
         </label>
       </div>
-      <div class="dropdown dropdown-end">
+      <div class="">
         <button
           :class="{ 'pointer-events-none': isFocused || isChoices }"
           class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
           tabindex="0"
+          @click="() => (sort_dropdown = !sort_dropdown)"
         >
           <svg
             class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
@@ -342,7 +345,9 @@ EventBus.on('setCurrentMusic', (args) => {
           </svg>
         </button>
         <ul
-          class="w-24 p-0 py-2 dropdown-content *:select-none *:duration-200 shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
+          v-on-click-outside.blub="() => (sort_dropdown = false)"
+          :class="[sort_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
+          class="w-24 right-6 p-0 py-2 z-[5] absolute *:select-none *:duration-200 duration-200 shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
           <li :class="{
