@@ -101,9 +101,10 @@ EventBus.on('delete_Cache', path => {
   );
 });
 
-EventBus.on('SwitchLikes',({event, args}) =>{
-SwitchLikes(event, args)
+EventBus.on('SwitchLikes', ({event, args}) => {
+  SwitchLikes(event, args)
 })
+
 function SwitchLikes(event, args) {
   const cacheIndex = cache_list.value.findIndex((item) => item.path === args.path);
 

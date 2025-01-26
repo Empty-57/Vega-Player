@@ -24,7 +24,7 @@ const {cache_list, title, sort_key, isReverse, localName} = defineProps([
 ]);
 
 const isChoices = ref(false);
-const sort_dropdown=ref(false)
+const sort_dropdown = ref(false)
 const choicesList = ref([]);
 const search_box = useTemplateRef('search_box');
 const search_btn = useTemplateRef('search_btn');
@@ -189,25 +189,27 @@ function play(path) {
   if (isChoices.value) {
     return;
   }
-  let playList=[]
-  let metadata={}
-  if(localName_.value!==localName){
-    playList=cache_list.map((item) => item.path)
-    metadata=cache_list[cache_list.findIndex((item) => item.path === path)]
+  let playList = []
+  let metadata = {}
+  if (localName_.value !== localName) {
+    playList = cache_list.map((item) => item.path)
+    metadata = cache_list[cache_list.findIndex((item) => item.path === path)]
   }
   const args = {
     path,
     localName,
     playList: playList,
-    metadata:metadata
+    metadata: metadata
   };
   EventBus.emit('play', args);
   music_dropdown.value = false;
 }
 
-EventBus.on('getMetadata', ({path,currentLocal}) =>{
-  if (currentLocal!==localName){return;}
-  EventBus.emit('putMetadata',cache_list[cache_list.findIndex((item) => item.path === path)]);
+EventBus.on('getMetadata', ({path, currentLocal}) => {
+  if (currentLocal !== localName) {
+    return;
+  }
+  EventBus.emit('putMetadata', cache_list[cache_list.findIndex((item) => item.path === path)]);
 })
 
 const currentMusic = ref('');
@@ -277,19 +279,20 @@ EventBus.on('setCurrentMusic', (args) => {
           tabindex="0"
         >
           <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
-              添加至播放列表
+            添加至播放列表
           </li>
 
           <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
-              替换播放列表
+            替换播放列表
           </li>
 
           <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
-              添加到歌单1
+            添加到歌单1
           </li>
 
-          <li v-if="title.includes('本地')" class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8" @click="addToLike">
-              添加到喜欢
+          <li v-if="title.includes('本地')" class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="addToLike">
+            添加到喜欢
           </li>
         </ul>
       </div>
@@ -387,25 +390,27 @@ EventBus.on('setCurrentMusic', (args) => {
             <span>时长</span>
           </li>
 
-          <li class="py-2 hover:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60">
+          <li
+            class="py-2 hover:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60">
 
           </li>
-          <li class="rounded-none p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 flex items-center justify-start gap-x-2"
-              @click="sw_reverse">
+          <li
+            class="rounded-none p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 flex items-center justify-start gap-x-2"
+            @click="sw_reverse">
 
-              <svg
-                v-if="isReverse"
-                class="fill-zinc-900 dark:fill-zinc-200"
-                height="16"
-                viewBox="0 0 1024 1024"
-                width="16"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M392.533333 806.4L85.333333 503.466667l59.733334-59.733334 247.466666 247.466667L866.133333 213.333333l59.733334 59.733334L392.533333 806.4z"
-                ></path>
-              </svg>
-              <span>倒序</span>
+            <svg
+              v-if="isReverse"
+              class="fill-zinc-900 dark:fill-zinc-200"
+              height="16"
+              viewBox="0 0 1024 1024"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M392.533333 806.4L85.333333 503.466667l59.733334-59.733334 247.466666 247.466667L866.133333 213.333333l59.733334 59.733334L392.533333 806.4z"
+              ></path>
+            </svg>
+            <span>倒序</span>
 
           </li>
         </ul>

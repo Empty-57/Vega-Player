@@ -52,7 +52,7 @@ EventBus.on('add_LikeCache', item => {
   search();
 });
 
-EventBus.on('SwitchLikes_like',({event, args}) =>{
+EventBus.on('SwitchLikes_like', ({event, args}) => {
   SwitchLikes(event, args)
 })
 
