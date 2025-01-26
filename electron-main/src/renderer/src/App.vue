@@ -7,5 +7,7 @@ import MusicBar from './components/MusicBar.vue';
 <template>
   <MyWindowBorder></MyWindowBorder>
   <MainPage></MainPage>
-  <MusicBar></MusicBar>
+  <keep-alive>
+    <music-bar></music-bar>
+  </keep-alive>
 </template>

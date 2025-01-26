@@ -91,16 +91,19 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
   });
 });
 
-EventBus.on('set_Like_false', (path) => {
+EventBus.on('set_Like_false', path => {
   cache_list.value[cache_list.value.findIndex((item) => item.path === path)].isLike = false;
 });
-EventBus.on('delete_Cache', (path) => {
+EventBus.on('delete_Cache', path => {
   cache_list.value.splice(
     cache_list.value.findIndex((item) => item.path === path),
     1
   );
 });
 
+EventBus.on('SwitchLikes',({event, args}) =>{
+SwitchLikes(event, args)
+})
 function SwitchLikes(event, args) {
   const cacheIndex = cache_list.value.findIndex((item) => item.path === args.path);
 

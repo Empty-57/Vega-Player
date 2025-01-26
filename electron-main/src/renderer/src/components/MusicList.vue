@@ -190,17 +190,25 @@ function play(path) {
     return;
   }
   let playList=[]
+  let metadata={}
   if(localName_.value!==localName){
     playList=cache_list.map((item) => item.path)
+    metadata=cache_list[cache_list.findIndex((item) => item.path === path)]
   }
   const args = {
     path,
     localName,
-    playList: playList
+    playList: playList,
+    metadata:metadata
   };
   EventBus.emit('play', args);
   music_dropdown.value = false;
 }
+
+EventBus.on('getMetadata', ({path,currentLocal}) =>{
+  if (currentLocal!==localName){return;}
+  EventBus.emit('putMetadata',cache_list[cache_list.findIndex((item) => item.path === path)]);
+})
 
 const currentMusic = ref('');
 const localName_ = ref('');
@@ -488,7 +496,7 @@ EventBus.on('setCurrentMusic', (args) => {
                 :checked="metadata.data.isLike"
                 class="outline-none"
                 type="checkbox"
-                @change="SwitchLikes($event, { path: metadata.data.path, index: metadata.index })"
+                @change="SwitchLikes($event, { path: metadata.data.path})"
               />
               <svg
                 class="swap-off stroke-zinc-500 dark:stroke-zinc-400"
@@ -503,7 +511,6 @@ EventBus.on('setCurrentMusic', (args) => {
                   stroke-width="2"
                 />
               </svg>
-
               <svg
                 class="swap-on dark:fill-red-900 fill-red-600"
                 height="16"
@@ -516,6 +523,7 @@ EventBus.on('setCurrentMusic', (args) => {
                   stroke-width="2"
                 />
               </svg>
+
             </label>
           </span>
           <span

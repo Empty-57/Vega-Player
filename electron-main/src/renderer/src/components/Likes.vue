@@ -38,17 +38,23 @@ watch(
   {immediate: true}
 );
 
-EventBus.on('delete_LikeCache', (path) => {
+EventBus.on('delete_LikeCache', path => {
   cacheLike_list.value.splice(
     cacheLike_list.value.findIndex((item) => item.path === path),
     1
   );
+  search();
   EventBus.emit('delPlayList', {localName: 'Likes', path: path});
 });
-EventBus.on('add_LikeCache', (item) => {
+EventBus.on('add_LikeCache', item => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value);
   cacheLike_list.value.splice(position, 0, item);
+  search();
 });
+
+EventBus.on('SwitchLikes_like',({event, args}) =>{
+  SwitchLikes(event, args)
+})
 
 function SwitchLikes(event, args) {
   const cacheLikeIndex = cacheLike_list.value.findIndex((item) => item.path === args.path);
