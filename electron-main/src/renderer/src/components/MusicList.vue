@@ -298,7 +298,7 @@ EventBus.on('setCurrentMusic', (args) => {
       </div>
 
       <span class="grow"></span>
-      <div class="flex items-center justify-center gap-x-2">
+      <div class="flex items-center justify-center gap-x-2 group">
         <input
           ref="search_box"
           v-model="search_text"
@@ -309,7 +309,7 @@ EventBus.on('setCurrentMusic', (args) => {
 
         <label
           :class="{ 'pointer-events-none': isChoices }"
-          class="swap swap-rotate *:dark:hover:fill-cyan-600 *:hover:fill-cyan-500"
+          class="swap swap-rotate *:dark:group-hover:fill-cyan-600 *:group-hover:fill-cyan-500"
         >
           <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search"/>
           <svg
