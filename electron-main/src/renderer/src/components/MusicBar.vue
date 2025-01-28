@@ -1,11 +1,44 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {ref, useTemplateRef, watch} from 'vue';
+import {onMounted, ref, useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
+import {useStorage} from '@vueuse/core';
+import {vOnClickOutside} from "@vueuse/components";
+
+const music_cfg = useStorage('music_cfg', {playMode: 'order', volume: 0.1})
+const playMode = ref(music_cfg.value.playMode);
+const volume = ref(music_cfg.value.volume);
+
+const volumeProcess = ref(volume.value * 100 + '%')
+
+onMounted(() => {
+  const e = document.querySelector('#volume')
+  if (!e) {
+    return;
+  }
+  e.onwheel = e => {
+    if (e.deltaY < 0) {
+      volume.value = volume.value + 0.1
+      if (volume.value >= 1) {
+        volume.value = 1
+      }
+    }
+    if (e.deltaY > 0) {
+      volume.value = volume.value - 0.1
+      if (volume.value <= 0) {
+        volume.value = 0
+      }
+    }
+    sound.volume(volume.value)
+    music_cfg.value.volume = volume.value
+    volumeProcess.value = volume.value * 100 + '%'
+  }
+})
+
 
 const rate = ref(1.0)
-const volume = ref(1.0)
+
 const soundInit = ref({
   src: [''],
   format: [
@@ -37,21 +70,27 @@ const soundInit = ref({
   onplay: () => onplay(),
 });
 
-const playMode = ref('order');
+
 const currentLocal = ref('');
 const playList = ref([]);
 const currentIndex = ref(-1);
 const metadata = ref({})
 const canListenTime = ref(false);
 const playProcess = ref('0%')
-const currentTime = ref('00:00')
+const currentTime = ref('')
 const currentSec = ref(0)
+
+const volume_dropdown = ref(false)
 
 
 const sound = new Howl(soundInit.value);
 const playPause = useTemplateRef('playPause')
+const like_sw = useTemplateRef('like_sw')
 
 watch(currentIndex, () => {
+  if (currentIndex.value === -1) {
+    return;
+  }
   EventBus.emit('getMetadata', {path: playList.value[currentIndex.value], currentLocal: currentLocal.value});
 })
 
@@ -64,7 +103,7 @@ EventBus.on('play', args => {
     sound.stop();
   }
 
-  sound.unload();
+
   if (args.localName !== currentLocal.value) {
     currentLocal.value = args.localName;
     playList.value = args.playList;
@@ -73,37 +112,62 @@ EventBus.on('play', args => {
   if (!playList.value.includes(args.path)) {
     playList.value.push(args.path);
   }
-  soundInit.value.src = [args.path];
   currentIndex.value = playList.value.indexOf(args.path);
 
-  sound.init(soundInit.value);
-  sound.play();
-  EventBus.emit('setCurrentMusic', {
-    localName: currentLocal.value,
-    path: playList.value[currentIndex.value]
-  });
+  setIndex()
 });
 
 EventBus.on('delPlayList', args => {
   if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value]) {
     playList.value.splice(currentIndex.value, 1);
-    sound.stop();
-    currentIndex.value = currentIndex.value === 0 ? playList.value.length - 1 : currentIndex.value - 1;
-    setIndex()
-    sound.pause()
+
     canListenTime.value = false;
+
+    if (playList.value.length === 0) {
+      sound.stop();
+      currentIndex.value = -1
+      metadata.value = {}
+      like_sw.value.checked = false
+
+      EventBus.emit('setCurrentMusic', {
+        localName: currentLocal.value,
+        path: ''
+      });
+      return;
+    }
+
+    currentIndex.value = 0;
+    EventBus.emit('getMetadata', {path: playList.value[currentIndex.value], currentLocal: currentLocal.value});
+
+    setIndex()
+    sound.stop();
+
     setTimeout(() => {
       playPause.value.checked = true;
       playProcess.value = '0%'
-      currentTime.value = '00:00';
+      currentTime.value = '';
       currentSec.value = 0
-    }, 200)
+      like_sw.value.checked = metadata.value.isLike;
+    }, 400)
   }
 });
+
+EventBus.on('updatePlayList', ({fullCacheList, localName}) => {
+  if (localName === currentLocal.value && currentLocal.value) {
+    playList.value = fullCacheList;
+    currentIndex.value = playList.value.indexOf(metadata.value.path)
+  }
+})
 
 function onplay() {
   canListenTime.value = true;
   playPause.value.checked = false
+
+  if (!metadata.value.duration) {
+    metadata.value.duration = sound.duration()
+    metadata.value.formatTime = Math.floor(metadata.value.duration / 60).toString().padStart(2, '0') + ':' + Math.floor(metadata.value.duration % 60).toString().padStart(2, '0')
+  }
+
 }
 
 function onstop() {
@@ -199,6 +263,14 @@ function onPlaySkip(e) {
   sound.seek(e.target.value)
 }
 
+function setVolume(e) {
+  volume.value = e.target.value / 100
+  sound.volume(volume.value)
+  music_cfg.value.volume = volume.value
+
+  volumeProcess.value = e.target.value + '%'
+}
+
 
 </script>
 
@@ -208,20 +280,18 @@ function onPlaySkip(e) {
   >
     <div class="flex items-center justify-stretch w-1/3">
       <img :src="metadata.src?metadata.src:placeholder" alt="" class="size-11 bg-cover rounded-sm"/>
-      <div class="flex flex-col items-start justify-between h-10 px-3 **:text-zinc-900 w-[90%]">
+      <div class="flex flex-col items-start justify-between h-10 mx-3 **:text-zinc-900 w-[80%]">
 
-        <span class="w-full dark:text-zinc-200 text-xs truncate">{{ metadata.title }}
+        <span class="w-full dark:text-zinc-200 text-xs truncate h-4">{{ metadata.title }}
           <span class="dark:text-zinc-200 text-xs">&nbsp;-&nbsp;</span>
-          <span class="dark:text-zinc-400 text-[10px] truncate">{{ metadata.artist }}
+          <span class="dark:text-zinc-400 text-[10px] truncate">{{ metadata.artist ? metadata.artist : '未知艺术家' }}
           </span>
         </span>
         <label
           class="swap"
-          @dblclick.stop
-          @click.right.stop
         >
           <input
-            ref="theme_sw"
+            ref="like_sw"
             :checked="metadata.isLike"
             class="outline-none"
             type="checkbox"
@@ -258,13 +328,16 @@ function onPlaySkip(e) {
     </div>
 
 
-    <div class="flex h-10 flex-col items-center justify-start px-2 w-1/3">
+    <div class="flex h-10 flex-col items-center justify-start mx-3 w-1/3">
 
-      <div class="w-full flex items-center justify-center *:text-zinc-900 *:dark:text-zinc-400 *:text-[8px]">
+      <div class="w-full flex items-center justify-center *:text-zinc-900 *:dark:text-zinc-400 *:text-[8px] h-4">
         <span>{{ currentTime }}</span>
         <input id="playProcess"
+               :class="[currentIndex!==-1 &&metadata.path ? 'pointer-events-auto':'pointer-events-none']"
                :max="metadata.duration"
-               :value="currentSec" class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm" min="0"
+               :value="currentSec"
+               class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm"
+               min="0"
                type="range" @change="onPlaySkip" @input="updateBackColor($event,metadata.duration)">
         <span>{{ metadata.formatTime }}</span>
       </div>
@@ -272,7 +345,7 @@ function onPlaySkip(e) {
       <div class="flex items-center justify-center gap-x-4 pt-1">
         <svg
           :class="[currentIndex!==-1 &&metadata.path ? 'pointer-events-auto':'pointer-events-none']"
-          class="fill-zinc-900 dark:fill-zinc-200 rotate-180 dark:hover:fill-cyan-600 hover:fill-cyan-500 cursor-pointer"
+          class="fill-zinc-900 dark:fill-zinc-200 rotate-180 dark:hover:fill-cyan-600 hover:fill-red-500/80 cursor-pointer"
           height="13"
           viewBox="0 0 1024 1024"
           width="13"
@@ -286,7 +359,6 @@ function onPlaySkip(e) {
             d="M837.12 898.56h-60.416c-15.36 0-27.648-12.288-27.648-27.648V155.136c0-15.36 12.288-27.648 27.648-27.648h60.416c15.36 0 27.648 12.288 27.648 27.648V870.4c0 15.872-12.288 28.16-27.648 28.16z"
           ></path>
         </svg>
-
         <label
           :class="[currentIndex!==-1&&metadata.path ? 'pointer-events-auto':'pointer-events-none']" class="swap"
         >
@@ -310,10 +382,9 @@ function onPlaySkip(e) {
             </path>
           </svg>
         </label>
-
         <svg
           :class="[currentIndex!==-1&&metadata.path ? 'pointer-events-auto':'pointer-events-none']"
-          class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500 cursor-pointer"
+          class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-red-500/80 cursor-pointer"
           height="13"
           viewBox="0 0 1024 1024"
           width="13"
@@ -327,6 +398,31 @@ function onPlaySkip(e) {
             d="M837.12 898.56h-60.416c-15.36 0-27.648-12.288-27.648-27.648V155.136c0-15.36 12.288-27.648 27.648-27.648h60.416c15.36 0 27.648 12.288 27.648 27.648V870.4c0 15.872-12.288 28.16-27.648 28.16z"
           ></path>
         </svg>
+        <div class="relative size-4 flex items-center justify-center">
+
+          <svg class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-red-500/80 cursor-pointer"
+               height="14"
+               viewBox="0 0 1024 1024" width="14" xmlns="http://www.w3.org/2000/svg" @click.stop="() => {volume_dropdown = !volume_dropdown}">
+            <path
+              d="M260.256 356.576l204.288-163.968a32 32 0 0 1 52.032 24.96v610.432a32 32 0 0 1-51.968 24.992l-209.92-167.552H96a32 32 0 0 1-32-32v-264.864a32 32 0 0 1 32-32h164.256zM670.784 720.128a32 32 0 0 1-44.832-45.664 214.08 214.08 0 0 0 64.32-153.312 213.92 213.92 0 0 0-55.776-144.448 32 32 0 1 1 47.36-43.04 277.92 277.92 0 0 1 72.416 187.488 278.08 278.08 0 0 1-83.488 198.976zM822.912 858.88a32 32 0 1 1-45.888-44.608A419.008 419.008 0 0 0 896 521.152c0-108.704-41.376-210.848-114.432-288.384a32 32 0 0 1 46.592-43.872c84.16 89.28 131.84 207.04 131.84 332.256 0 127.84-49.76 247.904-137.088 337.728z">
+
+            </path>
+          </svg>
+
+          <div v-on-click-outside.bubble="() => (volume_dropdown = false)"
+               :class="[volume_dropdown? 'w-24 opacity-100': 'w-0 opacity-0']"
+               class="absolute left-4 flex items-center justify-start duration-200">
+            <input id="volume"
+                   :value="volume*100"
+                   class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm"
+                   max="100"
+                   min="0"
+                   type="range" @input="setVolume">
+            <span class="dark:text-zinc-400 text-zinc-900 w-4 text-[8px]">{{ Math.floor(volume * 100) }}</span>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -337,6 +433,19 @@ function onPlaySkip(e) {
 </template>
 
 <style scoped>
+
+
+#volume {
+  background: linear-gradient(to right, #ef4444aa v-bind(volumeProcess), #00000000 v-bind(volumeProcess));
+}
+
+html.dark {
+  #volume {
+    background: linear-gradient(to right, #06b6d455 v-bind(volumeProcess), #00000000 v-bind(volumeProcess));
+  }
+}
+
+
 #playProcess {
   background: linear-gradient(to right, #ef4444aa v-bind(playProcess), #00000000 v-bind(playProcess));
 }
@@ -347,7 +456,7 @@ html.dark {
   }
 }
 
-#playProcess::-webkit-slider-thumb {
+#playProcess::-webkit-slider-thumb, #volume::-webkit-slider-thumb {
   appearance: none;
   position: relative;
   width: 6px;
@@ -355,13 +464,13 @@ html.dark {
   rotate: 45deg;
 }
 
-#playProcess::-webkit-slider-thumb {
+#playProcess::-webkit-slider-thumb, #volume::-webkit-slider-thumb {
   background-color: #dc2626;
   box-shadow: 0 0 4px 0 #dc2626;
 }
 
 html.dark {
-  #playProcess::-webkit-slider-thumb {
+  #playProcess::-webkit-slider-thumb, #volume::-webkit-slider-thumb {
     background-color: #0e7490;
     box-shadow: 0 0 8px 0 #0e7490;
   }

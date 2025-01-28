@@ -124,6 +124,7 @@ function mulDelete(list) {
 <template>
   <MusicList
     :cache_list="f_cacheLike_list"
+    :full-cache-list="cacheLike_list"
     :is-reverse="isReverse"
     :sort_key="sort_key"
     :title="'喜欢 ' + cacheLike_list.length + ' 首'"

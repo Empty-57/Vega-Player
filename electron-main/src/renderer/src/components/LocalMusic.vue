@@ -72,6 +72,7 @@ window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
   }
   cache_list.value.splice(index, 1);
   delCount.value++;
+  EventBus.emit('delPlayList', {localName: 'Locals', path: path});
 });
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
@@ -93,12 +94,6 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
 
 EventBus.on('set_Like_false', path => {
   cache_list.value[cache_list.value.findIndex((item) => item.path === path)].isLike = false;
-});
-EventBus.on('delete_Cache', path => {
-  cache_list.value.splice(
-    cache_list.value.findIndex((item) => item.path === path),
-    1
-  );
 });
 
 EventBus.on('SwitchLikes', ({event, args}) => {
@@ -195,6 +190,7 @@ function addToLike(list) {
   <div class="relative w-full h-screen left-0 top-0">
     <music-list
       :cache_list="f_cache_list"
+      :full-cache-list="cache_list"
       :is-reverse="isReverse"
       :sort_key="sort_key"
       :title="'本地音乐 ' + cache_list.length + ' 首'"
@@ -213,7 +209,7 @@ function addToLike(list) {
             class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
             role="button"
             tabindex="0"
-            @click="() => (file_dropdown = !file_dropdown)"
+            @click.stop="() => {file_dropdown = !file_dropdown}"
           >
             <svg
               class="stroke-zinc-900 dark:stroke-zinc-200"
@@ -227,7 +223,7 @@ function addToLike(list) {
             添加
           </div>
           <ul
-            v-on-click-outside.blub="() => (file_dropdown = false)"
+            v-on-click-outside.bubble="() => (file_dropdown = false)"
             :class="[file_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
             class="w-36 p-0 z-[5] *:duration-200 duration-200 *:select-none py-2 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
             tabindex="0"

@@ -15,12 +15,13 @@ const emit = defineEmits([
   'mulDelete',
   'addToLike'
 ]);
-const {cache_list, title, sort_key, isReverse, localName} = defineProps([
+const {cache_list, title, sort_key, isReverse, localName, fullCacheList} = defineProps([
   'cache_list',
   'title',
   'sort_key',
   'isReverse',
-  'localName'
+  'localName',
+  'fullCacheList'
 ]);
 
 const isChoices = ref(false);
@@ -38,6 +39,9 @@ const music_local = ref({
   y: 0,
   path: ''
 });
+const currentMusic = ref('');
+const localName_ = ref('');
+
 const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list, {
   itemHeight: 56,
   overscan: 2
@@ -69,6 +73,10 @@ watchDebounced(
   {debounce: 300, immediate: true}
 );
 
+watchDebounced(fullCacheList, () => {
+  EventBus.emit('updatePlayList', {fullCacheList: fullCacheList.map((item) => item.path), localName})
+}, {debounce: 300, immediate: false})
+
 onDeactivated(() => {
   isFocused.value = false;
   search_text.value = '';
@@ -93,10 +101,10 @@ function music_delete() {
 }
 
 async function click_menu(event, args) {
-  music_dropdown.value = true;
+  music_dropdown.value = !music_dropdown.value;
   await nextTick(() => {
-    music_local.value.x = event.clientX - 6;
-    music_local.value.y = event.clientY - music_menu.value.clientHeight - 6;
+    music_local.value.x = event.clientX + 24;
+    music_local.value.y = event.clientY - 24;
     music_local.value.path = args.path;
   });
 }
@@ -192,8 +200,8 @@ function play(path) {
   let playList = []
   let metadata = {}
   if (localName_.value !== localName) {
-    playList = cache_list.map((item) => item.path)
-    metadata = cache_list[cache_list.findIndex((item) => item.path === path)]
+    playList = fullCacheList.map((item) => item.path)
+    metadata = fullCacheList[fullCacheList.findIndex(item => item.path === path)]
   }
   const args = {
     path,
@@ -209,11 +217,9 @@ EventBus.on('getMetadata', ({path, currentLocal}) => {
   if (currentLocal !== localName) {
     return;
   }
-  EventBus.emit('putMetadata', cache_list[cache_list.findIndex((item) => item.path === path)]);
+  EventBus.emit('putMetadata', fullCacheList[fullCacheList.findIndex((item) => item.path === path)]);
 })
 
-const currentMusic = ref('');
-const localName_ = ref('');
 
 EventBus.on('setCurrentMusic', (args) => {
   currentMusic.value = args.path;
@@ -241,22 +247,21 @@ EventBus.on('setCurrentMusic', (args) => {
       </label>
 
       <span
-        :class="[isChoices && choicesList.length > 0 ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
-        class="opacity-0 h-8 text-zinc-900 hover:text-red-600 dark:text-zinc-200 p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none duration-200"
+        :class="[isChoices && choicesList.length > 0 ? 'block':'hidden']"
+        class="h-8 text-zinc-900 hover:text-red-600 dark:text-zinc-200 p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none duration-200"
         @click="mulDelete"
       >
         删除
       </span>
 
       <div
-        :class="[isChoices && choicesList.length > 0 ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
-        class="duration-200 opacity-0"
+        :class="[isChoices && choicesList.length > 0 ? 'block':'hidden' ]"
       >
         <div
           class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
           role="button"
           tabindex="0"
-          @click="() => (mulAction = !mulAction)"
+          @click.stop="() => {mulAction = !mulAction}"
         >
           <svg
             class="fill-zinc-900 dark:fill-zinc-200"
@@ -273,7 +278,7 @@ EventBus.on('setCurrentMusic', (args) => {
           更多操作
         </div>
         <ul
-          v-on-click-outside.blub="() => (mulAction = false)"
+          v-on-click-outside.bubble="() => (mulAction = false)"
           :class="[mulAction ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
           class="w-36 p-0 py-2 opacity-0 z-[5] *:select-none *:duration-200 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
@@ -341,7 +346,7 @@ EventBus.on('setCurrentMusic', (args) => {
           :class="{ 'pointer-events-none': isFocused || isChoices }"
           class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
           tabindex="0"
-          @click="() => (sort_dropdown = !sort_dropdown)"
+          @click.stop="() => {sort_dropdown = !sort_dropdown}"
         >
           <svg
             class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
@@ -356,7 +361,7 @@ EventBus.on('setCurrentMusic', (args) => {
           </svg>
         </button>
         <ul
-          v-on-click-outside.blub="() => (sort_dropdown = false)"
+          v-on-click-outside.bubble="() => (sort_dropdown = false)"
           :class="[sort_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
           class="w-24 right-6 p-0 py-2 z-[5] absolute *:select-none *:duration-200 duration-200 shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
@@ -454,7 +459,7 @@ EventBus.on('setCurrentMusic', (args) => {
           ]"
           class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 rounded duration-200 hover:cursor-pointer"
           @dblclick="play(metadata.data.path)"
-          @click.right="
+          @click.right.stop="
             click_menu($event, {
               path: metadata.data.path,
               index: metadata.index,
@@ -486,7 +491,7 @@ EventBus.on('setCurrentMusic', (args) => {
           >
             <span class="text-xs w-full dark:text-zinc-200">{{ metadata.data.title }}</span>
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{
-                metadata.data.artist
+                metadata.data.artist ? metadata.data.artist : '未知艺术家'
               }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
@@ -534,7 +539,7 @@ EventBus.on('setCurrentMusic', (args) => {
           <span
             v-if="!isChoices"
             class="flex items-center justify-center mr-6 w-6"
-            @click="
+            @click.stop="
               click_menu($event, {
                 path: metadata.data.path,
                 index: metadata.index,
@@ -562,7 +567,7 @@ EventBus.on('setCurrentMusic', (args) => {
             </svg>
           </span>
           <span class="text-[10px] w-0 text-left flex-auto truncate dark:text-zinc-400">
-            {{ metadata.data.album }}
+            {{ metadata.data.album ? metadata.data.album : '未知专辑' }}
           </span>
           <div class="text-[10px] font-thin text-center w-10 mx-8 truncate dark:text-zinc-400">
             {{ metadata.data.formatTime }}
@@ -579,7 +584,7 @@ EventBus.on('setCurrentMusic', (args) => {
     <div
       v-if="music_dropdown"
       ref="music_menu"
-      v-on-click-outside.blub="dropdownClose"
+      v-on-click-outside.bubble="dropdownClose"
       :style="{ left: music_local.x + 'px', top: music_local.y + 'px' }"
       class="*:cursor-pointer *:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200"
     >
