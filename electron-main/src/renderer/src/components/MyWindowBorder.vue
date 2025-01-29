@@ -1,6 +1,6 @@
 <script setup>
-import {ref} from 'vue';
-import {useDark, useToggle} from '@vueuse/core';
+import { ref } from 'vue';
+import { useDark, useToggle } from '@vueuse/core';
 
 const isMaximized = ref(false);
 
@@ -47,7 +47,7 @@ window.electron.ipcRenderer.on('resize', () => {
           width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M21 12.79A9 9 0 0 1 11.21 3a7 7 0 1 0 9.58 9.79z"/>
+          <path d="M21 12.79A9 9 0 0 1 11.21 3a7 7 0 1 0 9.58 9.79z" />
         </svg>
         <svg
           class="swap-on stroke-zinc-900 dark:stroke-zinc-200"
@@ -60,15 +60,15 @@ window.electron.ipcRenderer.on('resize', () => {
           width="20"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" x2="12" y1="1" y2="3"/>
-          <line x1="12" x2="12" y1="21" y2="23"/>
-          <line x1="4.22" x2="5.64" y1="4.22" y2="5.64"/>
-          <line x1="18.36" x2="19.78" y1="18.36" y2="19.78"/>
-          <line x1="1" x2="3" y1="12" y2="12"/>
-          <line x1="21" x2="23" y1="12" y2="12"/>
-          <line x1="4.22" x2="5.64" y1="19.78" y2="18.36"/>
-          <line x1="18.36" x2="19.78" y1="5.64" y2="4.22"/>
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" x2="12" y1="1" y2="3" />
+          <line x1="12" x2="12" y1="21" y2="23" />
+          <line x1="4.22" x2="5.64" y1="4.22" y2="5.64" />
+          <line x1="18.36" x2="19.78" y1="18.36" y2="19.78" />
+          <line x1="1" x2="3" y1="12" y2="12" />
+          <line x1="21" x2="23" y1="12" y2="12" />
+          <line x1="4.22" x2="5.64" y1="19.78" y2="18.36" />
+          <line x1="18.36" x2="19.78" y1="5.64" y2="4.22" />
         </svg>
       </label>
     </span>
@@ -83,7 +83,7 @@ window.electron.ipcRenderer.on('resize', () => {
         width="16"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect height="1" rx="2" ry="2" width="16" x="4" y="12"/>
+        <rect height="1" rx="2" ry="2" width="16" x="4" y="12" />
       </svg>
     </span>
     <span
@@ -98,7 +98,7 @@ window.electron.ipcRenderer.on('resize', () => {
         width="16"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect fill="none" height="16" rx="2" ry="2" stroke-width="1" width="16" x="4" y="4"/>
+        <rect fill="none" height="16" rx="2" ry="2" stroke-width="1" width="16" x="4" y="4" />
       </svg>
       <svg
         v-if="isMaximized"

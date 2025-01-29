@@ -1,9 +1,9 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
 import FloatLocalTopBtn from './FloatLocalTopBtn.vue';
-import {nextTick, onActivated, onDeactivated, ref, useTemplateRef} from 'vue';
-import {useScroll, useVirtualList, watchDebounced} from '@vueuse/core';
-import {vOnClickOutside} from '@vueuse/components';
+import { nextTick, onActivated, onDeactivated, ref, useTemplateRef } from 'vue';
+import { useScroll, useVirtualList, watchDebounced } from '@vueuse/core';
+import { vOnClickOutside } from '@vueuse/components';
 import EventBus from '../assets/EventBus';
 
 const emit = defineEmits([
@@ -15,7 +15,7 @@ const emit = defineEmits([
   'mulDelete',
   'addToLike'
 ]);
-const {cache_list, title, sort_key, isReverse, localName, fullCacheList} = defineProps([
+const { cache_list, title, sort_key, isReverse, localName, fullCacheList } = defineProps([
   'cache_list',
   'title',
   'sort_key',
@@ -25,7 +25,7 @@ const {cache_list, title, sort_key, isReverse, localName, fullCacheList} = defin
 ]);
 
 const isChoices = ref(false);
-const sort_dropdown = ref(false)
+const sort_dropdown = ref(false);
 const choicesList = ref([]);
 const search_box = useTemplateRef('search_box');
 const search_btn = useTemplateRef('search_btn');
@@ -42,35 +42,34 @@ const music_local = ref({
 const currentMusic = ref('');
 const localName_ = ref('');
 
-const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list, {
+const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(cache_list, {
   itemHeight: 56,
   overscan: 1
 });
 const music_list = containerProps.ref;
-const {arrivedState} = useScroll(music_list);
+const { arrivedState } = useScroll(music_list);
 
 watchDebounced(
   list,
   () => {
     const list_ = list.value;
     list_.forEach((item, index) => {
-      if (list.value[index] && list.value[index].data.src) {
-        return;
-      }
       window.electron.ipcRenderer.invoke('getCovers', item.data.path).then((src) => {
         if (list.value[index]) {
           if (src) {
             list.value[index].data.src = src;
           } else {
             window.electron.ipcRenderer.invoke('getLocalCovers', item.data.path).then((src) => {
-              list.value[index].data.src = src;
+              if (list.value[index]) {
+                list.value[index].data.src = src;
+              }
             });
           }
         }
       });
     });
   },
-  {debounce: 300, immediate: true}
+  { debounce: 300, immediate: true }
 );
 
 onDeactivated(() => {
@@ -107,7 +106,7 @@ async function click_menu(event, args) {
 
 function select_sort(sort_key) {
   emit('select_sort', sort_key);
-  sort_dropdown.value = false
+  sort_dropdown.value = false;
 }
 
 function sw_reverse() {
@@ -120,7 +119,7 @@ watchDebounced(
     const search_text_ = search_text.value;
     emit('search', search_text_);
   },
-  {debounce: 300, immediate: true}
+  { debounce: 300, immediate: true }
 );
 
 function sw_search(e) {
@@ -153,7 +152,11 @@ function ToTop() {
 }
 
 function ToLocal() {
-  if (!currentMusic.value || localName_.value !== localName || list.value.findIndex((item) => item.data.path === currentMusic.value) !== -1) {
+  if (
+    !currentMusic.value ||
+    localName_.value !== localName ||
+    list.value.findIndex((item) => item.data.path === currentMusic.value) !== -1
+  ) {
     return;
   }
   scrollTo(cache_list.findIndex((item) => item.path === currentMusic.value));
@@ -193,19 +196,19 @@ function play(path) {
   if (isChoices.value) {
     return;
   }
-  let playList = []
-  let metadata = {}
+  let playList = [];
+  let metadata = {};
   if (localName_.value !== localName) {
     playList = fullCacheList.map((item) => {
-      return {path: item.path, title: item.title, artist: item.artist}
-    })
-    metadata = fullCacheList.find(item => item.path === path)
+      return { path: item.path, title: item.title, artist: item.artist };
+    });
+    metadata = fullCacheList.find((item) => item.path === path);
   }
   const args = {
     path,
     localName,
-    title: cache_list.find(i => i.path === path).title,
-    artist: cache_list.find(i => i.path === path).artist,
+    title: cache_list.find((i) => i.path === path).title,
+    artist: cache_list.find((i) => i.path === path).artist,
     playList: playList,
     metadata: metadata
   };
@@ -216,18 +219,18 @@ function play(path) {
 function insertOrAdd(path, flag) {
   EventBus.emit(flag, {
     path,
-    title: cache_list.find(i => i.path === path).title,
-    artist: cache_list.find(i => i.path === path).artist,
-    localName: localName,
+    title: cache_list.find((i) => i.path === path).title,
+    artist: cache_list.find((i) => i.path === path).artist,
+    localName: localName
   });
   music_dropdown.value = false;
 }
 
 function addToPlayList_M() {
   if (choicesList.value) {
-    choicesList.value.forEach(path => {
+    choicesList.value.forEach((path) => {
       insertOrAdd(path, 'updatePlayList');
-    })
+    });
   }
   mulAction.value = false;
 }
@@ -238,24 +241,26 @@ function replacePlayList() {
       playList: choicesList.value.map((path) => {
         return {
           path,
-          title: cache_list.find(i => i.path === path).title,
-          artist: cache_list.find(i => i.path === path).artist,
-        }
+          title: cache_list.find((i) => i.path === path).title,
+          artist: cache_list.find((i) => i.path === path).artist
+        };
       }),
       localName
-    }
+    };
     EventBus.emit('replacePlayList', args);
   }
   mulAction.value = false;
 }
 
-EventBus.on('getMetadata', ({path, currentLocal}) => {
+EventBus.on('getMetadata', ({ path, currentLocal }) => {
   if (currentLocal !== localName) {
     return;
   }
-  EventBus.emit('putMetadata', fullCacheList[fullCacheList.findIndex((item) => item.path === path)]);
-})
-
+  EventBus.emit(
+    'putMetadata',
+    fullCacheList[fullCacheList.findIndex((item) => item.path === path)]
+  );
+});
 
 EventBus.on('setCurrentMusic', (args) => {
   currentMusic.value = args.path;
@@ -263,8 +268,8 @@ EventBus.on('setCurrentMusic', (args) => {
 });
 
 EventBus.on('setLocal', () => {
-  ToLocal()
-})
+  ToLocal();
+});
 </script>
 
 <template>
@@ -273,7 +278,7 @@ EventBus.on('setLocal', () => {
   >
     <span
       class="select-none text-zinc-900 dark:text-zinc-200 text-2xl basis-1/6 flex items-center justify-center font-semibold px-4 pt-4"
-    >{{ title }}</span
+      >{{ title }}</span
     >
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <slot name="slot1"></slot>
@@ -281,27 +286,29 @@ EventBus.on('setLocal', () => {
       <label
         class="h-8 swap p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none outline-none duration-200"
       >
-        <input class="outline-none" type="checkbox" @change="sw_choices"/>
+        <input class="outline-none" type="checkbox" @change="sw_choices" />
         <span class="swap-on text-center text-red-600">退出多选</span>
         <span class="swap-off text-center text-zinc-900 dark:text-zinc-200">多选</span>
       </label>
 
       <span
-        :class="[isChoices && choicesList.length > 0 ? 'block':'hidden']"
+        :class="[isChoices && choicesList.length > 0 ? 'block' : 'hidden']"
         class="h-8 text-zinc-900 hover:text-red-600 dark:text-zinc-200 p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none duration-200"
         @click="mulDelete"
       >
         删除
       </span>
 
-      <div
-        :class="[isChoices && choicesList.length > 0 ? 'block':'hidden' ]"
-      >
+      <div :class="[isChoices && choicesList.length > 0 ? 'block' : 'hidden']">
         <div
           class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
           role="button"
           tabindex="0"
-          @click.stop="() => {mulAction = !mulAction}"
+          @click.stop="
+            () => {
+              mulAction = !mulAction;
+            }
+          "
         >
           <svg
             class="fill-zinc-900 dark:fill-zinc-200"
@@ -318,27 +325,36 @@ EventBus.on('setLocal', () => {
           更多操作
         </div>
         <ul
-          v-on-click-outside.bubble="() => (mulAction = false)"
-          :class="[mulAction ? 'pointer-events-auto opacity-100':'pointer-events-none' ]"
+          v-on-click-outside.bubble="
+            () => {
+              mulAction = false;
+            }
+          "
+          :class="[mulAction ? 'pointer-events-auto opacity-100' : 'pointer-events-none']"
           class="w-36 p-0 py-2 opacity-0 z-[5] *:select-none *:duration-200 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
-          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="addToPlayList_M">
+          <li
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="addToPlayList_M"
+          >
             添加至播放列表
           </li>
 
-          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="replacePlayList">
+          <li
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="replacePlayList"
+          >
             替换播放列表
           </li>
 
-          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
-            添加到歌单1
-          </li>
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">添加到歌单1</li>
 
-          <li v-if="title.includes('本地')" class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="addToLike">
+          <li
+            v-if="title.includes('本地')"
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="addToLike"
+          >
             添加到喜欢
           </li>
         </ul>
@@ -358,7 +374,7 @@ EventBus.on('setLocal', () => {
           :class="{ 'pointer-events-none': isChoices }"
           class="swap swap-rotate *:dark:group-hover:fill-cyan-600 *:group-hover:fill-cyan-500"
         >
-          <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search"/>
+          <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search" />
           <svg
             class="swap-off fill-zinc-900 dark:fill-zinc-200"
             height="16"
@@ -388,7 +404,11 @@ EventBus.on('setLocal', () => {
           :class="{ 'pointer-events-none': isFocused || isChoices }"
           class="flex items-center justify-center pr-2 rounded duration-200 outline-none"
           tabindex="0"
-          @click.stop="() => {sort_dropdown = !sort_dropdown}"
+          @click.stop="
+            () => {
+              sort_dropdown = !sort_dropdown;
+            }
+          "
         >
           <svg
             class="fill-zinc-900 dark:fill-zinc-200 dark:hover:fill-cyan-600 hover:fill-cyan-500"
@@ -403,48 +423,61 @@ EventBus.on('setLocal', () => {
           </svg>
         </button>
         <ul
-          v-on-click-outside.bubble="() => (sort_dropdown = false)"
-          :class="[sort_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
+          v-on-click-outside.bubble="
+            () => {
+              sort_dropdown = false;
+            }
+          "
+          :class="[
+            sort_dropdown ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+          ]"
           class="w-24 right-6 p-0 py-2 z-[5] absolute *:select-none *:duration-200 duration-200 shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
-          <li :class="{
-                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'title'
-              }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="select_sort('title')">
+          <li
+            :class="{
+              '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'title'
+            }"
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="select_sort('title')"
+          >
             <span>标题</span>
           </li>
-          <li :class="{
-                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'artist'
-              }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="select_sort('artist')">
+          <li
+            :class="{
+              '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'artist'
+            }"
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="select_sort('artist')"
+          >
             <span>艺术家</span>
           </li>
-          <li :class="{
-                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'album'
-              }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="select_sort('album')">
+          <li
+            :class="{
+              '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'album'
+            }"
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="select_sort('album')"
+          >
             <span>专辑</span>
           </li>
-          <li :class="{
-                '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'duration'
-              }"
-              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="select_sort('duration')">
+          <li
+            :class="{
+              '*:text-cyan-500 dark:bg-neutral-700/30 bg-neutral-400/20': sort_key === 'duration'
+            }"
+            class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+            @click="select_sort('duration')"
+          >
             <span>时长</span>
           </li>
 
           <li
-            class="py-2 hover:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60">
-
-          </li>
+            class="py-2 hover:bg-transparent hover:cursor-default before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60"
+          ></li>
           <li
             class="rounded-none p-2 h-8 dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 flex items-center justify-start gap-x-2"
-            @click="sw_reverse">
-
+            @click="sw_reverse"
+          >
             <svg
               v-if="isReverse"
               class="fill-zinc-900 dark:fill-zinc-200"
@@ -458,7 +491,6 @@ EventBus.on('setLocal', () => {
               ></path>
             </svg>
             <span>倒序</span>
-
           </li>
         </ul>
       </div>
@@ -487,7 +519,11 @@ EventBus.on('setLocal', () => {
       <span v-if="!isChoices" class="w-8 mr-7">时长</span>
     </div>
     <div
-      :class="[music_dropdown? 'overflow-hidden w-[calc(100%-6px)]':'overflow-x-hidden overflow-y-scroll w-full']"
+      :class="[
+        music_dropdown
+          ? 'overflow-hidden w-[calc(100%-6px)]'
+          : 'overflow-x-hidden overflow-y-scroll w-full'
+      ]"
       class="basis-2/3 p-4 pb-0"
       v-bind="containerProps"
     >
@@ -500,7 +536,7 @@ EventBus.on('setLocal', () => {
               ? '*:dark:text-cyan-600 *:text-cyan-500'
               : '*:text-zinc-900'
           ]"
-          class="*:select-none flex items-center justify-start dark:even:bg-zinc-800 dark:odd:bg-zinc-900/40 even:bg-zinc-200 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 rounded duration-200 hover:cursor-pointer"
+          class="*:select-none flex items-center justify-start dark:odd:bg-zinc-900/40 odd:bg-zinc-300/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 rounded duration-200 hover:cursor-pointer"
           @dblclick="play(metadata.data.path)"
           @click.right.stop="
             click_menu($event, {
@@ -534,8 +570,8 @@ EventBus.on('setLocal', () => {
           >
             <span class="text-xs w-full dark:text-zinc-200">{{ metadata.data.title }}</span>
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{
-                metadata.data.artist ? metadata.data.artist : '未知艺术家'
-              }}</span>
+              metadata.data.artist ? metadata.data.artist : '未知艺术家'
+            }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
             <label
@@ -549,7 +585,7 @@ EventBus.on('setLocal', () => {
                 :checked="metadata.data.isLike"
                 class="outline-none"
                 type="checkbox"
-                @change="SwitchLikes($event, { path: metadata.data.path})"
+                @change="SwitchLikes($event, { path: metadata.data.path })"
               />
               <svg
                 class="swap-off stroke-zinc-500 dark:stroke-zinc-400"
@@ -576,7 +612,6 @@ EventBus.on('setLocal', () => {
                   stroke-width="2"
                 />
               </svg>
-
             </label>
           </span>
           <span
@@ -651,7 +686,7 @@ EventBus.on('setLocal', () => {
 
       <span
         class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
-        @click="insertOrAdd(music_local.path,'insert2next')"
+        @click="insertOrAdd(music_local.path, 'insert2next')"
       >
         <svg
           class="fill-zinc-900 dark:fill-zinc-200"
@@ -670,9 +705,7 @@ EventBus.on('setLocal', () => {
         <span class="px-2">下一首播放</span>
       </span>
 
-      <div
-        class="h-8 dropdown dropdown-right dark:hover:bg-neutral-800/40 hover:bg-gray-300/80"
-      >
+      <div class="h-8 dropdown dropdown-right dark:hover:bg-neutral-800/40 hover:bg-gray-300/80">
         <div class="outline-none flex items-center justify-start" role="button" tabindex="0">
           <svg
             class="fill-zinc-900 dark:fill-zinc-200"
@@ -708,7 +741,7 @@ EventBus.on('setLocal', () => {
         >
           <li
             class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
-            @click="insertOrAdd(music_local.path,'updatePlayList')"
+            @click="insertOrAdd(music_local.path, 'updatePlayList')"
           >
             <svg
               class="fill-zinc-900 dark:fill-zinc-200"
@@ -734,8 +767,8 @@ EventBus.on('setLocal', () => {
       </div>
 
       <div
-        class="before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60"></div>
-
+        class="before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60"
+      ></div>
 
       <span
         class="h-8 dark:hover:bg-red-800/40 hover:bg-red-500/80 flex items-center justify-start"

@@ -1,11 +1,11 @@
 <script setup>
-import {computed, onActivated, ref, toRaw, watch} from 'vue';
+import { computed, onActivated, ref, toRaw, watch } from 'vue';
 import IndexDB from '../assets/indexDB';
 import EventBus from '../assets/EventBus';
-import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
+import { compareSorts, findInsertPosition } from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
-import {useStorage} from '@vueuse/core';
-import {vOnClickOutside} from '@vueuse/components';
+import { useStorage } from '@vueuse/core';
+import { vOnClickOutside } from '@vueuse/components';
 
 const db = new IndexDB();
 const cache_list = ref([]);
@@ -14,7 +14,7 @@ const isLoading = ref(false);
 const file_dropdown = ref(false);
 const loadCount = ref(0);
 const delCount = ref(0);
-const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false});
+const local_cfg = useStorage('local_cfg', { sort_key: 'title', isReverse: false });
 let sort_key = ref(local_cfg.value.sort_key);
 let isReverse = ref(local_cfg.value.isReverse);
 
@@ -40,11 +40,11 @@ watch(
     );
     search();
   },
-  {immediate: true}
+  { immediate: true }
 );
 
 function SelectFile(flag, cacheList = []) {
-  window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)});
+  window.electron.ipcRenderer.send('select_files', { flag: flag, cacheList: toRaw(cacheList) });
   file_dropdown.value = false;
 }
 
@@ -72,14 +72,19 @@ window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
   }
   cache_list.value.splice(index, 1);
   delCount.value++;
-  EventBus.emit('delPlayList', {localName: 'Locals', path: path});
+  EventBus.emit('delPlayList', { localName: 'Locals', path: path });
 });
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item);
   cache_list.value.push(item);
   loadCount.value++;
-  EventBus.emit('updatePlayList', {path: item.path, title: item.title, artist: item.artist, localName: 'Locals'})
+  EventBus.emit('updatePlayList', {
+    path: item.path,
+    title: item.title,
+    artist: item.artist,
+    localName: 'Locals'
+  });
 });
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
@@ -88,19 +93,24 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
       db.addData(item);
       const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value);
       cache_list.value.splice(position, 0, item);
-      EventBus.emit('updatePlayList', {path: item.path, title: item.title, artist: item.artist, localName: 'Locals'})
+      EventBus.emit('updatePlayList', {
+        path: item.path,
+        title: item.title,
+        artist: item.artist,
+        localName: 'Locals'
+      });
     }
     search();
   });
 });
 
-EventBus.on('set_Like_false', path => {
+EventBus.on('set_Like_false', (path) => {
   cache_list.value.find((item) => item.path === path).isLike = false;
 });
 
-EventBus.on('SwitchLikes', ({event, args}) => {
-  SwitchLikes(event, args)
-})
+EventBus.on('SwitchLikes', ({ event, args }) => {
+  SwitchLikes(event, args);
+});
 
 function SwitchLikes(event, args) {
   const cache = cache_list.value.find((item) => item.path === args.path);
@@ -139,7 +149,7 @@ function music_delete(path) {
     EventBus.emit('delete_LikeCache', path);
   }
 
-  EventBus.emit('delPlayList', {localName: 'Locals', path: path});
+  EventBus.emit('delPlayList', { localName: 'Locals', path: path });
 }
 
 function select_sort(key_) {
@@ -211,7 +221,11 @@ function addToLike(list) {
             class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
             role="button"
             tabindex="0"
-            @click.stop="() => {file_dropdown = !file_dropdown}"
+            @click.stop="
+              () => {
+                file_dropdown = !file_dropdown;
+              }
+            "
           >
             <svg
               class="stroke-zinc-900 dark:stroke-zinc-200"
@@ -219,23 +233,33 @@ function addToLike(list) {
               width="16"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
-              <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
+              <line stroke-width="1" x1="8" x2="8" y1="0" y2="16" />
+              <line stroke-width="1" x1="0" x2="16" y1="8" y2="8" />
             </svg>
             添加
           </div>
           <ul
-            v-on-click-outside.bubble="() => (file_dropdown = false)"
-            :class="[file_dropdown ? 'pointer-events-auto opacity-100':'pointer-events-none opacity-0' ]"
+            v-on-click-outside.bubble="
+              () => {
+                file_dropdown = false;
+              }
+            "
+            :class="[
+              file_dropdown ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            ]"
             class="w-36 p-0 z-[5] *:duration-200 duration-200 *:select-none py-2 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
             tabindex="0"
           >
-            <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-                @click="SelectFile('file')">
+            <li
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="SelectFile('file')"
+            >
               手动添加
             </li>
-            <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-                @click="SelectFile('folder', cache_list)">
+            <li
+              class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="SelectFile('folder', cache_list)"
+            >
               扫描文件夹
             </li>
           </ul>
@@ -248,7 +272,7 @@ function addToLike(list) {
     >
       <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300 select-none">
         已添加：{{ loadCount }}
-        <br/>
+        <br />
         已删除：{{ delCount }}
       </div>
     </div>

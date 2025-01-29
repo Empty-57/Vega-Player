@@ -1,6 +1,6 @@
 <script setup>
 const emit = defineEmits(['ToTop', 'ToLocal']);
-const {isTop, isPlay} = defineProps(['isTop', 'isPlay']);
+const { isTop, isPlay } = defineProps(['isTop', 'isPlay']);
 
 function ToTop() {
   emit('ToTop');

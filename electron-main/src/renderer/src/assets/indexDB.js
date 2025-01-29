@@ -20,10 +20,10 @@ class IndexDB {
             keyPath: 'path', // 设置主键
             autoIncrement: false
           });
-          store.createIndex('path', 'path', {unique: false});
-          store.createIndex('title', 'title', {unique: false});
-          store.createIndex('artist', 'artist', {unique: false});
-          store.createIndex('album', 'album', {unique: false});
+          store.createIndex('path', 'path', { unique: false });
+          store.createIndex('title', 'title', { unique: false });
+          store.createIndex('artist', 'artist', { unique: false });
+          store.createIndex('album', 'album', { unique: false });
           console.log('onupgradeneeded: ', event);
         }
         if (!this._db.objectStoreNames.contains('LikesCache')) {
@@ -31,10 +31,10 @@ class IndexDB {
             keyPath: 'path', // 设置主键
             autoIncrement: false
           });
-          store.createIndex('path', 'path', {unique: false});
-          store.createIndex('title', 'title', {unique: false});
-          store.createIndex('artist', 'artist', {unique: false});
-          store.createIndex('album', 'album', {unique: false});
+          store.createIndex('path', 'path', { unique: false });
+          store.createIndex('title', 'title', { unique: false });
+          store.createIndex('artist', 'artist', { unique: false });
+          store.createIndex('album', 'album', { unique: false });
           console.log('onupgradeneeded: ', event);
         }
       };
