@@ -12,7 +12,7 @@ function ToLocal() {
 </script>
 
 <template>
-  <div class="fixed w-fit h-fit bottom-20 right-8 flex flex-col">
+  <div class="fixed w-fit h-fit bottom-20 right-8 flex flex-col z-[5]">
     <div
       v-if="isPlay"
       class="size-6 border dark:border-zinc-600 border-zinc-500 dark:hover:border-cyan-600 hover:border-cyan-400 hover:cursor-pointer group flex items-center justify-center"

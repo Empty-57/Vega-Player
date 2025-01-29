@@ -44,7 +44,7 @@ const localName_ = ref('');
 
 const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list, {
   itemHeight: 56,
-  overscan: 2
+  overscan: 1
 });
 const music_list = containerProps.ref;
 const {arrivedState} = useScroll(music_list);
@@ -72,10 +72,6 @@ watchDebounced(
   },
   {debounce: 300, immediate: true}
 );
-
-watchDebounced(fullCacheList, () => {
-  EventBus.emit('updatePlayList', {fullCacheList: fullCacheList.map((item) => item.path), localName})
-}, {debounce: 300, immediate: false})
 
 onDeactivated(() => {
   isFocused.value = false;
@@ -157,7 +153,7 @@ function ToTop() {
 }
 
 function ToLocal() {
-  if (!currentMusic.value || localName_.value !== localName) {
+  if (!currentMusic.value || localName_.value !== localName || list.value.findIndex((item) => item.data.path === currentMusic.value) !== -1) {
     return;
   }
   scrollTo(cache_list.findIndex((item) => item.path === currentMusic.value));
@@ -200,17 +196,57 @@ function play(path) {
   let playList = []
   let metadata = {}
   if (localName_.value !== localName) {
-    playList = fullCacheList.map((item) => item.path)
-    metadata = fullCacheList[fullCacheList.findIndex(item => item.path === path)]
+    playList = fullCacheList.map((item) => {
+      return {path: item.path, title: item.title, artist: item.artist}
+    })
+    metadata = fullCacheList.find(item => item.path === path)
   }
   const args = {
     path,
     localName,
+    title: cache_list.find(i => i.path === path).title,
+    artist: cache_list.find(i => i.path === path).artist,
     playList: playList,
     metadata: metadata
   };
   EventBus.emit('play', args);
   music_dropdown.value = false;
+}
+
+function insertOrAdd(path, flag) {
+  EventBus.emit(flag, {
+    path,
+    title: cache_list.find(i => i.path === path).title,
+    artist: cache_list.find(i => i.path === path).artist,
+    localName: localName,
+  });
+  music_dropdown.value = false;
+}
+
+function addToPlayList_M() {
+  if (choicesList.value) {
+    choicesList.value.forEach(path => {
+      insertOrAdd(path, 'updatePlayList');
+    })
+  }
+  mulAction.value = false;
+}
+
+function replacePlayList() {
+  if (choicesList.value) {
+    const args = {
+      playList: choicesList.value.map((path) => {
+        return {
+          path,
+          title: cache_list.find(i => i.path === path).title,
+          artist: cache_list.find(i => i.path === path).artist,
+        }
+      }),
+      localName
+    }
+    EventBus.emit('replacePlayList', args);
+  }
+  mulAction.value = false;
 }
 
 EventBus.on('getMetadata', ({path, currentLocal}) => {
@@ -225,6 +261,10 @@ EventBus.on('setCurrentMusic', (args) => {
   currentMusic.value = args.path;
   localName_.value = args.localName;
 });
+
+EventBus.on('setLocal', () => {
+  ToLocal()
+})
 </script>
 
 <template>
@@ -283,11 +323,13 @@ EventBus.on('setCurrentMusic', (args) => {
           class="w-36 p-0 py-2 opacity-0 z-[5] *:select-none *:duration-200 absolute shadow-xl dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px]"
           tabindex="0"
         >
-          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="addToPlayList_M">
             添加至播放列表
           </li>
 
-          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8">
+          <li class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
+              @click="replacePlayList">
             替换播放列表
           </li>
 
@@ -445,7 +487,8 @@ EventBus.on('setCurrentMusic', (args) => {
       <span v-if="!isChoices" class="w-8 mr-7">时长</span>
     </div>
     <div
-      class="basis-2/3 w-full overflow-x-hidden overflow-y-scroll p-4 pb-0"
+      :class="[music_dropdown? 'overflow-hidden w-[calc(100%-6px)]':'overflow-x-hidden overflow-y-scroll w-full']"
+      class="basis-2/3 p-4 pb-0"
       v-bind="containerProps"
     >
       <div class="w-full flex flex-col items-start justify-start" v-bind="wrapperProps">
@@ -608,6 +651,7 @@ EventBus.on('setCurrentMusic', (args) => {
 
       <span
         class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
+        @click="insertOrAdd(music_local.path,'insert2next')"
       >
         <svg
           class="fill-zinc-900 dark:fill-zinc-200"
@@ -627,7 +671,7 @@ EventBus.on('setCurrentMusic', (args) => {
       </span>
 
       <div
-        class="h-8 dropdown dropdown-hover dropdown-right dark:hover:bg-neutral-800/40 hover:bg-gray-300/80"
+        class="h-8 dropdown dropdown-right dark:hover:bg-neutral-800/40 hover:bg-gray-300/80"
       >
         <div class="outline-none flex items-center justify-start" role="button" tabindex="0">
           <svg
@@ -664,6 +708,7 @@ EventBus.on('setCurrentMusic', (args) => {
         >
           <li
             class="dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
+            @click="insertOrAdd(music_local.path,'updatePlayList')"
           >
             <svg
               class="fill-zinc-900 dark:fill-zinc-200"

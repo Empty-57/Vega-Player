@@ -50,6 +50,7 @@ EventBus.on('add_LikeCache', item => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value);
   cacheLike_list.value.splice(position, 0, item);
   search();
+  EventBus.emit('updatePlayList', {path: item.path, title: item.title, artist: item.artist, localName: 'Likes'})
 });
 
 EventBus.on('SwitchLikes_like', ({event, args}) => {

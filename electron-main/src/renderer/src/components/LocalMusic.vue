@@ -79,6 +79,7 @@ window.electron.ipcRenderer.on('add_db', (_, item) => {
   db.addData(item);
   cache_list.value.push(item);
   loadCount.value++;
+  EventBus.emit('updatePlayList', {path: item.path, title: item.title, artist: item.artist, localName: 'Locals'})
 });
 
 window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
@@ -87,13 +88,14 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
       db.addData(item);
       const position = findInsertPosition(cache_list.value, item[sort_key.value], sort_key.value);
       cache_list.value.splice(position, 0, item);
+      EventBus.emit('updatePlayList', {path: item.path, title: item.title, artist: item.artist, localName: 'Locals'})
     }
     search();
   });
 });
 
 EventBus.on('set_Like_false', path => {
-  cache_list.value[cache_list.value.findIndex((item) => item.path === path)].isLike = false;
+  cache_list.value.find((item) => item.path === path).isLike = false;
 });
 
 EventBus.on('SwitchLikes', ({event, args}) => {
@@ -101,19 +103,19 @@ EventBus.on('SwitchLikes', ({event, args}) => {
 })
 
 function SwitchLikes(event, args) {
-  const cacheIndex = cache_list.value.findIndex((item) => item.path === args.path);
+  const cache = cache_list.value.find((item) => item.path === args.path);
 
-  console.log('likes: ', toRaw(cache_list.value[cacheIndex]));
+  console.log('likes: ', toRaw(cache));
   if (event.target.checked) {
-    cache_list.value[cacheIndex].isLike = true;
-    db.addData(toRaw(cache_list.value[cacheIndex]));
-    db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache');
+    cache.isLike = true;
+    db.addData(toRaw(cache));
+    db.addData(toRaw(cache), 'LikesCache');
 
-    EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]));
+    EventBus.emit('add_LikeCache', toRaw(cache));
   } else {
     db.deleteData(args.path, 'LikesCache');
-    cache_list.value[cacheIndex].isLike = false;
-    db.addData(toRaw(cache_list.value[cacheIndex]));
+    cache.isLike = false;
+    db.addData(toRaw(cache));
 
     EventBus.emit('delete_LikeCache', args.path);
   }
@@ -173,15 +175,15 @@ function mulDelete(list) {
 
 function addToLike(list) {
   list.forEach((path) => {
-    const cacheIndex = cache_list.value.findIndex((item) => item.path === path);
-    if (cache_list.value[cacheIndex].isLike) {
+    const cache = cache_list.value.find((item) => item.path === path);
+    if (cache.isLike) {
       return;
     }
-    cache_list.value[cacheIndex].isLike = true;
-    db.addData(toRaw(cache_list.value[cacheIndex]));
-    db.addData(toRaw(cache_list.value[cacheIndex]), 'LikesCache');
+    cache.isLike = true;
+    db.addData(toRaw(cache));
+    db.addData(toRaw(cache), 'LikesCache');
 
-    EventBus.emit('add_LikeCache', toRaw(cache_list.value[cacheIndex]));
+    EventBus.emit('add_LikeCache', toRaw(cache));
   });
 }
 </script>
