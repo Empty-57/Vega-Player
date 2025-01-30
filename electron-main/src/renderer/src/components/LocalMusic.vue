@@ -1,11 +1,11 @@
 <script setup>
-import { computed, onActivated, ref, toRaw, watch } from 'vue';
+import {computed, onActivated, ref, toRaw, watch} from 'vue';
 import IndexDB from '../assets/indexDB';
 import EventBus from '../assets/EventBus';
-import { compareSorts, findInsertPosition } from '../assets/BinarySearchPosition';
+import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
-import { useStorage } from '@vueuse/core';
-import { vOnClickOutside } from '@vueuse/components';
+import {useStorage} from '@vueuse/core';
+import {vOnClickOutside} from '@vueuse/components';
 
 const db = new IndexDB();
 const cache_list = ref([]);
@@ -14,7 +14,7 @@ const isLoading = ref(false);
 const file_dropdown = ref(false);
 const loadCount = ref(0);
 const delCount = ref(0);
-const local_cfg = useStorage('local_cfg', { sort_key: 'title', isReverse: false });
+const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false});
 let sort_key = ref(local_cfg.value.sort_key);
 let isReverse = ref(local_cfg.value.isReverse);
 
@@ -40,11 +40,11 @@ watch(
     );
     search();
   },
-  { immediate: true }
+  {immediate: true}
 );
 
 function SelectFile(flag, cacheList = []) {
-  window.electron.ipcRenderer.send('select_files', { flag: flag, cacheList: toRaw(cacheList) });
+  window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)});
   file_dropdown.value = false;
 }
 
@@ -72,7 +72,7 @@ window.electron.ipcRenderer.on('delete_db', (_, path, index, isLike) => {
   }
   cache_list.value.splice(index, 1);
   delCount.value++;
-  EventBus.emit('delPlayList', { localName: 'Locals', path: path });
+  EventBus.emit('delPlayList', {localName: 'Locals', path: path});
 });
 
 window.electron.ipcRenderer.on('add_db', (_, item) => {
@@ -108,7 +108,7 @@ EventBus.on('set_Like_false', (path) => {
   cache_list.value.find((item) => item.path === path).isLike = false;
 });
 
-EventBus.on('SwitchLikes', ({ event, args }) => {
+EventBus.on('SwitchLikes', ({event, args}) => {
   SwitchLikes(event, args);
 });
 
@@ -149,7 +149,7 @@ function music_delete(path) {
     EventBus.emit('delete_LikeCache', path);
   }
 
-  EventBus.emit('delPlayList', { localName: 'Locals', path: path });
+  EventBus.emit('delPlayList', {localName: 'Locals', path: path});
 }
 
 function select_sort(key_) {
@@ -233,8 +233,8 @@ function addToLike(list) {
               width="16"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <line stroke-width="1" x1="8" x2="8" y1="0" y2="16" />
-              <line stroke-width="1" x1="0" x2="16" y1="8" y2="8" />
+              <line stroke-width="1" x1="8" x2="8" y1="0" y2="16"/>
+              <line stroke-width="1" x1="0" x2="16" y1="8" y2="8"/>
             </svg>
             添加
           </div>
@@ -272,7 +272,7 @@ function addToLike(list) {
     >
       <div class="h-fit w-1/2 p-8 bg-zinc-900/80 rounded text-zinc-300 select-none">
         已添加：{{ loadCount }}
-        <br />
+        <br/>
         已删除：{{ delCount }}
       </div>
     </div>

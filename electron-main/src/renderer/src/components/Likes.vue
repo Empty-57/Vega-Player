@@ -1,15 +1,15 @@
 <script setup>
-import { computed, onActivated, ref, toRaw, watch } from 'vue';
+import {computed, onActivated, ref, toRaw, watch} from 'vue';
 import IndexDB from '../assets/indexDB';
 import EventBus from '../assets/EventBus';
-import { compareSorts, findInsertPosition } from '../assets/BinarySearchPosition';
+import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
-import { useStorage } from '@vueuse/core';
+import {useStorage} from '@vueuse/core';
 
 const db = new IndexDB();
 const cacheLike_list = ref([]);
 const f_cacheLike_list = ref([]);
-const like_cfg = useStorage('like_cfg', { sort_key: 'title', isReverse: false });
+const like_cfg = useStorage('like_cfg', {sort_key: 'title', isReverse: false});
 let sort_key = ref(like_cfg.value.sort_key);
 let isReverse = ref(like_cfg.value.isReverse);
 
@@ -35,7 +35,7 @@ watch(
     );
     search();
   },
-  { immediate: true }
+  {immediate: true}
 );
 
 EventBus.on('delete_LikeCache', (path) => {
@@ -44,7 +44,7 @@ EventBus.on('delete_LikeCache', (path) => {
     1
   );
   search();
-  EventBus.emit('delPlayList', { localName: 'Likes', path: path });
+  EventBus.emit('delPlayList', {localName: 'Likes', path: path});
 });
 EventBus.on('add_LikeCache', (item) => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value);
@@ -58,7 +58,7 @@ EventBus.on('add_LikeCache', (item) => {
   });
 });
 
-EventBus.on('SwitchLikes_like', ({ event, args }) => {
+EventBus.on('SwitchLikes_like', ({event, args}) => {
   SwitchLikes(event, args);
 });
 
@@ -73,7 +73,7 @@ function SwitchLikes(event, args) {
   cacheLike_list.value.splice(cacheLikeIndex, 1);
   f_cacheLike_list.value.splice(f_cacheLikeIndex, 1);
   EventBus.emit('set_Like_false', args.path);
-  EventBus.emit('delPlayList', { localName: 'Likes', path: args.path });
+  EventBus.emit('delPlayList', {localName: 'Likes', path: args.path});
 }
 
 onActivated(() => {
@@ -92,7 +92,7 @@ function music_delete(path) {
   f_cacheLike_list.value.splice(f_cacheLikeIndex, 1);
   EventBus.emit('set_Like_false', path);
 
-  EventBus.emit('delPlayList', { localName: 'Likes', path: path });
+  EventBus.emit('delPlayList', {localName: 'Likes', path: path});
 }
 
 function select_sort(key_) {

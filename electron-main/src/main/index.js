@@ -1,9 +1,12 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { join } from 'path';
-import { electronApp, is, optimizer } from '@electron-toolkit/utils';
+import {app, BrowserWindow, ipcMain, shell} from 'electron';
+import {join} from 'path';
+import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
-import { useDebounceFn } from '@vueuse/core';
-import { audio_scan, getCover, getLocalCover } from './audio_scan';
+import {useDebounceFn} from '@vueuse/core';
+import {audio_scan, getCover, getLocalCover} from './audio_scan';
+import {ByteVector, File, PictureType} from "node-taglib-sharp";
+import axios from "axios";
+import sharp from "sharp";
 
 function createWindow() {
   // Create the browser window.
@@ -18,7 +21,7 @@ function createWindow() {
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? {icon} : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
@@ -34,7 +37,7 @@ function createWindow() {
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
-    return { action: 'deny' };
+    return {action: 'deny'};
   });
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
@@ -100,6 +103,29 @@ ipcMain.handle('getCovers', async (_, path) => {
 ipcMain.handle('getLocalCovers', async (_, path) => {
   return await getLocalCover(path);
 });
+
+ipcMain.on('saveNetCover', async (_, args) => {
+  try {
+    axios.get(args.picUrl, {responseType: 'arraybuffer'}).then(async ({data}) => {
+      const picData = await sharp(Buffer.from(data, 'binary'))
+        .resize(600, 600)
+        .toBuffer()
+
+      const myFile = File.createFromPath(args.path);
+      const pic = {
+        data: ByteVector.fromByteArray(picData),
+        mimeType: 'image/png',
+        type: PictureType.FrontCover
+      };
+      myFile.tag.pictures = [pic];
+      myFile.save();
+      myFile.dispose();
+    })
+  } catch (err) {
+    console.log(err);
+  }
+
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

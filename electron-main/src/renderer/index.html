@@ -1,16 +1,16 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Vega Player</title>
-    <meta
-      content="default-src 'self'; media-src 'self' 'unsafe-inline' 'unsafe-eval' file:;connect-src 'self' file:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: file:;"
-      http-equiv="Content-Security-Policy"
-    />
-  </head>
+<head>
+  <meta charset="UTF-8"/>
+  <title>Vega Player</title>
+  <meta
+    content="default-src 'self'; media-src 'self' 'unsafe-inline' 'unsafe-eval' file:;connect-src *; script-src 'self'; style-src 'self' 'unsafe-inline';img-src * 'self' data: file:;"
+    http-equiv="Content-Security-Policy"
+  />
+</head>
 
-  <body>
-    <div id="app"></div>
-    <script src="/src/main.js" type="module"></script>
-  </body>
+<body>
+<div id="app"></div>
+<script src="/src/main.js" type="module"></script>
+</body>
 </html>

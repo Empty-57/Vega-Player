@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import {ref} from 'vue';
 import LocalMusic from './LocalMusic.vue';
 import Likes from './Likes.vue';
 import Setting from './Setting.vue';
@@ -28,8 +28,8 @@ const tabs = {
             width="32"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path d="M10 32 L20 10 L25 15 L30 12 L35 20 L40 10 L50 32" />
-            <path d="M54 32 L44 10 L39 15 L34 12 L29 20 L24 10 L14 32" />
+            <path d="M10 32 L20 10 L25 15 L30 12 L35 20 L40 10 L50 32"/>
+            <path d="M54 32 L44 10 L39 15 L34 12 L29 20 L24 10 L14 32"/>
           </svg>
         </span>
         <span class="text-zinc-900 dark:text-zinc-200 text-sm">Vega Player</span>
@@ -51,8 +51,8 @@ const tabs = {
           width="24"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <line stroke-width="1" x1="5" x2="19" y1="20" y2="20" />
-          <path d="M12 4v12m0 0l-4-4m4 4l4-4" fill="none" stroke-width="1" />
+          <line stroke-width="1" x1="5" x2="19" y1="20" y2="20"/>
+          <path d="M12 4v12m0 0l-4-4m4 4l4-4" fill="none" stroke-width="1"/>
         </svg>
         <span class="ml-2 text-sm">本地</span>
       </span>

@@ -1,10 +1,11 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
 import FloatLocalTopBtn from './FloatLocalTopBtn.vue';
-import { nextTick, onActivated, onDeactivated, ref, useTemplateRef } from 'vue';
-import { useScroll, useVirtualList, watchDebounced } from '@vueuse/core';
-import { vOnClickOutside } from '@vueuse/components';
+import {nextTick, onActivated, onDeactivated, ref, useTemplateRef} from 'vue';
+import {useScroll, useVirtualList, watchDebounced} from '@vueuse/core';
+import {vOnClickOutside} from '@vueuse/components';
 import EventBus from '../assets/EventBus';
+import axios from "axios";
 
 const emit = defineEmits([
   'SwitchLikes',
@@ -15,7 +16,7 @@ const emit = defineEmits([
   'mulDelete',
   'addToLike'
 ]);
-const { cache_list, title, sort_key, isReverse, localName, fullCacheList } = defineProps([
+const {cache_list, title, sort_key, isReverse, localName, fullCacheList} = defineProps([
   'cache_list',
   'title',
   'sort_key',
@@ -33,7 +34,6 @@ const isFocused = ref(false);
 const mulAction = ref(false);
 const search_text = ref('');
 const music_dropdown = ref(false);
-const music_menu = useTemplateRef('music_menu');
 const music_local = ref({
   x: 0,
   y: 0,
@@ -42,34 +42,56 @@ const music_local = ref({
 const currentMusic = ref('');
 const localName_ = ref('');
 
-const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(cache_list, {
+const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list, {
   itemHeight: 56,
   overscan: 1
 });
 const music_list = containerProps.ref;
-const { arrivedState } = useScroll(music_list);
+const {arrivedState} = useScroll(music_list);
 
 watchDebounced(
   list,
   () => {
     const list_ = list.value;
-    list_.forEach((item, index) => {
-      window.electron.ipcRenderer.invoke('getCovers', item.data.path).then((src) => {
-        if (list.value[index]) {
-          if (src) {
-            list.value[index].data.src = src;
-          } else {
-            window.electron.ipcRenderer.invoke('getLocalCovers', item.data.path).then((src) => {
-              if (list.value[index]) {
-                list.value[index].data.src = src;
-              }
-            });
-          }
+    try {
+      list_.forEach((item, index) => {
+        if (!list_[index].data.src) {
+          window.electron.ipcRenderer.invoke('getCovers', item.data.path).then((src) => {
+            if (src) {
+              list_[index].data.src = src;
+            } else {
+              window.electron.ipcRenderer.invoke('getLocalCovers', item.data.path).then((src) => {
+                if (src) {
+                  list_[index].data.src = src;
+                } else {
+                  axios.get(`https://music.163.com/api/cloudsearch/pc`, {
+                    params: {
+                      s: item.data.title,
+                      type: 1,
+                      offset: 0,
+                      total: true,
+                      limit: 1,
+                    },
+                  }).then(({data}) => {
+                    if (data.result && data.result.songCount > 0) {
+                      window.electron.ipcRenderer.send('saveNetCover', {
+                        path: item.data.path,
+                        picUrl: data.result.songs[0].al.picUrl
+                      })
+                    }
+                  })
+                }
+              });
+            }
+          });
         }
+
       });
-    });
+    } catch (error) {
+      console.error(error);
+    }
   },
-  { debounce: 300, immediate: true }
+  {debounce: 300, immediate: true}
 );
 
 onDeactivated(() => {
@@ -119,7 +141,7 @@ watchDebounced(
     const search_text_ = search_text.value;
     emit('search', search_text_);
   },
-  { debounce: 300, immediate: true }
+  {debounce: 300, immediate: true}
 );
 
 function sw_search(e) {
@@ -200,15 +222,15 @@ function play(path) {
   let metadata = {};
   if (localName_.value !== localName) {
     playList = fullCacheList.map((item) => {
-      return { path: item.path, title: item.title, artist: item.artist };
+      return {path: item.path, title: item.title, artist: item.artist};
     });
     metadata = fullCacheList.find((item) => item.path === path);
   }
   const args = {
     path,
     localName,
-    title: cache_list.find((i) => i.path === path).title,
-    artist: cache_list.find((i) => i.path === path).artist,
+    title: fullCacheList.find((i) => i.path === path).title,
+    artist: fullCacheList.find((i) => i.path === path).artist,
     playList: playList,
     metadata: metadata
   };
@@ -219,8 +241,8 @@ function play(path) {
 function insertOrAdd(path, flag) {
   EventBus.emit(flag, {
     path,
-    title: cache_list.find((i) => i.path === path).title,
-    artist: cache_list.find((i) => i.path === path).artist,
+    title: fullCacheList.find((i) => i.path === path).title,
+    artist: fullCacheList.find((i) => i.path === path).artist,
     localName: localName
   });
   music_dropdown.value = false;
@@ -241,8 +263,8 @@ function replacePlayList() {
       playList: choicesList.value.map((path) => {
         return {
           path,
-          title: cache_list.find((i) => i.path === path).title,
-          artist: cache_list.find((i) => i.path === path).artist
+          title: fullCacheList.find((i) => i.path === path).title,
+          artist: fullCacheList.find((i) => i.path === path).artist
         };
       }),
       localName
@@ -252,7 +274,7 @@ function replacePlayList() {
   mulAction.value = false;
 }
 
-EventBus.on('getMetadata', ({ path, currentLocal }) => {
+EventBus.on('getMetadata', ({path, currentLocal}) => {
   if (currentLocal !== localName) {
     return;
   }
@@ -278,7 +300,7 @@ EventBus.on('setLocal', () => {
   >
     <span
       class="select-none text-zinc-900 dark:text-zinc-200 text-2xl basis-1/6 flex items-center justify-center font-semibold px-4 pt-4"
-      >{{ title }}</span
+    >{{ title }}</span
     >
     <div class="w-full basis-1/12 flex items-center justify-start gap-x-4 px-4">
       <slot name="slot1"></slot>
@@ -286,7 +308,7 @@ EventBus.on('setLocal', () => {
       <label
         class="h-8 swap p-2 px-4 text-xs dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 rounded select-none outline-none duration-200"
       >
-        <input class="outline-none" type="checkbox" @change="sw_choices" />
+        <input class="outline-none" type="checkbox" @change="sw_choices"/>
         <span class="swap-on text-center text-red-600">退出多选</span>
         <span class="swap-off text-center text-zinc-900 dark:text-zinc-200">多选</span>
       </label>
@@ -374,7 +396,7 @@ EventBus.on('setLocal', () => {
           :class="{ 'pointer-events-none': isChoices }"
           class="swap swap-rotate *:dark:group-hover:fill-cyan-600 *:group-hover:fill-cyan-500"
         >
-          <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search" />
+          <input ref="search_btn" class="outline-none" type="checkbox" @change="sw_search"/>
           <svg
             class="swap-off fill-zinc-900 dark:fill-zinc-200"
             height="16"
@@ -570,8 +592,8 @@ EventBus.on('setLocal', () => {
           >
             <span class="text-xs w-full dark:text-zinc-200">{{ metadata.data.title }}</span>
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{
-              metadata.data.artist ? metadata.data.artist : '未知艺术家'
-            }}</span>
+                metadata.data.artist ? metadata.data.artist : '未知艺术家'
+              }}</span>
           </div>
           <span class="flex items-center justify-center mx-8 mr-4 w-6">
             <label
@@ -661,7 +683,6 @@ EventBus.on('setLocal', () => {
     ></float-local-top-btn>
     <div
       v-if="music_dropdown"
-      ref="music_menu"
       v-on-click-outside.bubble="dropdownClose"
       :style="{ left: music_local.x + 'px', top: music_local.y + 'px' }"
       class="*:cursor-pointer *:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200"

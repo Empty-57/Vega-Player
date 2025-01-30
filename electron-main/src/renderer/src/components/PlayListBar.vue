@@ -1,11 +1,11 @@
 <script setup>
-import { useVirtualList } from '@vueuse/core';
-import { onMounted } from 'vue';
+import {useVirtualList} from '@vueuse/core';
+import {onMounted} from 'vue';
 
-const { playList, currentMusic } = defineProps(['playList', 'currentMusic']);
+const {playList, currentMusic} = defineProps(['playList', 'currentMusic']);
 const emit = defineEmits(['clearPlayList', 'removeMusic']);
 
-const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(playList, {
+const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(playList, {
   itemHeight: 56,
   overscan: 1
 });
@@ -54,7 +54,7 @@ function removeMusic(path) {
     </span>
 
     <span class="text-zinc-900 dark:text-zinc-400 text-[10px] ml-2 mb-1"
-      >共{{ playList.length }}首歌曲</span
+    >共{{ playList.length }}首歌曲</span
     >
 
     <div class="overflow-x-hidden overflow-y-auto w-full grow" v-bind="containerProps">
@@ -74,8 +74,8 @@ function removeMusic(path) {
           >
             <span class="text-xs w-full dark:text-zinc-200">{{ metadata.data.title }}</span>
             <span class="text-[10px] w-full font-thin dark:text-zinc-400">{{
-              metadata.data.artist ? metadata.data.artist : '未知艺术家'
-            }}</span>
+                metadata.data.artist ? metadata.data.artist : '未知艺术家'
+              }}</span>
           </div>
           <span class="grow"></span>
           <svg

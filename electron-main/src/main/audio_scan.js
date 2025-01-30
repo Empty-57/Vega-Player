@@ -1,9 +1,10 @@
-import { BrowserWindow, dialog } from 'electron';
+import {BrowserWindow, dialog, nativeImage} from 'electron';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { parseFile } from 'music-metadata';
+import {parseFile} from 'music-metadata';
 import pLimit from 'p-limit';
+import sharp from "sharp";
 
 const _ext = [
   'mp3',
@@ -34,16 +35,6 @@ const cpuCount = os.cpus().length;
 const maxConcurrency = cpuCount * 2;
 const limit = pLimit(maxConcurrency);
 
-function uint8ArrayToBase64(array) {
-  // 将 Uint8Array 转换为字符串（必须是有效的 ASCII 字符）
-  let binaryString = '';
-  const length = array.length;
-  for (let i = 0; i < length; i++) {
-    binaryString += String.fromCharCode(array[i]);
-  }
-  // 使用 btoa 将二进制字符串转换为 Base64
-  return btoa(binaryString);
-}
 
 async function cacheSender(filePath, event, channel) {
   const metadata = await parseFile(filePath, {
@@ -62,12 +53,12 @@ async function cacheSender(filePath, event, channel) {
     duration: metadata.format.duration, //时长 s
     formatTime: metadata.format.duration
       ? Math.floor(metadata.format.duration / 60)
-          .toString()
-          .padStart(2, '0') +
-        ':' +
-        Math.floor(metadata.format.duration % 60)
-          .toString()
-          .padStart(2, '0')
+        .toString()
+        .padStart(2, '0') +
+      ':' +
+      Math.floor(metadata.format.duration % 60)
+        .toString()
+        .padStart(2, '0')
       : '?',
     // bitrate: metadata.format.bitrate,//比特率
     path: filePath,
@@ -86,23 +77,27 @@ export async function getLocalCover(filePath) {
       await fs.promises.access(path_, fs.constants.F_OK);
       path_ = 'file://' + path_;
       return path_;
-    } catch (err) {}
+    } catch (err) {
+    }
   }
   return null;
 }
 
-export async function getCover(filePath) {
+export async function getCover(filePath, flag = 1) {
   const metadata = await parseFile(filePath, {
     skipPostHeaders: true,
     includeChapters: false,
     duration: false
   });
-  return metadata.common.picture
-    ? 'data:' +
-        metadata.common.picture[0].format +
-        ';base64,' +
-        uint8ArrayToBase64(metadata.common.picture[0].data)
-    : null;
+  if (!metadata.common.picture) {
+    return null
+  }
+  const size = flag === 1 ? 150 : 600
+  const picData = await sharp(metadata.common.picture[0].data)
+    .resize(size, size)
+    .toBuffer()
+
+  return nativeImage.createFromBuffer(picData).toDataURL();
 }
 
 export async function audio_scan(event, flag, cacheList) {
@@ -111,7 +106,7 @@ export async function audio_scan(event, flag, cacheList) {
     const result = await dialog.showOpenDialog(window, {
       properties: ['openFile'], // 打开文件选择对话框
       filters: [
-        { name: 'Audio Files', extensions: _ext } // 只显示音频文件
+        {name: 'Audio Files', extensions: _ext} // 只显示音频文件
       ]
     });
     if (result.canceled) {
@@ -139,7 +134,7 @@ export async function audio_scan(event, flag, cacheList) {
     const folderPath = result.filePaths[0];
     const audioFiles = []; // 过滤音频文件
 
-    const files = await fs.promises.readdir(folderPath, { recursive: true });
+    const files = await fs.promises.readdir(folderPath, {recursive: true});
     files.forEach((file) => {
       const filePath = path.join(folderPath, file);
       if (audio_ext.has(path.extname(file))) {

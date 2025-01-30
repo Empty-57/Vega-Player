@@ -1,20 +1,20 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
-import { Howl } from 'howler';
-import { onMounted, ref, useTemplateRef, watch } from 'vue';
+import {Howl} from 'howler';
+import {onMounted, ref, useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
-import { useCycleList, useStorage } from '@vueuse/core';
-import { vOnClickOutside } from '@vueuse/components';
+import {useCycleList, useStorage} from '@vueuse/core';
+import {vOnClickOutside} from '@vueuse/components';
 import PlayListBar from './PlayListBar.vue';
 
-const music_cfg = useStorage('music_cfg', { playMode: 'order', volume: 0.1 });
+const music_cfg = useStorage('music_cfg', {playMode: 'order', volume: 0.1});
 const playMode = ref(music_cfg.value.playMode);
 const volume = ref(music_cfg.value.volume);
 
 const volumeProcess = ref(volume.value * 100 + '%');
 
 const playMode_list = ['order', 'random', 'loop'];
-const { state, next, go } = useCycleList(playMode_list);
+const {state, next, go} = useCycleList(playMode_list);
 
 go(playMode_list.indexOf(music_cfg.value.playMode));
 
@@ -113,7 +113,7 @@ EventBus.on('play', (args) => {
     metadata.value = args.metadata;
   }
   if (playList.value.findIndex((i) => i.path === args.path) === -1) {
-    playList.value.push({ path: args.path, title: args.title, artist: args.artist });
+    playList.value.push({path: args.path, title: args.title, artist: args.artist});
   }
   currentIndex.value = playList.value.findIndex((i) => i.path === args.path);
 
@@ -121,7 +121,7 @@ EventBus.on('play', (args) => {
 });
 
 EventBus.on('delPlayList', (args) => {
-  if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value]) {
+  if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value].path) {
     playList.value.splice(currentIndex.value, 1);
 
     canListenTime.value = false;
@@ -158,18 +158,18 @@ EventBus.on('delPlayList', (args) => {
   }
 });
 
-EventBus.on('updatePlayList', ({ path, title, artist, localName }) => {
+EventBus.on('updatePlayList', ({path, title, artist, localName}) => {
   if (
     localName === currentLocal.value &&
     currentLocal.value &&
     playList.value.findIndex((i) => i.path === path) === -1
   ) {
-    playList.value.push({ path: path, title: title, artist: artist });
+    playList.value.push({path: path, title: title, artist: artist});
     currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
   }
 });
 
-EventBus.on('insert2next', ({ path, title, artist, localName }) => {
+EventBus.on('insert2next', ({path, title, artist, localName}) => {
   if (
     localName === currentLocal.value &&
     currentLocal.value &&
@@ -179,7 +179,7 @@ EventBus.on('insert2next', ({ path, title, artist, localName }) => {
       playList.value.findIndex((i) => i.path === path),
       1
     );
-    playList.value.splice(currentIndex.value + 1, 0, { path, title, artist, localName });
+    playList.value.splice(currentIndex.value + 1, 0, {path, title, artist, localName});
     hasNext.value = true;
   }
 });
@@ -301,10 +301,10 @@ setInterval(() => {
 
 function SwitchLikes(event, args) {
   if (currentLocal.value === 'Locals') {
-    EventBus.emit('SwitchLikes', { event, args });
+    EventBus.emit('SwitchLikes', {event, args});
   }
   if (currentLocal.value === 'Likes') {
-    EventBus.emit('SwitchLikes_like', { event, args });
+    EventBus.emit('SwitchLikes_like', {event, args});
   }
 }
 
@@ -359,6 +359,21 @@ function removeMusic(path) {
     playList.value.findIndex((i) => i.path === path),
     1
   );
+  if (playList.value.length < 1) {
+    clearPlayList();
+    return;
+  }
+  if (metadata.value.path === path) {
+    if (currentIndex.value >= playList.value.length - 1) {
+      currentIndex.value--
+    }
+  }
+  EventBus.emit('getMetadata', {
+    path: playList.value[currentIndex.value].path,
+    currentLocal: currentLocal.value
+  });
+
+  currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
   EventBus.emit('getMetadata', {
     path: playList.value[currentIndex.value].path,
     currentLocal: currentLocal.value
@@ -379,10 +394,10 @@ function removeMusic(path) {
       />
       <div class="flex flex-col items-start justify-between h-10 mx-3 **:text-zinc-900 w-[80%]">
         <span class="w-full dark:text-zinc-200 text-xs truncate h-4"
-          >{{ metadata.title }}
+        >{{ metadata.title }}
           <span class="dark:text-zinc-200 text-xs">&nbsp;-&nbsp;</span>
           <span class="dark:text-zinc-400 text-[10px] truncate"
-            >{{ metadata.artist ? metadata.artist : '未知艺术家' }}
+          >{{ metadata.artist ? metadata.artist : '未知艺术家' }}
           </span>
         </span>
         <label class="swap">
@@ -511,7 +526,7 @@ function removeMusic(path) {
           ]"
           class="swap"
         >
-          <input ref="playPause" class="outline-none" type="checkbox" @change="swPause" />
+          <input ref="playPause" class="outline-none" type="checkbox" @change="swPause"/>
           <svg
             class="swap-on fill-zinc-900 dark:fill-zinc-200"
             height="16"
@@ -591,8 +606,8 @@ function removeMusic(path) {
               @input="setVolume"
             />
             <span class="dark:text-zinc-400 text-zinc-900 w-4 text-[8px]">{{
-              Math.floor(volume * 100)
-            }}</span>
+                Math.floor(volume * 100)
+              }}</span>
           </div>
         </div>
       </div>
