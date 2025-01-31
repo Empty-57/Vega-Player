@@ -17,6 +17,7 @@ const playMode_list = ['order', 'random', 'loop'];
 const {state, next, go} = useCycleList(playMode_list);
 
 go(playMode_list.indexOf(music_cfg.value.playMode));
+window.electron.ipcRenderer.send('setPlayModeBtn', playMode.value);
 
 onMounted(() => {
   const e = document.querySelector('#volume');
@@ -260,7 +261,22 @@ function swPause(e) {
   }
 }
 
+window.electron.ipcRenderer.on('swPause', () => {
+  if (!(currentIndex.value !== -1 && metadata.value.path)) {
+    return
+  }
+  if (sound.playing()) {
+    sound.pause()
+  } else {
+    sound.play();
+  }
+})
+
 function TogglePlay(flag) {
+  if (!playList.value.length > 0) {
+    return;
+  }
+
   if (flag === 'next') {
     currentIndex.value =
       currentIndex.value === playList.value.length - 1 ? 0 : currentIndex.value + 1;
@@ -276,6 +292,10 @@ function TogglePlay(flag) {
   setIndex();
   EventBus.emit('setLocal');
 }
+
+window.electron.ipcRenderer.on('TogglePlay', (_, flag) => {
+  TogglePlay(flag);
+})
 
 let count = 0;
 
@@ -337,7 +357,14 @@ function setPlayMode() {
   next();
   music_cfg.value.playMode = state.value;
   playMode.value = state.value;
+  window.electron.ipcRenderer.send('setPlayModeBtn', playMode.value);
 }
+
+window.electron.ipcRenderer.on('setPlayMode', (_, mode) => {
+  go(playMode_list.indexOf(mode));
+  music_cfg.value.playMode = mode
+  playMode.value = mode;
+})
 
 function clearPlayList() {
   playList.value = [];
@@ -346,6 +373,10 @@ function clearPlayList() {
   metadata.value = {};
   like_sw.value.checked = false;
   isShowPlayList.value = false;
+
+  playProcess.value = '0%';
+  currentTime.value = '';
+  currentSec.value = 0;
 
   EventBus.emit('setCurrentMusic', {
     localName: '',
@@ -363,22 +394,14 @@ function removeMusic(path) {
     clearPlayList();
     return;
   }
+  currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
   if (metadata.value.path === path) {
-    if (currentIndex.value >= playList.value.length - 1) {
-      currentIndex.value--
-    }
+    TogglePlay('next')
   }
   EventBus.emit('getMetadata', {
     path: playList.value[currentIndex.value].path,
     currentLocal: currentLocal.value
   });
-
-  currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
-  EventBus.emit('getMetadata', {
-    path: playList.value[currentIndex.value].path,
-    currentLocal: currentLocal.value
-  });
-  setIndex();
 }
 </script>
 

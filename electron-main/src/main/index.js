@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, shell} from 'electron';
+import {app, BrowserWindow, ipcMain, Menu, shell, Tray} from 'electron';
 import {join} from 'path';
 import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
@@ -8,9 +8,10 @@ import {ByteVector, File, PictureType} from "node-taglib-sharp";
 import axios from "axios";
 import sharp from "sharp";
 
+let mainWindow = null;
+
 function createWindow() {
-  // Create the browser window.
-  let mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 600,
     minWidth: 800,
@@ -68,7 +69,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('windowAction', (event, action) => {
-    const window = BrowserWindow.getFocusedWindow();
+    const window = mainWindow;
     if (action === 'close') {
       window.close();
     }
@@ -82,6 +83,36 @@ app.whenReady().then(() => {
     return false;
   });
   createWindow();
+
+  const tray = new Tray(join(__dirname, '../../resources/icon.png'))
+  tray.setToolTip('Vega-Player')
+
+
+  const contextMenu = Menu.buildFromTemplate([
+    {label: '上一首', click: () => mainWindow.webContents.send('TogglePlay', 'last')},
+    {label: '暂停/播放', click: () => mainWindow.webContents.send('swPause')},
+    {label: '下一首', click: () => mainWindow.webContents.send('TogglePlay', 'next')},
+    {type: 'separator'},
+    {label: '随机播放', type: "radio", id: 'random', click: () => mainWindow.webContents.send('setPlayMode', 'random')},
+    {label: '单曲循环', type: "radio", id: 'loop', click: () => mainWindow.webContents.send('setPlayMode', 'loop')},
+    {label: '列表循环', type: "radio", id: 'order', click: () => mainWindow.webContents.send('setPlayMode', 'order')},
+    {type: 'separator'},
+    {label: '退出', role: 'quit'}
+  ]);
+  tray.setContextMenu(contextMenu);
+
+  ipcMain.on('setPlayModeBtn', (_, mode) => {
+    contextMenu.getMenuItemById(mode).checked = true;
+  });
+
+  tray.on('click', () => {
+    if (mainWindow.isMinimized() && mainWindow) {
+      mainWindow.restore()
+    } else {
+      mainWindow.show()
+    }
+  });
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
