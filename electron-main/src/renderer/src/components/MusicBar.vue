@@ -1,7 +1,7 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {onMounted, ref, useTemplateRef, watch} from 'vue';
+import {onMounted, ref, toRaw, useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
@@ -104,6 +104,10 @@ watch(currentIndex, () => {
   });
 });
 
+watch(metadata,()=>{
+  window.electron.ipcRenderer.send('setTrayTitle', metadata.value.path? metadata.value.title+' - '+metadata.value.artist:'Vega-Player');
+})
+
 EventBus.on('putMetadata', (metadata_) => {
   metadata.value = metadata_;
 });
@@ -136,6 +140,7 @@ EventBus.on('delPlayList', (args) => {
       currentLocal: currentLocal.value
     });
     setIndex();
+    return;
   }
   if (args.localName === currentLocal.value){
     playList.value.splice(playList.value.findIndex(i => i.path===args.path), 1);
@@ -378,8 +383,10 @@ function removeMusic(path) {
     clearPlayList();
     return;
   }
+
   currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
   if (metadata.value.path === path) {
+    currentIndex.value=-1
     TogglePlay('next')
   }
   EventBus.emit('getMetadata', {

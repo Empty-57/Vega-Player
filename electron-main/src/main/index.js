@@ -9,6 +9,7 @@ import axios from "axios";
 import sharp from "sharp";
 
 let mainWindow = null;
+let tray = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -84,7 +85,7 @@ app.whenReady().then(() => {
   });
   createWindow();
 
-  const tray = new Tray(join(__dirname, '../../resources/icon.png'))
+  tray = new Tray(join(__dirname, '../../resources/icon.png'))
   tray.setToolTip('Vega-Player')
 
 
@@ -158,6 +159,9 @@ ipcMain.on('saveNetCover', async (_, args) => {
 
 })
 
+ipcMain.on('setTrayTitle',(_, title)=>{
+  tray.setToolTip(title)
+})
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

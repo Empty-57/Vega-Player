@@ -670,7 +670,7 @@ EventBus.on('setLocal', () => {
           <span class="text-[10px] w-0 text-left flex-auto truncate dark:text-zinc-400">
             {{ metadata.data.album ? metadata.data.album : '未知专辑' }}
           </span>
-          <div class="text-[10px] font-thin text-center w-10 mx-8 truncate dark:text-zinc-400">
+          <div class="text-[10px] font-light text-center w-10 mx-8 truncate dark:text-zinc-400">
             {{ metadata.data.formatTime }}
           </div>
         </div>
