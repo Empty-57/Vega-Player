@@ -6,6 +6,7 @@ import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import PlayListBar from './PlayListBar.vue';
+import path from "path";
 
 const music_cfg = useStorage('music_cfg', {playMode: 'order', volume: 0.1});
 const playMode = ref(music_cfg.value.playMode);
@@ -124,39 +125,22 @@ EventBus.on('play', (args) => {
 EventBus.on('delPlayList', (args) => {
   if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value].path) {
     playList.value.splice(currentIndex.value, 1);
-
     canListenTime.value = false;
-
     if (playList.value.length === 0) {
-      sound.stop();
-      currentIndex.value = -1;
-      metadata.value = {};
-      like_sw.value.checked = false;
-
-      EventBus.emit('setCurrentMusic', {
-        localName: currentLocal.value,
-        path: ''
-      });
+      clearPlayList()
       return;
     }
-
     currentIndex.value = 0;
     EventBus.emit('getMetadata', {
       path: playList.value[currentIndex.value].path,
       currentLocal: currentLocal.value
     });
-
     setIndex();
-    sound.stop();
-
-    setTimeout(() => {
-      playPause.value.checked = true;
-      playProcess.value = '0%';
-      currentTime.value = '';
-      currentSec.value = 0;
-      like_sw.value.checked = metadata.value.isLike;
-    }, 400);
   }
+  if (args.localName === currentLocal.value){
+    playList.value.splice(playList.value.findIndex(i => i.path===args.path), 1);
+  }
+  currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
 });
 
 EventBus.on('updatePlayList', ({path, title, artist, localName}) => {
@@ -402,6 +386,11 @@ function removeMusic(path) {
     path: playList.value[currentIndex.value].path,
     currentLocal: currentLocal.value
   });
+}
+
+function setPlay(path){
+  currentIndex.value = playList.value.findIndex(i => i.path === path);
+  setIndex();
 }
 </script>
 
@@ -658,7 +647,7 @@ function removeMusic(path) {
         viewBox="0 0 1024 1024"
         width="24"
         xmlns="http://www.w3.org/2000/svg"
-        @click.stop="() => (isShowPlayList = !isShowPlayList)"
+        @click.stop="() => {isShowPlayList = !isShowPlayList}"
       >
         <path
           d="M838.99432863 162.40722482l-186.33127437 38.02037807c-13.51137403 2.82796201-23.25213204 14.61113702-23.25213205 28.43672906v412.09690783c0 23.09502305-15.86800901 43.20497508-38.49170507 48.54668107L534.04575904 702.86218588c-34.24976206 8.01255901-61.27251012 37.39194207-61.42961915 72.58435814-0.31421799 48.07535409 44.30473808 83.58198817 90.96611119 72.74146715l29.85071007-6.91279599c48.70379009-11.31184801 83.26777017-53.73127811 85.62440516-103.22061322h0.47132701v-372.34833075c0-10.84052103 7.69834101-20.26706103 18.38175304-22.46658704l150.35331329-30.63625506c10.84052103-2.19952601 18.69597103-11.78317502 18.69597104-22.93791404v-104.47748521c0.15710901-14.76824603-13.35426503-25.76587604-27.96540206-22.78080504zM166.72491631 255.88708001h375.96183773v33.14999904H166.72491631zM166.72491631 387.38731327h375.96183773v33.14999905H166.72491631z"
@@ -682,6 +671,7 @@ function removeMusic(path) {
       :play-list="playList"
       @clear-play-list="clearPlayList"
       @remove-music="(path) => removeMusic(path)"
+      @play="path=>setPlay(path)"
     ></play-list-bar>
   </transition>
 </template>

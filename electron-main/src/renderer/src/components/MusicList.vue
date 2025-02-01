@@ -51,42 +51,43 @@ const {arrivedState} = useScroll(music_list);
 
 watchDebounced(
   list,
-  () => {
-    const list_ = list.value;
+  async () => {
     try {
-      list_.forEach((item, index) => {
-        if (!list_[index].data.src) {
-          window.electron.ipcRenderer.invoke('getCovers', item.data.path).then((src) => {
-            if (src) {
-              list_[index].data.src = src;
-            } else {
-              window.electron.ipcRenderer.invoke('getLocalCovers', item.data.path).then((src) => {
-                if (src) {
-                  list_[index].data.src = src;
-                } else {
-                  axios.get(`https://music.163.com/api/cloudsearch/pc`, {
-                    params: {
-                      s: item.data.title,
-                      type: 1,
-                      offset: 0,
-                      total: true,
-                      limit: 1,
-                    },
-                  }).then(({data}) => {
-                    if (data.result && data.result.songCount > 0) {
-                      window.electron.ipcRenderer.send('saveNetCover', {
-                        path: item.data.path,
-                        picUrl: data.result.songs[0].al.picUrl
-                      })
-                    }
-                  })
-                }
-              });
-            }
-          });
-        }
+      list.value
+        .filter(i => !i.data?.src)
+        .map(async item => {
+          const path = item.data.path;
+          const title = item.data.title;
+          let src = await window.electron.ipcRenderer.invoke('getCovers', path);
 
-      });
+          if (!src) {
+            src = await window.electron.ipcRenderer.invoke('getLocalCovers', path);
+          }
+
+          if (!src) {
+            const { data } = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
+              params: {
+                s: title,
+                type: 1,
+                offset: 0,
+                total: true,
+                limit: 1
+              }
+            });
+
+            if (data.result?.songCount > 0) {
+              const picUrl = data.result.songs[0].al.picUrl;
+              await window.electron.ipcRenderer.send('saveNetCover', { path, picUrl });
+            }
+          }
+
+          if (src) {
+            const index = list.value.findIndex(i => i.data.path === path);
+            if (index !== -1) {
+              list.value[index].data.src=src
+            }
+          }
+        })
     } catch (error) {
       console.error(error);
     }
