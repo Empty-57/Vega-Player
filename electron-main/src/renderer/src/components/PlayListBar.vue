@@ -29,7 +29,7 @@ function play(path) {
 
 <template>
   <div
-    class="z-[9] shadow-lg dark:shadow-neutral-900 shadow-neutral-300 h-screen w-1/3 absolute top-0 right-0 dark:bg-neutral-900 bg-neutral-300 flex flex-col items-start justify-center **:select-none p-4 pt-13"
+    class="z-[9] shadow-lg dark:shadow-neutral-900 shadow-neutral-300 h-screen w-1/3 absolute top-0 right-0 dark:bg-neutral-900 bg-neutral-300 flex flex-col items-start justify-center **:select-none p-4 pt-13 pb-18"
   >
     <span class="w-full mx-2 mb-2 flex items-center justify-between">
       <span class="text-zinc-900 dark:text-zinc-200 text-xs">播放列表</span>
@@ -66,7 +66,7 @@ function play(path) {
         <div
           v-for="metadata in list"
           :key="metadata.data.path"
-          @dblclick="play(metadata.data.path)"
+          @dblclick.stop="play(metadata.data.path)"
           class="group flex items-center justify-start dark:odd:bg-neutral-950/40 odd:bg-neutral-200/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 rounded duration-200 hover:cursor-pointer"
         >
           <div
@@ -89,7 +89,7 @@ function play(path) {
             viewBox="0 0 1024 1024"
             width="12"
             xmlns="http://www.w3.org/2000/svg"
-            @click="removeMusic(metadata.data.path)"
+            @click.stop="removeMusic(metadata.data.path)"
           >
             <path
               d="M912.526651 867.741144 555.540144 510.712681l356.986507-357.000833c11.171434-11.18576 11.171434-29.257348 0-40.443108-11.20111-11.18576-29.272697-11.18576-40.444131 0L515.096013 470.267527 158.096203 113.267716c-11.187807-11.159154-29.258371-11.159154-40.444131 0-11.186783 11.186783-11.186783 29.286 0 40.47176L474.623229 510.712681 117.623419 867.741144c-11.159154 11.172457-11.159154 29.216415 0 40.443108 11.18576 11.17348 29.284977 11.17348 40.47176 0l357.000833-357.027439 356.985484 357.027439c11.171434 11.17348 29.243021 11.17348 40.444131 0C923.698085 896.957559 923.725714 878.913601 912.526651 867.741144z"

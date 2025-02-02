@@ -10,7 +10,7 @@ import sharp from "sharp";
 
 let mainWindow = null;
 let tray = null;
-
+const singleInstanceLock = app.requestSingleInstanceLock();
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -61,6 +61,21 @@ function createWindow() {
   });
 
   mainWindow.webContents.openDevTools();
+}
+
+
+
+if (!singleInstanceLock) {
+  app.quit(); // 如果没有获取到锁，则退出当前实例
+} else {
+  app.on('second-instance', () => {
+    // 当尝试打开第二个实例时，聚焦到第一个实例的窗口
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  }
+  )
 }
 
 app.whenReady().then(() => {

@@ -24,7 +24,6 @@
     "@tailwindcss/vite": "^4.0.0",
     "@vueuse/components": "^12.3.0",
     "@vueuse/core": "^12.3.0",
-    "NeteaseCloudMusicApi": "^4.25.0",
     "axios": "^1.7.9",
     "howler": "^2.2.4",
     "mitt": "^3.0.1",

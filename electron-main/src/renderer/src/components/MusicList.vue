@@ -6,6 +6,7 @@ import {useScroll, useVirtualList, watchDebounced} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import EventBus from '../assets/EventBus';
 import axios from "axios";
+import ShowMetadata from "./ShowMetadata.vue";
 
 const emit = defineEmits([
   'SwitchLikes',
@@ -220,12 +221,10 @@ function play(path) {
     return;
   }
   let playList = [];
-  let metadata = {};
   if (localName_.value !== localName) {
     playList = fullCacheList.map((item) => {
       return {path: item.path, title: item.title, artist: item.artist};
     });
-    metadata = fullCacheList.find((item) => item.path === path);
   }
   const args = {
     path,
@@ -233,7 +232,6 @@ function play(path) {
     title: fullCacheList.find((i) => i.path === path).title,
     artist: fullCacheList.find((i) => i.path === path).artist,
     playList: playList,
-    metadata: metadata
   };
   EventBus.emit('play', args);
   music_dropdown.value = false;
@@ -293,6 +291,13 @@ EventBus.on('setCurrentMusic', (args) => {
 EventBus.on('setLocal', () => {
   ToLocal();
 });
+
+const isShowMetadata=ref(false);
+function editMetadata(){
+isShowMetadata.value=true;
+music_dropdown.value = false;
+}
+
 </script>
 
 <template>
@@ -788,6 +793,18 @@ EventBus.on('setLocal', () => {
         </ul>
       </div>
 
+      <span class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
+            @click="editMetadata"
+      >
+
+        <svg class="fill-zinc-900 dark:fill-zinc-200" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="14" height="14"><path d="M786.637 989.867h-615.731c-56.593 0-102.639-46.046-102.639-102.639v-684.169c0-56.593 46.046-102.639 102.639-102.639h478.925c18.91 0 34.202 15.326 34.202 34.202s-15.292 34.202-34.202 34.202h-478.925c-18.842 0-34.202 15.36-34.202 34.202v684.169c0 18.876 15.36 34.202 34.202 34.202h615.765c18.876 0 34.202-15.326 34.202-34.202v-547.294c0-18.876 15.292-34.202 34.202-34.202s34.202 15.326 34.202 34.202v547.328c0 56.593-46.046 102.639-102.639 102.639v0zM585.66 442.539c-8.772 0-17.51-3.345-24.166-10.035-13.38-13.38-13.38-34.987 0-48.367l339.968-339.968c13.38-13.38 34.987-13.38 48.367 0 13.38 13.38 13.38 34.987 0 48.367l-339.968 339.968c-6.656 6.69-15.428 10.035-24.201 10.035v0zM444.553 442.539h-205.244c-18.876 0-34.202-15.326-34.202-34.202s15.326-34.202 34.202-34.202h205.244c18.876 0 34.202 15.326 34.202 34.202s-15.326 34.202-34.202 34.202v0zM649.83 647.782h-410.522c-18.876 0-34.202-15.292-34.202-34.202s15.326-34.202 34.202-34.202h410.487c18.91 0 34.202 15.292 34.202 34.202 0.034 18.91-15.258 34.202-34.167 34.202v0zM649.83 647.782z">
+
+        </path></svg>
+
+        <span class="px-2">修改元数据</span>
+
+      </span>
+
       <div
         class="before:absolute before:left-0 before:h-[0.5px] before:w-full dark:before:bg-gray-300/40 before:bg-neutral-800/60"
       ></div>
@@ -810,5 +827,12 @@ EventBus.on('setLocal', () => {
         <span class="px-2">删除</span>
       </span>
     </div>
+    <show-metadata
+                   v-if="isShowMetadata"
+                   :old-title="fullCacheList.find((i) => i.path === music_local.path)?.title"
+                   :old-artist="fullCacheList.find((i) => i.path === music_local.path)?.artist"
+                   :old-album="fullCacheList.find((i) => i.path === music_local.path)?.album"
+                   @close-metadata="() => {isShowMetadata = false}"
+    ></show-metadata>
   </div>
 </template>

@@ -1,12 +1,11 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {onMounted, ref, toRaw, useTemplateRef, watch} from 'vue';
+import {onMounted, ref,  useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import PlayListBar from './PlayListBar.vue';
-import path from "path";
 
 const music_cfg = useStorage('music_cfg', {playMode: 'order', volume: 0.1});
 const playMode = ref(music_cfg.value.playMode);
@@ -116,7 +115,6 @@ EventBus.on('play', (args) => {
   if (args.localName !== currentLocal.value) {
     currentLocal.value = args.localName;
     playList.value = args.playList;
-    metadata.value = args.metadata;
   }
   if (playList.value.findIndex((i) => i.path === args.path) === -1) {
     playList.value.push({path: args.path, title: args.title, artist: args.artist});
@@ -149,27 +147,28 @@ EventBus.on('delPlayList', (args) => {
 });
 
 EventBus.on('updatePlayList', ({path, title, artist, localName}) => {
-  if (
-    localName === currentLocal.value &&
-    currentLocal.value &&
-    playList.value.findIndex((i) => i.path === path) === -1
-  ) {
-    playList.value.push({path: path, title: title, artist: artist});
-    currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
+  if (playList.value.findIndex((i) => i.path === path) === -1) {
+    if (!currentLocal.value){
+      currentLocal.value = localName;
+    }
+    if (localName === currentLocal.value){
+      playList.value.push({path: path, title: title, artist: artist});
+      currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
+    }
   }
 });
 
 EventBus.on('insert2next', ({path, title, artist, localName}) => {
-  if (
-    localName === currentLocal.value &&
-    currentLocal.value &&
-    playList.value.findIndex((i) => i.path === path) !== -1
-  ) {
-    playList.value.splice(
-      playList.value.findIndex((i) => i.path === path),
-      1
-    );
+  if (localName === currentLocal.value && currentLocal.value) {
+    if (playList.value.findIndex((i) => i.path === path) !== -1){
+      playList.value.splice(
+        playList.value.findIndex((i) => i.path === path),
+        1
+      );
+    }
+
     playList.value.splice(currentIndex.value + 1, 0, {path, title, artist, localName});
+    currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
     hasNext.value = true;
   }
 });
@@ -216,6 +215,7 @@ function onend() {
 }
 
 function setIndex() {
+  if (!playList.value[currentIndex.value]?.path){return;}
   sound.unload();
   sound = null;
   soundInit.value.src = [playList.value[currentIndex.value].path];
@@ -405,14 +405,14 @@ function setPlay(path){
   <div
     class="fixed w-screen h-16 dark:bg-neutral-900 bg-neutral-200 border-t-[0.1px] dark:border-neutral-700 border-gray-400 bottom-0 left-0 flex items-center justify-start px-3 **:select-none z-10"
   >
-    <div class="flex items-center justify-stretch w-1/3">
+    <div class="flex items-center justify-start min-w-1/3 max-w-1/3">
       <img
         :src="metadata.src ? metadata.src : placeholder"
         alt=""
         class="size-11 bg-cover rounded-sm"
       />
-      <div class="flex flex-col items-start justify-between h-10 mx-3 **:text-zinc-900 w-[80%]">
-        <span class="w-full dark:text-zinc-200 text-xs truncate h-4"
+      <div class="flex flex-col items-start justify-between h-10 mx-3 **:text-zinc-900 max-w-[calc(100%-56px)]">
+        <span class="dark:text-zinc-200 text-xs h-4 truncate w-full"
         >{{ metadata.title }}
           <span class="dark:text-zinc-200 text-xs">&nbsp;-&nbsp;</span>
           <span class="dark:text-zinc-400 text-[10px] truncate"

@@ -24,7 +24,7 @@ window.electron.ipcRenderer.on('resize', () => {
 <template>
   <div
     id="diy_bar"
-    class="fixed w-screen h-11 bg-transparent top-0 left-0 z-10 flex items-center justify-center *:duration-200"
+    class="fixed w-screen h-11 bg-transparent top-0 left-0 z-20 flex items-center justify-center *:duration-200"
   >
     <span class="grow"></span>
     <span class="no_drag p-3 flex items-center justify-center">
