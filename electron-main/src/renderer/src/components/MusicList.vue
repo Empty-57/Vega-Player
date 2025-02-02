@@ -50,6 +50,15 @@ const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list
 const music_list = containerProps.ref;
 const {arrivedState} = useScroll(music_list);
 
+async function getCover(path, flag) {
+  let src = await window.electron.ipcRenderer.invoke('getCovers', {path: path, flag: flag});
+
+  if (!src) {
+    src = await window.electron.ipcRenderer.invoke('getLocalCovers', path);
+  }
+  return src;
+}
+
 watchDebounced(
   list,
   async () => {
@@ -59,14 +68,11 @@ watchDebounced(
         .map(async item => {
           const path = item.data.path;
           const title = item.data.title;
-          let src = await window.electron.ipcRenderer.invoke('getCovers', path);
+
+          const src = await getCover(path, 1);
 
           if (!src) {
-            src = await window.electron.ipcRenderer.invoke('getLocalCovers', path);
-          }
-
-          if (!src) {
-            const { data } = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
+            const {data} = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
               params: {
                 s: title,
                 type: 1,
@@ -78,14 +84,14 @@ watchDebounced(
 
             if (data.result?.songCount > 0) {
               const picUrl = data.result.songs[0].al.picUrl;
-              await window.electron.ipcRenderer.send('saveNetCover', { path, picUrl });
+              await window.electron.ipcRenderer.send('saveNetCover', {path, picUrl});
             }
           }
 
           if (src) {
             const index = list.value.findIndex(i => i.data.path === path);
             if (index !== -1) {
-              list.value[index].data.src=src
+              list.value[index].data.src = src
             }
           }
         })
@@ -120,6 +126,9 @@ function music_delete() {
 }
 
 async function click_menu(event, args) {
+  if (isChoices.value) {
+    return;
+  }
   music_dropdown.value = !music_dropdown.value;
   await nextTick(() => {
     music_local.value.x = event.clientX + 24;
@@ -292,10 +301,11 @@ EventBus.on('setLocal', () => {
   ToLocal();
 });
 
-const isShowMetadata=ref(false);
-function editMetadata(){
-isShowMetadata.value=true;
-music_dropdown.value = false;
+const isShowMetadata = ref(false);
+
+function editMetadata() {
+  isShowMetadata.value = true;
+  music_dropdown.value = false;
 }
 
 </script>
@@ -584,7 +594,7 @@ music_dropdown.value = false;
           <img
             :src="metadata.data.src ? metadata.data.src : placeholder"
             alt=""
-            class="rounded size-10 object-cover bg-cover"
+            class="rounded size-10 object-cover"
             loading="lazy"
           />
 
@@ -797,7 +807,9 @@ music_dropdown.value = false;
             @click="editMetadata"
       >
 
-        <svg class="fill-zinc-900 dark:fill-zinc-200" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="14" height="14"><path d="M786.637 989.867h-615.731c-56.593 0-102.639-46.046-102.639-102.639v-684.169c0-56.593 46.046-102.639 102.639-102.639h478.925c18.91 0 34.202 15.326 34.202 34.202s-15.292 34.202-34.202 34.202h-478.925c-18.842 0-34.202 15.36-34.202 34.202v684.169c0 18.876 15.36 34.202 34.202 34.202h615.765c18.876 0 34.202-15.326 34.202-34.202v-547.294c0-18.876 15.292-34.202 34.202-34.202s34.202 15.326 34.202 34.202v547.328c0 56.593-46.046 102.639-102.639 102.639v0zM585.66 442.539c-8.772 0-17.51-3.345-24.166-10.035-13.38-13.38-13.38-34.987 0-48.367l339.968-339.968c13.38-13.38 34.987-13.38 48.367 0 13.38 13.38 13.38 34.987 0 48.367l-339.968 339.968c-6.656 6.69-15.428 10.035-24.201 10.035v0zM444.553 442.539h-205.244c-18.876 0-34.202-15.326-34.202-34.202s15.326-34.202 34.202-34.202h205.244c18.876 0 34.202 15.326 34.202 34.202s-15.326 34.202-34.202 34.202v0zM649.83 647.782h-410.522c-18.876 0-34.202-15.292-34.202-34.202s15.326-34.202 34.202-34.202h410.487c18.91 0 34.202 15.292 34.202 34.202 0.034 18.91-15.258 34.202-34.167 34.202v0zM649.83 647.782z">
+        <svg class="fill-zinc-900 dark:fill-zinc-200" height="14" viewBox="0 0 1024 1024"
+             width="14" xmlns="http://www.w3.org/2000/svg"><path
+          d="M786.637 989.867h-615.731c-56.593 0-102.639-46.046-102.639-102.639v-684.169c0-56.593 46.046-102.639 102.639-102.639h478.925c18.91 0 34.202 15.326 34.202 34.202s-15.292 34.202-34.202 34.202h-478.925c-18.842 0-34.202 15.36-34.202 34.202v684.169c0 18.876 15.36 34.202 34.202 34.202h615.765c18.876 0 34.202-15.326 34.202-34.202v-547.294c0-18.876 15.292-34.202 34.202-34.202s34.202 15.326 34.202 34.202v547.328c0 56.593-46.046 102.639-102.639 102.639v0zM585.66 442.539c-8.772 0-17.51-3.345-24.166-10.035-13.38-13.38-13.38-34.987 0-48.367l339.968-339.968c13.38-13.38 34.987-13.38 48.367 0 13.38 13.38 13.38 34.987 0 48.367l-339.968 339.968c-6.656 6.69-15.428 10.035-24.201 10.035v0zM444.553 442.539h-205.244c-18.876 0-34.202-15.326-34.202-34.202s15.326-34.202 34.202-34.202h205.244c18.876 0 34.202 15.326 34.202 34.202s-15.326 34.202-34.202 34.202v0zM649.83 647.782h-410.522c-18.876 0-34.202-15.292-34.202-34.202s15.326-34.202 34.202-34.202h410.487c18.91 0 34.202 15.292 34.202 34.202 0.034 18.91-15.258 34.202-34.167 34.202v0zM649.83 647.782z">
 
         </path></svg>
 
@@ -828,11 +840,12 @@ music_dropdown.value = false;
       </span>
     </div>
     <show-metadata
-                   v-if="isShowMetadata"
-                   :old-title="fullCacheList.find((i) => i.path === music_local.path)?.title"
-                   :old-artist="fullCacheList.find((i) => i.path === music_local.path)?.artist"
-                   :old-album="fullCacheList.find((i) => i.path === music_local.path)?.album"
-                   @close-metadata="() => {isShowMetadata = false}"
+      v-if="isShowMetadata"
+      :old-album="fullCacheList.find((i) => i.path === music_local.path)?.album"
+      :old-artist="fullCacheList.find((i) => i.path === music_local.path)?.artist"
+      :old-title="fullCacheList.find((i) => i.path === music_local.path)?.title"
+      :path="music_local.path"
+      @close-metadata="() => {isShowMetadata = false}"
     ></show-metadata>
   </div>
 </template>

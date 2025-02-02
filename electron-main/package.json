@@ -28,7 +28,7 @@
     "howler": "^2.2.4",
     "mitt": "^3.0.1",
     "music-metadata": "^10.7.0",
-    "node-taglib-sharp": "^6.0.1",
+    "node-taglib-sharp-extend": "^0.3.2",
     "p-limit": "^6.2.0",
     "sharp": "^0.33.5",
     "tailwindcss": "^4.0.0"

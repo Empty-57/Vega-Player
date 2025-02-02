@@ -196,6 +196,21 @@ function addToLike(list) {
     EventBus.emit('add_LikeCache', toRaw(cache));
   });
 }
+
+EventBus.on('syncCache', args => {
+  if (cache_list.value.find(item => item.path === args.path)) {
+    cache_list.value.find(item => item.path === args.path).title = args.title;
+    cache_list.value.find(item => item.path === args.path).artist = args.artist;
+    cache_list.value.find(item => item.path === args.path).album = args.album;
+    db.addData(toRaw(cache_list.value.find(item => item.path === args.path)));
+    if (cache_list.value.find(item => item.path === args.path).isLike) {
+      db.addData(toRaw(cache_list.value.find(item => item.path === args.path)), 'LikesCache');
+    }
+    search()
+  }
+
+})
+
 </script>
 
 <template>

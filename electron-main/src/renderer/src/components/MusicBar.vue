@@ -1,7 +1,7 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {onMounted, ref,  useTemplateRef, watch} from 'vue';
+import {onMounted, ref, useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
@@ -98,13 +98,13 @@ watch(currentIndex, () => {
     return;
   }
   EventBus.emit('getMetadata', {
-    path: playList.value[currentIndex.value].path,
+    path: playList.value[currentIndex.value]?.path,
     currentLocal: currentLocal.value
   });
 });
 
-watch(metadata,()=>{
-  window.electron.ipcRenderer.send('setTrayTitle', metadata.value.path? metadata.value.title+' - '+metadata.value.artist:'Vega-Player');
+watch(metadata, () => {
+  window.electron.ipcRenderer.send('setTrayTitle', metadata.value.path ? metadata.value.title + ' - ' + metadata.value.artist : 'Vega-Player');
 })
 
 EventBus.on('putMetadata', (metadata_) => {
@@ -125,7 +125,7 @@ EventBus.on('play', (args) => {
 });
 
 EventBus.on('delPlayList', (args) => {
-  if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value].path) {
+  if (args.localName === currentLocal.value && args.path === playList.value[currentIndex.value]?.path) {
     playList.value.splice(currentIndex.value, 1);
     canListenTime.value = false;
     if (playList.value.length === 0) {
@@ -134,24 +134,24 @@ EventBus.on('delPlayList', (args) => {
     }
     currentIndex.value = 0;
     EventBus.emit('getMetadata', {
-      path: playList.value[currentIndex.value].path,
+      path: playList.value[currentIndex.value]?.path,
       currentLocal: currentLocal.value
     });
     setIndex();
     return;
   }
-  if (args.localName === currentLocal.value){
-    playList.value.splice(playList.value.findIndex(i => i.path===args.path), 1);
+  if (args.localName === currentLocal.value) {
+    playList.value.splice(playList.value.findIndex(i => i.path === args.path), 1);
   }
   currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
 });
 
 EventBus.on('updatePlayList', ({path, title, artist, localName}) => {
   if (playList.value.findIndex((i) => i.path === path) === -1) {
-    if (!currentLocal.value){
+    if (!currentLocal.value) {
       currentLocal.value = localName;
     }
-    if (localName === currentLocal.value){
+    if (localName === currentLocal.value) {
       playList.value.push({path: path, title: title, artist: artist});
       currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
     }
@@ -160,7 +160,7 @@ EventBus.on('updatePlayList', ({path, title, artist, localName}) => {
 
 EventBus.on('insert2next', ({path, title, artist, localName}) => {
   if (localName === currentLocal.value && currentLocal.value) {
-    if (playList.value.findIndex((i) => i.path === path) !== -1){
+    if (playList.value.findIndex((i) => i.path === path) !== -1) {
       playList.value.splice(
         playList.value.findIndex((i) => i.path === path),
         1
@@ -180,6 +180,13 @@ EventBus.on('replacePlayList', (args) => {
     setIndex();
   }
 });
+
+EventBus.on('syncCache', args => {
+  if (playList.value.find(item => item.path === args.path)) {
+    playList.value.find(item => item.path === args.path).title = args.title;
+    playList.value.find(item => item.path === args.path).artist = args.artist;
+  }
+})
 
 function onplay() {
   canListenTime.value = true;
@@ -215,16 +222,18 @@ function onend() {
 }
 
 function setIndex() {
-  if (!playList.value[currentIndex.value]?.path){return;}
+  if (!playList.value[currentIndex.value]?.path) {
+    return;
+  }
   sound.unload();
   sound = null;
-  soundInit.value.src = [playList.value[currentIndex.value].path];
+  soundInit.value.src = [playList.value[currentIndex.value]?.path];
 
   sound = new Howl(soundInit.value);
   sound.play();
   EventBus.emit('setCurrentMusic', {
     localName: currentLocal.value,
-    path: playList.value[currentIndex.value].path
+    path: playList.value[currentIndex.value]?.path
   });
 }
 
@@ -386,7 +395,7 @@ function removeMusic(path) {
 
   currentIndex.value = playList.value.findIndex((item) => item.path === metadata.value.path);
   if (metadata.value.path === path) {
-    currentIndex.value=-1
+    currentIndex.value = -1
     TogglePlay('next')
   }
   EventBus.emit('getMetadata', {
@@ -395,7 +404,7 @@ function removeMusic(path) {
   });
 }
 
-function setPlay(path){
+function setPlay(path) {
   currentIndex.value = playList.value.findIndex(i => i.path === path);
   setIndex();
 }
@@ -676,9 +685,9 @@ function setPlay(path){
       "
       :current-music="currentIndex !== -1 ? playList[currentIndex].path : ''"
       :play-list="playList"
+      @play="path=>setPlay(path)"
       @clear-play-list="clearPlayList"
       @remove-music="(path) => removeMusic(path)"
-      @play="path=>setPlay(path)"
     ></play-list-bar>
   </transition>
 </template>

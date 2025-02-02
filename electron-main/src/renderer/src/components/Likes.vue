@@ -125,6 +125,17 @@ function mulDelete(list) {
     music_delete(path);
   });
 }
+
+EventBus.on('syncCache', args => {
+  if (cacheLike_list.value.find(item => item.path === args.path)) {
+    cacheLike_list.value.find(item => item.path === args.path).title = args.title;
+    cacheLike_list.value.find(item => item.path === args.path).artist = args.artist;
+    cacheLike_list.value.find(item => item.path === args.path).album = args.album;
+    search()
+  }
+
+})
+
 </script>
 
 <template>

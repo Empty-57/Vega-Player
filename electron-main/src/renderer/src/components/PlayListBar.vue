@@ -3,7 +3,7 @@ import {useVirtualList} from '@vueuse/core';
 import {onMounted} from 'vue';
 
 const {playList, currentMusic} = defineProps(['playList', 'currentMusic']);
-const emit = defineEmits(['clearPlayList', 'removeMusic','play']);
+const emit = defineEmits(['clearPlayList', 'removeMusic', 'play']);
 
 const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(playList, {
   itemHeight: 56,
@@ -66,8 +66,8 @@ function play(path) {
         <div
           v-for="metadata in list"
           :key="metadata.data.path"
-          @dblclick.stop="play(metadata.data.path)"
           class="group flex items-center justify-start dark:odd:bg-neutral-950/40 odd:bg-neutral-200/60 dark:hover:bg-zinc-950/60 hover:bg-zinc-400/40 w-full h-14 p-2 rounded duration-200 hover:cursor-pointer"
+          @dblclick.stop="play(metadata.data.path)"
         >
           <div
             :class="[
