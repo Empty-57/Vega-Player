@@ -1,12 +1,13 @@
-import {app, BrowserWindow, ipcMain, Menu, shell, Tray} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray} from 'electron';
 import {join} from 'path';
 import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
 import {audio_scan, getCover, getLocalCover} from './audio_scan';
-import {ByteVector, createFileFromPath, PictureType} from 'node-taglib-sharp-extend'
+import {ByteVector, File, PictureType} from 'node-taglib-sharp'
 import axios from "axios";
 import sharp from "sharp";
+import fs from "fs";
 
 let mainWindow = null;
 let tray = null;
@@ -157,7 +158,7 @@ ipcMain.on('saveNetCover', async (_, args) => {
       .resize(600, 600)
       .toBuffer()
 
-    const myFile = createFileFromPath(args.path);
+    const myFile = File.createFromPath(args.path);
 
     const pic = {
       data: ByteVector.fromByteArray(picData),
@@ -173,12 +174,26 @@ ipcMain.on('saveNetCover', async (_, args) => {
   })
 })
 
-ipcMain.on('saveMetadata', (_, args) => {
+ipcMain.on('saveMetadata', async (_, args) => {
   try {
-    const myFile = createFileFromPath(args.path);
+    const myFile = File.createFromPath(args.path);
     myFile.tag.title = args.title
     myFile.tag.performers = [args.artist]
     myFile.tag.album = args.album
+
+    if (args.coverPath) {
+      const picData = await sharp(await fs.promises.readFile(args.coverPath))
+        .resize(600, 600)
+        .toBuffer()
+
+      const pic = {
+        data: ByteVector.fromByteArray(picData),
+        mimeType: 'image/png',
+        type: PictureType.FrontCover
+      };
+      myFile.tag.pictures = [pic];
+    }
+
     myFile.save()
     myFile.dispose()
   } catch (error) {
@@ -186,6 +201,42 @@ ipcMain.on('saveMetadata', (_, args) => {
   }
 })
 
+ipcMain.handle('editCover', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'], // 打开文件选择对话框
+      filters: [
+        {name: 'Images', extensions: ['jpg', 'png', 'jpeg']}
+      ]
+    });
+    if (result.canceled) {
+      return null;
+    } // 如果用户取消选择
+
+    const filePath = result.filePaths[0];
+    const picData = await sharp(await fs.promises.readFile(filePath))
+      .resize(600, 600)
+      .toBuffer()
+
+    const src = nativeImage.createFromBuffer(picData).toDataURL();
+
+    return {filePath: filePath, src: src};
+  } catch (error) {
+    console.error(error);
+    return {filePath: '', src: ''};
+  }
+})
+
+ipcMain.on('reSetCover', (_, path) => {
+  try {
+    const myFile = File.createFromPath(path);
+    myFile.tag.pictures = [];
+    myFile.save();
+    myFile.dispose();
+  } catch (error) {
+    console.error(error);
+  }
+})
 ipcMain.on('setTrayTitle', (_, title) => {
   tray.setToolTip(title)
 })

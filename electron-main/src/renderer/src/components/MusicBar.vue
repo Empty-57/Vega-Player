@@ -120,6 +120,10 @@ EventBus.on('play', (args) => {
     playList.value.push({path: args.path, title: args.title, artist: args.artist});
   }
   currentIndex.value = playList.value.findIndex((i) => i.path === args.path);
+  EventBus.emit('getMetadata', {
+    path: playList.value[currentIndex.value]?.path,
+    currentLocal: currentLocal.value
+  });
 
   setIndex();
 });

@@ -62,6 +62,7 @@ async function cacheSender(filePath, event, channel) {
       : '?',
     // bitrate: metadata.format.bitrate,//比特率
     path: filePath,
+    src: null,
     isLike: false
   });
 }

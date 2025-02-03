@@ -51,6 +51,7 @@ class IndexDB {
   }
 
   addData(data, table_name = this._tableName) {
+    data.src = null
     const transaction = this._db.transaction(table_name, 'readwrite'); // 启动事务，'readwrite' 表示读写操作
     const store = transaction.objectStore(table_name);
     const add_response = store.put(data);
