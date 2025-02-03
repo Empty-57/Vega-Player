@@ -4,13 +4,14 @@ import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
 import {audio_scan, getCover, getLocalCover} from './audio_scan';
-import {ByteVector, File, PictureType} from "node-taglib-sharp";
+import {ByteVector, createFileFromPath, PictureType} from 'node-taglib-sharp-extend'
 import axios from "axios";
 import sharp from "sharp";
 
 let mainWindow = null;
 let tray = null;
 const singleInstanceLock = app.requestSingleInstanceLock();
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1000,
@@ -64,17 +65,16 @@ function createWindow() {
 }
 
 
-
 if (!singleInstanceLock) {
   app.quit(); // 如果没有获取到锁，则退出当前实例
 } else {
   app.on('second-instance', () => {
-    // 当尝试打开第二个实例时，聚焦到第一个实例的窗口
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+      // 当尝试打开第二个实例时，聚焦到第一个实例的窗口
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
     }
-  }
   )
 }
 
@@ -143,8 +143,8 @@ ipcMain.on('select_files', async (event, args) => {
   console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
 });
 
-ipcMain.handle('getCovers', async (_, path) => {
-  return await getCover(path);
+ipcMain.handle('getCovers', async (_, args) => {
+  return await getCover(args.path, args.flag);
 });
 
 ipcMain.handle('getLocalCovers', async (_, path) => {
@@ -152,29 +152,41 @@ ipcMain.handle('getLocalCovers', async (_, path) => {
 });
 
 ipcMain.on('saveNetCover', async (_, args) => {
-  try {
-    axios.get(args.picUrl, {responseType: 'arraybuffer'}).then(async ({data}) => {
-      const picData = await sharp(Buffer.from(data, 'binary'))
-        .resize(600, 600)
-        .toBuffer()
+  axios.get(args.picUrl, {responseType: 'arraybuffer'}).then(async ({data}) => {
+    const picData = await sharp(Buffer.from(data, 'binary'))
+      .resize(600, 600)
+      .toBuffer()
 
-      const myFile = File.createFromPath(args.path);
-      const pic = {
-        data: ByteVector.fromByteArray(picData),
-        mimeType: 'image/png',
-        type: PictureType.FrontCover
-      };
-      myFile.tag.pictures = [pic];
-      myFile.save();
-      myFile.dispose();
-    })
-  } catch (err) {
-    console.log(err);
-  }
+    const myFile = createFileFromPath(args.path);
 
+    const pic = {
+      data: ByteVector.fromByteArray(picData),
+      mimeType: 'image/png',
+      type: PictureType.FrontCover
+    };
+    myFile.tag.pictures = [pic];
+    myFile.save();
+    myFile.dispose();
+
+  }).catch(error => {
+    console.log(error);
+  })
 })
 
-ipcMain.on('setTrayTitle',(_, title)=>{
+ipcMain.on('saveMetadata', (_, args) => {
+  try {
+    const myFile = createFileFromPath(args.path);
+    myFile.tag.title = args.title
+    myFile.tag.performers = [args.artist]
+    myFile.tag.album = args.album
+    myFile.save()
+    myFile.dispose()
+  } catch (error) {
+    console.error(error);
+  }
+})
+
+ipcMain.on('setTrayTitle', (_, title) => {
   tray.setToolTip(title)
 })
 app.on('window-all-closed', () => {
