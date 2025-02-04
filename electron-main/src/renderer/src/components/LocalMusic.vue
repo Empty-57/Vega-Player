@@ -6,6 +6,7 @@ import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
 import {useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
+import {search} from "../assets/Search.js";
 
 const db = new IndexDB();
 const cache_list = ref([]);
@@ -26,7 +27,7 @@ db.init_DB().then(() => {
         ? compareSorts(item2[sort_key.value], item1[sort_key.value])
         : compareSorts(item1[sort_key.value], item2[sort_key.value])
     );
-    search();
+    search(f_cache_list.value,cache_list.value)
   });
 });
 
@@ -38,7 +39,7 @@ watch(
         ? compareSorts(item2[sort_key.value], item1[sort_key.value])
         : compareSorts(item1[sort_key.value], item2[sort_key.value])
     );
-    search();
+    search(f_cache_list.value,cache_list.value)
   },
   {immediate: true}
 );
@@ -54,7 +55,7 @@ window.electron.ipcRenderer.on('load_end', () => {
       ? compareSorts(item2[sort_key.value], item1[sort_key.value])
       : compareSorts(item1[sort_key.value], item2[sort_key.value])
   );
-  search();
+  search(f_cache_list.value,cache_list.value)
   isLoading.value = false;
 });
 window.electron.ipcRenderer.on('load_start', () => {
@@ -100,7 +101,7 @@ window.electron.ipcRenderer.on('update_cache_file', (_, item) => {
         localName: 'Locals'
       });
     }
-    search();
+    search(f_cache_list.value,cache_list.value)
   });
 });
 
@@ -132,7 +133,7 @@ function SwitchLikes(event, args) {
 }
 
 onActivated(() => {
-  search();
+  search(f_cache_list.value,cache_list.value)
 });
 
 function music_delete(path) {
@@ -161,31 +162,6 @@ function sw_reverse() {
   isReverse.value = !isReverse.value;
   local_cfg.value.isReverse = isReverse.value;
 }
-
-function search(searchText = '') {
-  // 空值快速返回
-  if (!searchText.trim()) {
-    f_cache_list.value.length = 0
-    f_cache_list.value.push(...cache_list.value);
-    return
-  }
-  // 安全过滤特殊字符并生成高效正则
-  const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(
-    escaped,
-    'i'
-  )
-
-  // 单次遍历过滤
-  f_cache_list.value.length = 0
-  f_cache_list.value.push(...cache_list.value.filter(item => {
-    return ['title', 'artist', 'album'].some(field => {
-      const value = item[field]
-      return typeof value === 'string' && regex.test(value)
-    })
-  }))
-}
-
 function mulDelete(list) {
   list.forEach((path) => {
     music_delete(path);
@@ -215,7 +191,7 @@ EventBus.on('syncCache', args => {
     if (cache_list.value.find(item => item.path === args.path).isLike) {
       db.addData(toRaw(cache_list.value.find(item => item.path === args.path)), 'LikesCache');
     }
-    search()
+    search(f_cache_list.value,cache_list.value)
   }
 
 })
@@ -235,7 +211,7 @@ EventBus.on('syncCache', args => {
       @addToLike="(list) => addToLike(list)"
       @mulDelete="(list) => mulDelete(list)"
       @music_delete="(path) => music_delete(path)"
-      @search="(search_text) => search(search_text)"
+      @search="(search_text) => search(f_cache_list,cache_list,search_text)"
       @select_sort="(key_) => select_sort(key_)"
       @sw_reverse="sw_reverse"
     >

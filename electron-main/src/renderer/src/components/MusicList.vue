@@ -31,6 +31,7 @@ const sort_dropdown = ref(false);
 const choicesList = ref([]);
 const search_box = useTemplateRef('search_box');
 const search_btn = useTemplateRef('search_btn');
+const music_menu=useTemplateRef('music_menu')
 const isFocused = ref(false);
 const mulAction = ref(false);
 const search_text = ref('');
@@ -131,9 +132,17 @@ async function click_menu(event, args) {
     return;
   }
   music_dropdown.value = !music_dropdown.value;
+
   await nextTick(() => {
+    if (!music_menu.value){return;}
     music_local.value.x = event.clientX + 24;
     music_local.value.y = event.clientY - 24;
+    if (event.clientY+music_menu.value.offsetHeight > window.innerHeight-64) {
+      music_local.value.y =event.clientY-music_menu.value.offsetHeight
+    }
+    if (event.clientX+music_menu.value.offsetWidth > window.innerWidth) {
+      music_local.value.x =event.clientX-music_menu.value.offsetWidth
+    }
     music_local.value.path = args.path;
   });
 }
@@ -700,6 +709,7 @@ function editMetadata() {
     ></float-local-top-btn>
     <div
       v-if="music_dropdown"
+      ref="music_menu"
       v-on-click-outside.bubble="dropdownClose"
       :style="{ left: music_local.x + 'px', top: music_local.y + 'px' }"
       class="*:cursor-pointer *:select-none *:px-4 *:py-2 *:w-full flex flex-col items-start justify-center w-36 py-2 fixed shadow-lg dark:bg-neutral-900 bg-gray-200 *:text-zinc-900 *:dark:text-zinc-300 rounded *:text-[10px] *:duration-200"

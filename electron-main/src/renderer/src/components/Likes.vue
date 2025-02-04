@@ -5,6 +5,7 @@ import EventBus from '../assets/EventBus';
 import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
 import {useStorage} from '@vueuse/core';
+import {search} from "../assets/Search.js";
 
 const db = new IndexDB();
 const cacheLike_list = ref([]);
@@ -21,7 +22,7 @@ db.init_DB().then(() => {
         ? compareSorts(item2[sort_key.value], item1[sort_key.value])
         : compareSorts(item1[sort_key.value], item2[sort_key.value])
     );
-    search();
+    search(f_cacheLike_list.value,cacheLike_list.value)
   });
 });
 
@@ -33,7 +34,7 @@ watch(
         ? compareSorts(item2[sort_key.value], item1[sort_key.value])
         : compareSorts(item1[sort_key.value], item2[sort_key.value])
     );
-    search();
+    search(f_cacheLike_list.value,cacheLike_list.value)
   },
   {immediate: true}
 );
@@ -43,13 +44,13 @@ EventBus.on('delete_LikeCache', (path) => {
     cacheLike_list.value.findIndex((item) => item.path === path),
     1
   );
-  search();
+  search(f_cacheLike_list.value,cacheLike_list.value)
   EventBus.emit('delPlayList', {localName: 'Likes', path: path});
 });
 EventBus.on('add_LikeCache', (item) => {
   const position = findInsertPosition(cacheLike_list.value, item[sort_key.value], sort_key.value);
   cacheLike_list.value.splice(position, 0, item);
-  search();
+  search(f_cacheLike_list.value,cacheLike_list.value)
   EventBus.emit('updatePlayList', {
     path: item.path,
     title: item.title,
@@ -77,7 +78,7 @@ function SwitchLikes(event, args) {
 }
 
 onActivated(() => {
-  search();
+  search(f_cacheLike_list.value,cacheLike_list.value)
 });
 
 function music_delete(path) {
@@ -105,30 +106,6 @@ function sw_reverse() {
   like_cfg.value.isReverse = isReverse.value;
 }
 
-function search(searchText = '') {
-  // 空值快速返回
-  if (!searchText.trim()) {
-    f_cacheLike_list.value.length = 0
-    f_cacheLike_list.value.push(...cacheLike_list.value);
-    return
-  }
-  // 安全过滤特殊字符并生成高效正则
-  const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(
-    escaped,
-    'i'
-  )
-
-  // 单次遍历过滤
-  f_cacheLike_list.value.length = 0
-  f_cacheLike_list.value.push(...cacheLike_list.value.filter(item => {
-    return ['title', 'artist', 'album'].some(field => {
-      const value = item[field]
-      return typeof value === 'string' && regex.test(value)
-    })
-  }))
-}
-
 function mulDelete(list) {
   list.forEach((path) => {
     music_delete(path);
@@ -140,7 +117,7 @@ EventBus.on('syncCache', args => {
     cacheLike_list.value.find(item => item.path === args.path).title = args.title;
     cacheLike_list.value.find(item => item.path === args.path).artist = args.artist;
     cacheLike_list.value.find(item => item.path === args.path).album = args.album;
-    search()
+    search(f_cacheLike_list.value,cacheLike_list.value)
   }
 
 })
@@ -158,7 +135,7 @@ EventBus.on('syncCache', args => {
     @SwitchLikes="(event, args) => SwitchLikes(event, args)"
     @mulDelete="(list) => mulDelete(list)"
     @music_delete="(path) => music_delete(path)"
-    @search="(search_text) => search(search_text)"
+    @search="(search_text) => search(f_cacheLike_list,cacheLike_list,search_text)"
     @select_sort="(key_) => select_sort(key_)"
     @sw_reverse="sw_reverse"
   ></MusicList>

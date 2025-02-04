@@ -263,7 +263,6 @@ function setVolumeValue(value) {
         </label>
 </span>
       </span>
-
         <div
           class="w-3/4 flex flex-col items-center justify-center h-4 mt-2"
         >
@@ -286,7 +285,6 @@ function setVolumeValue(value) {
         </span>
 
         </div>
-
         <div class="w-3/4 flex items-center justify-between mt-4 h-4 *:duration-200">
           <div class="*:duration-200">
             <svg
@@ -404,26 +402,21 @@ function setVolumeValue(value) {
             </path>
           </svg>
         </div>
-
-
         <div class="w-3/4 flex items-center justify-between mt-4 h-4">
-
           <svg class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer"
                height="18"
                viewBox="0 0 1024 1024" width="18" xmlns="http://www.w3.org/2000/svg" @click="setVolumeValue(0)">
             <path d="M128 384l0 256 170.668 0L512 863.086 512 160.916 298.668 384 128 384z"></path>
           </svg>
-
           <input
             id="volume2"
             :value="volume * 100"
-            class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm"
+            class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 bg-zinc-300/40 rounded-sm"
             max="100"
             min="0"
             type="range"
             @input="setVolume"
           />
-
           <svg
             class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer"
             height="15"
@@ -435,9 +428,7 @@ function setVolumeValue(value) {
               d="M260.256 356.576l204.288-163.968a32 32 0 0 1 52.032 24.96v610.432a32 32 0 0 1-51.968 24.992l-209.92-167.552H96a32 32 0 0 1-32-32v-264.864a32 32 0 0 1 32-32h164.256zM670.784 720.128a32 32 0 0 1-44.832-45.664 214.08 214.08 0 0 0 64.32-153.312 213.92 213.92 0 0 0-55.776-144.448 32 32 0 1 1 47.36-43.04 277.92 277.92 0 0 1 72.416 187.488 278.08 278.08 0 0 1-83.488 198.976zM822.912 858.88a32 32 0 1 1-45.888-44.608A419.008 419.008 0 0 0 896 521.152c0-108.704-41.376-210.848-114.432-288.384a32 32 0 0 1 46.592-43.872c84.16 89.28 131.84 207.04 131.84 332.256 0 127.84-49.76 247.904-137.088 337.728z"
             ></path>
           </svg>
-
         </div>
-
       </div>
       <div class="w-3/5 h-screen"></div>
 
