@@ -53,7 +53,7 @@ function createWindow() {
     'resize',
     useDebounceFn(() => {
       if (!mainWindow.isMaximized()) {
-        mainWindow.webContents.send('resize');
+        mainWindow.webContents.send('resize', false);
       }
     }, 200)
   );
@@ -61,6 +61,13 @@ function createWindow() {
   mainWindow.on('close', () => {
     mainWindow = null;
   });
+
+  mainWindow.on('focus', () => {
+    if (!mainWindow) {
+      return;
+    }
+    mainWindow.webContents.send('resize', mainWindow.isMaximized());
+  })
 
   mainWindow.webContents.openDevTools();
 }
@@ -148,8 +155,8 @@ ipcMain.handle('getCovers', async (_, args) => {
   return await getCover(args.path, args.flag);
 });
 
-ipcMain.handle('getLocalCovers', async (_, path) => {
-  return await getLocalCover(path);
+ipcMain.handle('getLocalCovers', async (_, args) => {
+  return await getLocalCover(args.path, args.flag);
 });
 
 ipcMain.on('saveNetCover', async (_, args) => {

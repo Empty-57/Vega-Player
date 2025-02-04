@@ -67,17 +67,21 @@ async function cacheSender(filePath, event, channel) {
   });
 }
 
-export async function getLocalCover(filePath) {
+export async function getLocalCover(filePath, flag = 1) {
+  const size = flag === 1 ? 150 : 600
   for (const ext of ['.png', '.jpg', '.jpeg']) {
-    let path_ =
+    const path_ =
       filePath.substring(0, filePath.lastIndexOf('\\')) +
       '\\' +
       path.basename(filePath, path.extname(filePath)) +
       ext;
     try {
       await fs.promises.access(path_, fs.constants.F_OK);
-      path_ = 'file://' + path_;
-      return path_;
+
+      const picData = await sharp(await fs.promises.readFile(path_))
+        .resize(size, size)
+        .toBuffer()
+      return nativeImage.createFromBuffer(picData).toDataURL();
     } catch (err) {
     }
   }

@@ -17,7 +17,7 @@ async function getCover() {
   isLoaded.value = false
   src.value = await window.electron.ipcRenderer.invoke('getCovers', {path: path, flag: 2});
   if (!src.value) {
-    src.value = await window.electron.ipcRenderer.invoke('getLocalCovers', path);
+    src.value = await window.electron.ipcRenderer.invoke('getLocalCovers', {path: path, flag: 2});
   }
   isLoaded.value = true
 }

@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onActivated, ref, toRaw, watch} from 'vue';
+import {onActivated, ref, toRaw, watch} from 'vue';
 import IndexDB from '../assets/indexDB';
 import EventBus from '../assets/EventBus';
 import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
@@ -105,19 +105,28 @@ function sw_reverse() {
   like_cfg.value.isReverse = isReverse.value;
 }
 
-function search(search_text = '') {
-  const regex = new RegExp(search_text.split('').join(''), 'i');
-  f_cacheLike_list.value.length = 0;
-  f_cacheLike_list.value.push(
-    ...computed(() => {
-      return cacheLike_list.value.filter(
-        (item) =>
-          (item.title && regex.test(item.title)) ||
-          (item.artist && regex.test(item.artist)) ||
-          (item.album && regex.test(item.album))
-      );
-    }).value
-  );
+function search(searchText = '') {
+  // 空值快速返回
+  if (!searchText.trim()) {
+    f_cacheLike_list.value.length = 0
+    f_cacheLike_list.value.push(...cacheLike_list.value);
+    return
+  }
+  // 安全过滤特殊字符并生成高效正则
+  const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(
+    escaped,
+    'i'
+  )
+
+  // 单次遍历过滤
+  f_cacheLike_list.value.length = 0
+  f_cacheLike_list.value.push(...cacheLike_list.value.filter(item => {
+    return ['title', 'artist', 'album'].some(field => {
+      const value = item[field]
+      return typeof value === 'string' && regex.test(value)
+    })
+  }))
 }
 
 function mulDelete(list) {

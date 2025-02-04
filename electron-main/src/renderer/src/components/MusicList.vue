@@ -54,7 +54,7 @@ async function getCover(path, flag) {
   let src = await window.electron.ipcRenderer.invoke('getCovers', {path: path, flag: flag});
 
   if (!src) {
-    src = await window.electron.ipcRenderer.invoke('getLocalCovers', path);
+    src = await window.electron.ipcRenderer.invoke('getLocalCovers', {path: path, flag: flag});
   }
   return src;
 }
@@ -68,13 +68,14 @@ watchDebounced(
         .map(async item => {
           const path = item.data.path;
           const title = item.data.title;
+          const artist = item.data.artist ? '-' + item.data.artist : '';
 
           const src = await getCover(path, 1);
 
           if (!src) {
             const {data} = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
               params: {
-                s: title,
+                s: title + artist,
                 type: 1,
                 offset: 0,
                 total: true,

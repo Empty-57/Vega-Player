@@ -1,6 +1,7 @@
 <script setup>
 import {ref} from 'vue';
 import {useDark, useToggle} from '@vueuse/core';
+import EventBus from "../assets/EventBus.js";
 
 const isMaximized = ref(false);
 
@@ -14,10 +15,15 @@ const toggleDark = useToggle(isDark);
 
 async function windowAction(action) {
   isMaximized.value = await window.electron.ipcRenderer.invoke('windowAction', action);
+  EventBus.emit('setWindowBtn2', isMaximized.value)
 }
 
-window.electron.ipcRenderer.on('resize', () => {
-  isMaximized.value = false;
+EventBus.on('setWindowBtn', state => {
+  isMaximized.value = state
+})
+
+window.electron.ipcRenderer.on('resize', (_, args) => {
+  isMaximized.value = args;
 });
 </script>
 

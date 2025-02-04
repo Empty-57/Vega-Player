@@ -6,6 +6,7 @@ import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import PlayListBar from './PlayListBar.vue';
+import PlayPage from "./PlayPage.vue";
 
 const music_cfg = useStorage('music_cfg', {playMode: 'order', volume: 0.1});
 const playMode = ref(music_cfg.value.playMode);
@@ -88,6 +89,7 @@ const currentSec = ref(0);
 const volume_dropdown = ref(false);
 const hasNext = ref(false);
 const isShowPlayList = ref(false);
+const isShowPlayPage = ref(false);
 
 let sound = new Howl(soundInit.value);
 const playPause = useTemplateRef('playPause');
@@ -195,6 +197,7 @@ EventBus.on('syncCache', args => {
 function onplay() {
   canListenTime.value = true;
   playPause.value.checked = false;
+  EventBus.emit('setPauseBtn', false)
 
   if (!metadata.value.duration) {
     metadata.value.duration = sound.duration();
@@ -213,11 +216,13 @@ function onplay() {
 function onstop() {
   canListenTime.value = false;
   playPause.value.checked = true;
+  EventBus.emit('setPauseBtn', true)
 }
 
 function onpause() {
   canListenTime.value = false;
   playPause.value.checked = true;
+  EventBus.emit('setPauseBtn', true)
 }
 
 function onend() {
@@ -355,6 +360,14 @@ function setVolume(e) {
   volumeProcess.value = e.target.value + '%';
 }
 
+function setVolumeValue(value) {
+  volume.value = value / 100;
+  sound.volume(volume.value);
+  music_cfg.value.volume = volume.value;
+
+  volumeProcess.value = value + '%';
+}
+
 function setPlayMode() {
   next();
   music_cfg.value.playMode = state.value;
@@ -422,7 +435,8 @@ function setPlay(path) {
       <img
         :src="metadata.src ? metadata.src : placeholder"
         alt=""
-        class="size-11 bg-cover rounded-sm"
+        class="size-11 object-cover rounded-sm cursor-pointer hover:brightness-60 duration-200"
+        @click="() =>{isShowPlayPage=true}"
       />
       <div class="flex flex-col items-start justify-between h-10 mx-3 **:text-zinc-900 max-w-[calc(100%-56px)]">
         <span class="dark:text-zinc-200 text-xs h-4 truncate w-full"
@@ -687,13 +701,38 @@ function setPlay(path) {
           isShowPlayList = !isShowPlayList;
         }
       "
-      :current-music="currentIndex !== -1 ? playList[currentIndex].path : ''"
+      :current-music="playList[currentIndex]?.path"
       :play-list="playList"
       @play="path=>setPlay(path)"
       @clear-play-list="clearPlayList"
       @remove-music="(path) => removeMusic(path)"
     ></play-list-bar>
   </transition>
+
+  <transition mode="out-in" name="page-fade">
+    <play-page
+      v-show="isShowPlayPage"
+      :current-index="currentIndex"
+      :current-sec="currentSec"
+      :current-time="currentTime"
+      :metadata="metadata"
+      :play-mode="playMode"
+      :play-process="playProcess"
+      :volume="volume"
+      :volumeProcess="volumeProcess"
+      @set-volume-value="value => setVolumeValue(value)"
+      @set-volume="e=>setVolume(e)"
+      @sw-pause="e=>swPause(e)"
+      @toggle-play="flag=>TogglePlay(flag)"
+      @set-play-mode="setPlayMode"
+      @on-play-skip="e=> onPlaySkip(e)"
+      @update-back-color="args =>updateBackColor(args.event,args.duration)"
+      @sw-like="args => SwitchLikes(args.event,args.args)"
+      @close-play-page="()=>{isShowPlayPage=false}"
+    ></play-page>
+  </transition>
+
+
 </template>
 
 <style scoped>
@@ -767,6 +806,21 @@ html.dark {
 .list-fade-enter-from,
 .list-fade-leave-to {
   transform: translateX(100px);
+  opacity: 0;
+}
+
+
+.page-fade-enter-active {
+  transition: all 0.1s ease-out;
+}
+
+.page-fade-leave-active {
+  transition: all 0.1s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  transform: translateY(100px);
   opacity: 0;
 }
 </style>
