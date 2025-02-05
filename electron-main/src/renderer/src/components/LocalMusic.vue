@@ -6,7 +6,7 @@ import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
 import {useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
-import {search} from "../assets/Search.js";
+import {search} from "../assets/Search.mjs";
 
 const db = new IndexDB();
 const cache_list = ref([]);

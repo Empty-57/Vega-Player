@@ -2,8 +2,10 @@
 import placeholder from '../assets/placeholder.jpg';
 import {onMounted, ref, useTemplateRef, watch} from "vue";
 import {useDebounceFn} from "@vueuse/core";
-import ColorThief from "colorthief/dist/color-thief.mjs";
+import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
+import {generateNoise} from "../assets/EffectCoverTool.js";
+
 
 const colorThief = new ColorThief();
 const isMaximized = ref(false);
@@ -20,11 +22,19 @@ const {
 } = defineProps(['metadata', 'currentTime', 'currentIndex', 'currentSec', 'playProcess', 'playMode', 'volume', 'volumeProcess'])
 
 const src = ref('')
-const bgColor = ref('#00000000')
 const isLoaded = ref(false)
+
+const useEffects = ref(true)
+
 let canvas = null
 let ctx = null
 let coverImg = null;
+let colors = ['#FF5733', '#33FF57', '#3357FF'];
+
+let offsetX = 0;
+let offsetY = 0;
+const flowSpeed = 0.05;
+let cachedImageData = null;
 
 watch(() => metadata.path, async () => {
   src.value = await getCover();
@@ -47,26 +57,63 @@ async function getCover() {
   return src_;
 }
 
-function setBgCover() {
+function getPalette() {
   if (!coverImg) {
     return;
   }
   if (coverImg?.complete) {
-    const color = colorThief.getColor(coverImg);
-    bgColor.value = `rgb(${color[0]},${color[1]},${color[2]})`
+    const color = colorThief.getPalette(coverImg, 3);
+    colors = color.map(item => {
+      return `#${item[0].toString(16).padStart(2, '0')}${item[1].toString(16).padStart(2, '0')}${item[2].toString(16).padStart(2, '0')}`
+    })
   } else {
     coverImg.addEventListener('load', function () {
-      const color = colorThief.getColor(coverImg);
-      bgColor.value = `rgb(${color[0]},${color[1]},${color[2]})`
+      const color = colorThief.getPalette(coverImg, 3);
+      colors = color.map(item => {
+        return `#${item[0].toString(16).padStart(2, '0')}${item[1].toString(16).padStart(2, '0')}${item[2].toString(16).padStart(2, '0')}`
+      })
     });
   }
-  draw()
+}
+
+function simpleCover() {
+  getPalette()
+  ctx.fillStyle = colors[0]
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function effectCover(noiseGrid) {
+  cachedImageData = ctx.createImageData(canvas.width, canvas.height)
+  const data = cachedImageData.data;
+  if (!noiseGrid) {
+    return;
+  }
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const color = noiseGrid[Math.floor((y / (canvas.height / 64) + offsetY) % 64)][Math.floor((x / (canvas.width / 64) + offsetX) % 64)];
+      const index = (y * canvas.width + x) * 4;  // 计算索引，ImageData 是按 RGBA 排列的
+      // 将颜色转换为 RGBA 格式并赋值给 ImageData
+      data[index] = parseInt(color.slice(1, 3), 16);  // Red
+      data[index + 1] = parseInt(color.slice(3, 5), 16);  // Green
+      data[index + 2] = parseInt(color.slice(5, 7), 16);  // Blue
+      data[index + 3] = 255;  // Alpha (不透明)
+    }
+  }
+  ctx.putImageData(cachedImageData, 0, 0);
+  offsetX += flowSpeed;  // 在x方向上移动
+  offsetY += flowSpeed;  // 在y方向上移动
+  // requestAnimationFrame(effectCover)
 }
 
 const setCanvasFullScreen = () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  draw()
+  if (useEffects.value) {
+    getPalette()
+    effectCover(generateNoise(64, 64, colors))
+  } else {
+    simpleCover()
+  }
 };
 
 onMounted(async () => {
@@ -77,14 +124,14 @@ onMounted(async () => {
   window.addEventListener('resize', useDebounceFn(setCanvasFullScreen, 200));
 
   coverImg.addEventListener('load', () => {
-    setBgCover()
+    if (useEffects.value) {
+      getPalette()
+      effectCover(generateNoise(64, 64, colors))
+    } else {
+      simpleCover()
+    }
   })
 })
-
-function draw() {
-  ctx.fillStyle = bgColor.value
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
 
 function closePlayPage() {
   emit('closePlayPage');
@@ -138,7 +185,7 @@ function setVolumeValue(value) {
 </script>
 
 <template>
-  <div class="z-25 fixed w-full h-screen left-0 top-0">
+  <div class="z-25 fixed w-full h-screen left-0 top-0 **:select-none">
     <div
       id="diy_bar"
       class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
@@ -212,7 +259,7 @@ function setVolumeValue(value) {
       </svg>
     </span>
     </div>
-    <div class="absolute w-full h-screen left-0 top-0 backdrop-blur-md z-23 flex items-center justify-center">
+    <div class="absolute w-full h-screen left-0 top-0 backdrop-blur-lg z-23 flex items-center justify-center">
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-2/5 h-screen">
         <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
@@ -430,11 +477,11 @@ function setVolumeValue(value) {
           </svg>
         </div>
       </div>
-      <div class="w-3/5 h-screen"></div>
 
+      <div class="w-3/5 h-screen"></div>
     </div>
 
-    <canvas id="myCanvas" class="brightness-60 z-22"></canvas>
+    <canvas id="myCanvas" class="brightness-60 z-22 will-change-transform will-change-contents"></canvas>
 
   </div>
 </template>

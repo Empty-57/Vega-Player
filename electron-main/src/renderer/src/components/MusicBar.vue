@@ -106,7 +106,7 @@ watch(currentIndex, () => {
 });
 
 watch(metadata, () => {
-  window.electron.ipcRenderer.send('setTrayTitle', metadata.value.path ? metadata.value.title + ' - ' + metadata.value.artist : 'Vega-Player');
+  window.electron.ipcRenderer.send('setTrayTitle', metadata.value.path ? metadata.value.title + ' - ' + metadata.value.artist : 'Vega Player');
 })
 
 EventBus.on('putMetadata', (metadata_) => {

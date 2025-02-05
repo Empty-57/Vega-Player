@@ -245,7 +245,10 @@ ipcMain.on('reSetCover', (_, path) => {
   }
 })
 ipcMain.on('setTrayTitle', (_, title) => {
-  tray.setToolTip(title)
+  if (tray&&mainWindow){
+    tray.setToolTip(title)
+    mainWindow.setTitle(title);
+  }
 })
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

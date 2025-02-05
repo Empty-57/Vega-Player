@@ -5,7 +5,7 @@ import EventBus from '../assets/EventBus';
 import {compareSorts, findInsertPosition} from '../assets/BinarySearchPosition';
 import MusicList from './MusicList.vue';
 import {useStorage} from '@vueuse/core';
-import {search} from "../assets/Search.js";
+import {search} from "../assets/Search.mjs";
 
 const db = new IndexDB();
 const cacheLike_list = ref([]);
