@@ -41,10 +41,6 @@ html.dark {
     border-radius: 6px;
     background: rgba(24 24 27 / 0.8);
   }
-
-  ::-webkit-scrollbar-track {
-    background: rgb(39 39 42 / 0);
-  }
 }
 
 body {

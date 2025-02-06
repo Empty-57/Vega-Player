@@ -23,26 +23,48 @@ const {
 
 const src = ref('')
 const isLoaded = ref(false)
+const parsedLyrics = ref([])
 
-const useEffects = ref(true)
+const useEffects = ref(false)
 
 let canvas = null
 let ctx = null
 let coverImg = null;
 let colors = ['#FF5733', '#33FF57', '#3357FF'];
 
-let offsetX = 0;
-let offsetY = 0;
-const flowSpeed = 0.05;
+
 let cachedImageData = null;
 
 watch(() => metadata.path, async () => {
   src.value = await getCover();
+
+  const lyrics = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
+  console.log(lyrics)
+  parseLrc(lyrics)
+
 }, {immediate: true})
 
 EventBus.on('setPauseBtn', flag => {
   playPause2.value.checked = flag
 })
+
+function parseLrc(data) {
+  parsedLyrics.value.length = 0;
+  const regex = new RegExp(/\[(\d{2}):(\d{2}\.\d{2})](.*?)(\r?\n|$)/g);  // 正则表达式，匹配时间戳和歌词行
+  let match;
+  while ((match = regex.exec(data)) !== null) {
+    const minutes = parseInt(match[1], 10);
+    const seconds = parseFloat(match[2]);
+    const lyricText = match[3].trim();
+    // 将时间戳转换为秒数
+    const timestamp = minutes * 60 + seconds;
+    parsedLyrics.value.push({
+      timestamp,
+      lyricText,
+    });
+  }
+  console.log(parsedLyrics.value);
+}
 
 async function getCover() {
   if (!metadata.path) {
@@ -90,7 +112,7 @@ function effectCover(noiseGrid) {
   }
   for (let y = 0; y < canvas.height; y++) {
     for (let x = 0; x < canvas.width; x++) {
-      const color = noiseGrid[Math.floor((y / (canvas.height / 64) + offsetY) % 64)][Math.floor((x / (canvas.width / 64) + offsetX) % 64)];
+      const color = noiseGrid[Math.floor(y / (canvas.height / 64))][Math.floor(x / (canvas.width / 64))];
       const index = (y * canvas.width + x) * 4;  // 计算索引，ImageData 是按 RGBA 排列的
       // 将颜色转换为 RGBA 格式并赋值给 ImageData
       data[index] = parseInt(color.slice(1, 3), 16);  // Red
@@ -100,8 +122,6 @@ function effectCover(noiseGrid) {
     }
   }
   ctx.putImageData(cachedImageData, 0, 0);
-  offsetX += flowSpeed;  // 在x方向上移动
-  offsetY += flowSpeed;  // 在y方向上移动
   // requestAnimationFrame(effectCover)
 }
 
@@ -260,10 +280,10 @@ function setVolumeValue(value) {
     </span>
     </div>
     <div class="absolute w-full h-screen left-0 top-0 backdrop-blur-lg z-23 flex items-center justify-center">
-      <div class="flex relative left-0 top-0 flex-col items-center justify-center w-2/5 h-screen">
+      <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
         <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
-             alt="" class="rounded w-3/4 aspect-square duration-200">
+             alt="" class="rounded w-3/4 aspect-square duration-200 object-cover">
 
         <span class="w-3/4 flex items-center justify-start h-16">
 <span class="grow flex flex-col items-start justify-center truncate">
@@ -478,7 +498,11 @@ function setVolumeValue(value) {
         </div>
       </div>
 
-      <div class="w-3/5 h-screen"></div>
+      <div class="w-4/7 max-h-[70%] flex flex-col items-center justify-center overflow-x-hidden overflow-y-scroll">
+        <p v-for="text in parsedLyrics">
+          {{text.lyricText}}
+        </p>
+      </div>
     </div>
 
     <canvas id="myCanvas" class="brightness-60 z-22 will-change-transform will-change-contents"></canvas>
@@ -487,6 +511,19 @@ function setVolumeValue(value) {
 </template>
 
 <style scoped>
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: rgba(24 24 27 / 0);
+}
+
+html.dark {
+  ::-webkit-scrollbar-thumb {
+    border-radius: 6px;
+    background: rgba(24 24 27 / 0);
+  }
+}
+
 #playProcess2 {
   background: linear-gradient(
     to right,

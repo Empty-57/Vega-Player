@@ -5,6 +5,10 @@ import os from 'os';
 import {parseFile} from 'music-metadata';
 import pLimit from 'p-limit';
 import sharp from "sharp";
+import languageEncoding from 'detect-file-encoding-and-language'
+import iconv_pkg from "iconv-lite";
+
+const {encodingExists,decode}=iconv_pkg;
 
 const _ext = [
   'mp3',
@@ -67,8 +71,44 @@ async function cacheSender(filePath, event, channel) {
   });
 }
 
+export async function getLyrics(filePath){
+  if (!filePath){return ;}
+  const metadata = await parseFile(filePath, {
+    skipPostHeaders: true,
+    includeChapters: false,
+    duration: false,
+    skipCovers: true
+  });
+
+  let lyrics=metadata.common.lyrics? metadata.common.lyrics:metadata.common.lyricist;
+  if (lyrics){
+    return lyrics;
+  }else{
+    for (const ext of ['.lrc']) {
+      const path_ =
+        filePath.substring(0, filePath.lastIndexOf('\\')) +
+        '\\' +
+        path.basename(filePath, path.extname(filePath)) +
+        ext;
+      try {
+        await fs.promises.access(path_, fs.constants.F_OK);
+        const {encoding}=await languageEncoding(path_)
+        if (!encodingExists(encoding)) {
+          console.log(encoding,': 不支持的文件编码');
+          return null;
+        }
+        console.log(encoding,': 支持的文件编码');
+        lyrics =decode(await fs.promises.readFile(path_), encoding)
+        return lyrics;
+      } catch (err) {
+      }
+    }
+  }
+  return null;
+}
+
 export async function getLocalCover(filePath, flag = 1) {
-  const size = flag === 1 ? 150 : 600
+  const size = flag === 1 ? 150 : 800
   for (const ext of ['.png', '.jpg', '.jpeg']) {
     const path_ =
       filePath.substring(0, filePath.lastIndexOf('\\')) +
@@ -97,7 +137,7 @@ export async function getCover(filePath, flag = 1) {
   if (!metadata.common.picture) {
     return null
   }
-  const size = flag === 1 ? 150 : 600
+  const size = flag === 1 ? 150 : 800
   const picData = await sharp(metadata.common.picture[0].data)
     .resize(size, size)
     .toBuffer()

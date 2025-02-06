@@ -1,9 +1,9 @@
-import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray} from 'electron';
+import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray,screen} from 'electron';
 import {join} from 'path';
 import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
-import {audio_scan, getCover, getLocalCover} from './audio_scan';
+import {audio_scan, getCover, getLocalCover,getLyrics} from './audio_scan';
 import {ByteVector, File, PictureType} from 'node-taglib-sharp'
 import axios from "axios";
 import sharp from "sharp";
@@ -19,6 +19,8 @@ function createWindow() {
     height: 600,
     minWidth: 800,
     minHeight: 600,
+    maxWidth:screen.getPrimaryDisplay().workAreaSize.width+50,
+    maxHeight: screen.getPrimaryDisplay().workAreaSize.height+50,
     title: 'Vega Player',
     backgroundColor: '0x00000000',
     show: false,
@@ -162,7 +164,7 @@ ipcMain.handle('getLocalCovers', async (_, args) => {
 ipcMain.on('saveNetCover', async (_, args) => {
   axios.get(args.picUrl, {responseType: 'arraybuffer'}).then(async ({data}) => {
     const picData = await sharp(Buffer.from(data, 'binary'))
-      .resize(600, 600)
+      .resize(800, 800)
       .toBuffer()
 
     const myFile = File.createFromPath(args.path);
@@ -190,7 +192,7 @@ ipcMain.on('saveMetadata', async (_, args) => {
 
     if (args.coverPath) {
       const picData = await sharp(await fs.promises.readFile(args.coverPath))
-        .resize(600, 600)
+        .resize(800, 800)
         .toBuffer()
 
       const pic = {
@@ -222,7 +224,7 @@ ipcMain.handle('editCover', async () => {
 
     const filePath = result.filePaths[0];
     const picData = await sharp(await fs.promises.readFile(filePath))
-      .resize(600, 600)
+      .resize(800, 800)
       .toBuffer()
 
     const src = nativeImage.createFromBuffer(picData).toDataURL();
@@ -250,6 +252,11 @@ ipcMain.on('setTrayTitle', (_, title) => {
     mainWindow.setTitle(title);
   }
 })
+
+ipcMain.handle('getLyrics',async (_, path)=>{
+  return await getLyrics(path)
+})
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
