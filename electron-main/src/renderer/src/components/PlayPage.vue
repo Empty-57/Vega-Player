@@ -1,10 +1,8 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
 import {onMounted, ref, useTemplateRef, watch} from "vue";
-import {useDebounceFn} from "@vueuse/core";
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
-import {generateNoise} from "../assets/EffectCoverTool.js";
 
 
 const colorThief = new ColorThief();
@@ -25,15 +23,12 @@ const src = ref('')
 const isLoaded = ref(false)
 const parsedLyrics = ref([])
 
-const useEffects = ref(false)
+const useEffects = ref(true)
+const useGlow = ref(true)
 
-let canvas = null
-let ctx = null
 let coverImg = null;
-let colors = ['#FF5733', '#33FF57', '#3357FF'];
+let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
 
-
-let cachedImageData = null;
 
 watch(() => metadata.path, async () => {
   src.value = await getCover();
@@ -85,71 +80,25 @@ function getPalette() {
   }
   if (coverImg?.complete) {
     const color = colorThief.getPalette(coverImg, 3);
-    colors = color.map(item => {
+    colors.value = color.map(item => {
       return `#${item[0].toString(16).padStart(2, '0')}${item[1].toString(16).padStart(2, '0')}${item[2].toString(16).padStart(2, '0')}`
     })
   } else {
     coverImg.addEventListener('load', function () {
       const color = colorThief.getPalette(coverImg, 3);
-      colors = color.map(item => {
+      colors.value = color.map(item => {
         return `#${item[0].toString(16).padStart(2, '0')}${item[1].toString(16).padStart(2, '0')}${item[2].toString(16).padStart(2, '0')}`
       })
     });
   }
 }
 
-function simpleCover() {
-  getPalette()
-  ctx.fillStyle = colors[0]
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function effectCover(noiseGrid) {
-  cachedImageData = ctx.createImageData(canvas.width, canvas.height)
-  const data = cachedImageData.data;
-  if (!noiseGrid) {
-    return;
-  }
-  for (let y = 0; y < canvas.height; y++) {
-    for (let x = 0; x < canvas.width; x++) {
-      const color = noiseGrid[Math.floor(y / (canvas.height / 64))][Math.floor(x / (canvas.width / 64))];
-      const index = (y * canvas.width + x) * 4;  // 计算索引，ImageData 是按 RGBA 排列的
-      // 将颜色转换为 RGBA 格式并赋值给 ImageData
-      data[index] = parseInt(color.slice(1, 3), 16);  // Red
-      data[index + 1] = parseInt(color.slice(3, 5), 16);  // Green
-      data[index + 2] = parseInt(color.slice(5, 7), 16);  // Blue
-      data[index + 3] = 255;  // Alpha (不透明)
-    }
-  }
-  ctx.putImageData(cachedImageData, 0, 0);
-  // requestAnimationFrame(effectCover)
-}
-
-const setCanvasFullScreen = () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  if (useEffects.value) {
-    getPalette()
-    effectCover(generateNoise(64, 64, colors))
-  } else {
-    simpleCover()
-  }
-};
 
 onMounted(async () => {
   coverImg = document.getElementById("coverImg")
-  canvas = document.getElementById('myCanvas')
-  ctx = canvas.getContext('2d');
-  setCanvasFullScreen();
-  window.addEventListener('resize', useDebounceFn(setCanvasFullScreen, 200));
 
   coverImg.addEventListener('load', () => {
-    if (useEffects.value) {
-      getPalette()
-      effectCover(generateNoise(64, 64, colors))
-    } else {
-      simpleCover()
-    }
+    getPalette()
   })
 })
 
@@ -248,7 +197,7 @@ function setVolumeValue(value) {
       </svg>
       <svg
         v-if="isMaximized"
-        class="fill-zinc-900 dark:fill-zinc-200 hover:stroke-cyan-600"
+        class="fill-zinc-900 dark:fill-zinc-200 hover:fill-cyan-600"
         height="16"
         viewBox="0 0 1024 1024"
         width="16"
@@ -279,13 +228,13 @@ function setVolumeValue(value) {
       </svg>
     </span>
     </div>
-    <div class="absolute w-full h-screen left-0 top-0 backdrop-blur-lg z-23 flex items-center justify-center">
+    <div class="absolute w-full h-screen left-0 top-0 z-23 flex items-center justify-center">
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
         <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
-             alt="" class="rounded w-3/4 aspect-square duration-200 object-cover">
+             alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">
 
-        <span class="w-3/4 flex items-center justify-start h-16">
+        <span class="w-3/5 flex items-center justify-start h-16 mt-8">
 <span class="grow flex flex-col items-start justify-center truncate">
   <span class="text-zinc-50/80 text-xl truncate">{{ metadata.title }}</span>
   <span class="text-zinc-50/70 text-[14px] truncate font-light">{{
@@ -330,9 +279,7 @@ function setVolumeValue(value) {
         </label>
 </span>
       </span>
-        <div
-          class="w-3/4 flex flex-col items-center justify-center h-4 mt-2"
-        >
+        <div class="w-3/5 flex flex-col items-center justify-center h-4 mt-4">
           <input
             id="playProcess2"
             :class="[
@@ -352,8 +299,8 @@ function setVolumeValue(value) {
         </span>
 
         </div>
-        <div class="w-3/4 flex items-center justify-between mt-4 h-4 *:duration-200">
-          <div class="*:duration-200">
+        <div class="w-3/5 flex items-center justify-between mt-4 h-4 *:duration-200">
+          <div class="*:duration-200 w-4">
             <svg
               v-if="playMode === 'random'"
               class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer"
@@ -469,7 +416,7 @@ function setVolumeValue(value) {
             </path>
           </svg>
         </div>
-        <div class="w-3/4 flex items-center justify-between mt-4 h-4">
+        <div class="w-3/5 flex items-center justify-between mt-4 h-4">
           <svg class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer"
                height="18"
                viewBox="0 0 1024 1024" width="18" xmlns="http://www.w3.org/2000/svg" @click="setVolumeValue(0)">
@@ -498,19 +445,59 @@ function setVolumeValue(value) {
         </div>
       </div>
 
-      <div class="w-4/7 max-h-[70%] flex flex-col items-center justify-center overflow-x-hidden overflow-y-scroll">
-        <p v-for="text in parsedLyrics">
-          {{text.lyricText}}
-        </p>
+      <div id="LrcBox"
+           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:text-zinc-50/60 **:font-bold **:text-2xl **:text-pretty **:text-left pr-8">
+        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-center justify-center gap-y-4">
+          <p v-for="text in parsedLyrics" :class="{'drop-shadow-[0px_0px_2px_#fafafabb]':useGlow}" class="ml-4 w-full ">
+            {{ text.lyricText }}
+          </p>
+        </div>
+        <p v-else>无歌词文件或歌词文件格式错误</p>
       </div>
     </div>
 
-    <canvas id="myCanvas" class="brightness-60 z-22 will-change-transform will-change-contents"></canvas>
+    <div :class="[useEffects? 'effectCover':'simpleCover']"
+         class="backdrop-blur-lg w-full h-screen absolute left-0 right-0 brightness-65 z-22 will-change-transform"></div>
 
   </div>
 </template>
 
 <style scoped>
+#LrcBox {
+  mask: linear-gradient(to top, transparent 0%, #000 50%, #000 50%, transparent 100%);
+}
+
+.simpleCover {
+  background-color: v-bind('colors[0]');
+}
+
+.effectCover {
+  background-color: v-bind('colors[0]');
+  background-image: linear-gradient(125deg, v-bind('colors[0]'), v-bind('colors[1]'), v-bind('colors[2]'));
+  background-size: 500%;
+  animation: 15s coverAnimation linear infinite;
+}
+
+@keyframes coverAnimation {
+  0%, 100% {
+    background-position: 0 50%;
+  }
+  25% {
+    background-position: 25% 50%;
+  }
+  50% {
+    background-position: 50% 50%;
+  }
+  65% {
+    background-position: 75% 50%;
+  }
+  75% {
+    background-position: 50% 50%;
+  }
+  90% {
+    background-position: 25% 50%;
+  }
+}
 
 ::-webkit-scrollbar-thumb {
   border-radius: 6px;

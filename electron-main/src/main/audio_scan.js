@@ -98,7 +98,7 @@ export async function getLyrics(filePath){
           return null;
         }
         console.log(encoding,': 支持的文件编码');
-        lyrics =decode(await fs.promises.readFile(path_), encoding)
+        lyrics =decode(await fs.promises.readFile(path_), encoding,{ defaultEncoding: 'utf8' })
         return lyrics;
       } catch (err) {
       }
