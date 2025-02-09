@@ -85,6 +85,7 @@ const canListenTime = ref(false);
 const playProcess = ref('0%');
 const currentTime = ref('');
 const currentSec = ref(0);
+const currentSecMs = ref(0);
 
 const volume_dropdown = ref(false);
 const hasNext = ref(false);
@@ -310,8 +311,7 @@ setInterval(() => {
   if (!canListenTime.value) {
     return;
   }
-  count++;
-  if (count === 10) {
+  if (count > 9) {
     count = 0;
     currentSec.value = sound.seek();
     playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
@@ -324,6 +324,8 @@ setInterval(() => {
         .toString()
         .padStart(2, '0');
   }
+  count++;
+  currentSecMs.value = sound.seek();
 }, 100 / rate.value);
 
 function SwitchLikes(event, args) {
@@ -337,6 +339,7 @@ function SwitchLikes(event, args) {
 
 function updateBackColor(e, duration) {
   currentSec.value = e.target.value;
+  currentSecMs.value=e.target.value;
   playProcess.value = (currentSec.value / duration) * 100 + '%';
   currentTime.value =
     Math.floor(currentSec.value / 60)
@@ -392,6 +395,7 @@ function clearPlayList() {
   playProcess.value = '0%';
   currentTime.value = '';
   currentSec.value = 0;
+  currentSecMs.value=0
 
   EventBus.emit('setCurrentMusic', {
     localName: '',
@@ -714,6 +718,7 @@ function setPlay(path) {
       v-show="isShowPlayPage"
       :current-index="currentIndex"
       :current-sec="currentSec"
+      :current-sec-ms="currentSecMs"
       :current-time="currentTime"
       :metadata="metadata"
       :play-mode="playMode"

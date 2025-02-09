@@ -1,8 +1,10 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
-import {onMounted, ref, useTemplateRef, watch} from "vue";
+import {onMounted, ref, useTemplateRef, watch,nextTick} from "vue";
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
+
+import {useDebounceFn} from "@vueuse/core";
 
 
 const colorThief = new ColorThief();
@@ -15,29 +17,71 @@ const {
   currentTime,
   currentIndex,
   currentSec,
+  currentSecMs,
   playProcess,
   playMode, volume, volumeProcess
-} = defineProps(['metadata', 'currentTime', 'currentIndex', 'currentSec', 'playProcess', 'playMode', 'volume', 'volumeProcess'])
+} = defineProps(['metadata', 'currentTime', 'currentIndex', 'currentSec', 'playProcess', 'playMode', 'volume', 'volumeProcess','currentSecMs'])
 
 const src = ref('')
 const isLoaded = ref(false)
 const parsedLyrics = ref([])
 
+const lrcCurrentIndex=ref(0)
+
 const useEffects = ref(true)
 const useGlow = ref(true)
 
+const isScroll=ref(false);
+
 let coverImg = null;
 let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
+let lyricsList=[]
 
 
 watch(() => metadata.path, async () => {
+  lrcCurrentIndex.value=0
   src.value = await getCover();
 
   const lyrics = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
   console.log(lyrics)
   parseLrc(lyrics)
 
+  await nextTick()
+  lyricsList=document.querySelectorAll('.lyrics');
+
 }, {immediate: true})
+
+
+
+function findCurrentLine(time) {
+  let low = 0
+  let high = parsedLyrics.value.length - 1
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2)
+    const current = parsedLyrics.value[mid]
+
+    if (time >= current.timestamp && time < current.nextTime) {
+      return mid
+    } else if (time < current.timestamp) {
+      high = mid - 1
+    } else {
+      low = mid + 1
+    }
+  }
+  return -1
+}
+
+watch(()=> currentSecMs,()=>{
+  const newIndex = findCurrentLine(currentSecMs)
+  if (newIndex !== lrcCurrentIndex.value) {
+    lrcCurrentIndex.value=newIndex
+    lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+})
 
 EventBus.on('setPauseBtn', flag => {
   playPause2.value.checked = flag
@@ -58,6 +102,10 @@ function parseLrc(data) {
       lyricText,
     });
   }
+  parsedLyrics.value= parsedLyrics.value.map((item, index) => ({
+    ...item,
+    nextTime: parsedLyrics.value[index + 1]?.timestamp || Infinity
+  }))
   console.log(parsedLyrics.value);
 }
 
@@ -100,6 +148,17 @@ onMounted(async () => {
   coverImg.addEventListener('load', () => {
     getPalette()
   })
+
+  const lrc_box=document.querySelector('#LrcBox');
+
+  lrc_box.onmousewheel = useDebounceFn(() => {
+    isScroll.value=true
+    const timer= setTimeout(()=> {
+      isScroll.value = false
+      clearTimeout(timer)
+    },3000)
+  },200)
+
 })
 
 function closePlayPage() {
@@ -446,25 +505,30 @@ function setVolumeValue(value) {
       </div>
 
       <div id="LrcBox"
-           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:text-zinc-50/60 **:font-bold **:text-2xl **:text-pretty **:text-left pr-8">
-        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-center justify-center gap-y-4">
-          <p v-for="text in parsedLyrics" :class="{'drop-shadow-[0px_0px_2px_#fafafabb]':useGlow}" class="ml-4 w-full ">
-            {{ text.lyricText }}
+           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8">
+        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-center justify-center gap-y-4 *:duration-500">
+          <span class="h-[25vh] w-full"></span>
+          <p v-for="(data,index) in parsedLyrics"
+             :class="[lrcCurrentIndex===index? 'text-zinc-50 text-3xl':'text-2xl text-zinc-50/40',useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'' ]"
+             :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
+             class="ml-4 w-full lyrics">
+            {{ data.lyricText }}
           </p>
+          <span class="h-[25vh] w-full"></span>
         </div>
         <p v-else>无歌词文件或歌词文件格式错误</p>
       </div>
     </div>
 
     <div :class="[useEffects? 'effectCover':'simpleCover']"
-         class="backdrop-blur-lg w-full h-screen absolute left-0 right-0 brightness-65 z-22 will-change-transform"></div>
+         class="w-full h-screen absolute left-0 right-0 brightness-65 z-22 will-change-transform"></div>
 
   </div>
 </template>
 
 <style scoped>
 #LrcBox {
-  mask: linear-gradient(to top, transparent 0%, #000 50%, #000 50%, transparent 100%);
+  mask: linear-gradient(to top, transparent 0%, #000 10%, #000 90%, transparent 100%);
 }
 
 .simpleCover {
@@ -476,6 +540,7 @@ function setVolumeValue(value) {
   background-image: linear-gradient(125deg, v-bind('colors[0]'), v-bind('colors[1]'), v-bind('colors[2]'));
   background-size: 500%;
   animation: 15s coverAnimation linear infinite;
+  transform: translateZ(0);
 }
 
 @keyframes coverAnimation {
