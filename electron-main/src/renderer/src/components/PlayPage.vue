@@ -76,6 +76,9 @@ watch(()=> currentSecMs,()=>{
   const newIndex = findCurrentLine(currentSecMs)
   if (newIndex !== lrcCurrentIndex.value) {
     lrcCurrentIndex.value=newIndex
+    if (isScroll.value){
+      return;
+    }
     lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
@@ -94,12 +97,14 @@ function parseLrc(data) {
   while ((match = regex.exec(data)) !== null) {
     const minutes = parseInt(match[1], 10);
     const seconds = parseFloat(match[2]);
-    const lyricText = match[3].trim();
+    const lyricText = match[3].trim().split(' / ')[0];
+    const lyricTranslate = match[3].trim().split(' / ')[1];
     // 将时间戳转换为秒数
     const timestamp = minutes * 60 + seconds;
     parsedLyrics.value.push({
       timestamp,
       lyricText,
+      lyricTranslate
     });
   }
   parsedLyrics.value= parsedLyrics.value.map((item, index) => ({
@@ -294,7 +299,7 @@ function setVolumeValue(value) {
              alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">
 
         <span class="w-3/5 flex items-center justify-start h-16 mt-8">
-<span class="grow flex flex-col items-start justify-center truncate">
+<span class="grow flex flex-col items-start justify-center truncate" id="musicInfo">
   <span class="text-zinc-50/80 text-xl truncate">{{ metadata.title }}</span>
   <span class="text-zinc-50/70 text-[14px] truncate font-light">{{
       metadata.artist ? metadata.artist : '未知歌手'
@@ -529,6 +534,10 @@ function setVolumeValue(value) {
 <style scoped>
 #LrcBox {
   mask: linear-gradient(to top, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+#musicInfo{
+  mask: linear-gradient(to left, transparent 0%, #000 10%);
 }
 
 .simpleCover {
