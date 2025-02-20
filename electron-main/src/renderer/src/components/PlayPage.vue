@@ -42,16 +42,20 @@ watch(() => metadata.path, async () => {
   lrcCurrentIndex.value=0
   src.value = await getCover();
 
-  const lyrics = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
-  console.log(lyrics)
-  parseLrc(lyrics)
+  parsedLyrics.value = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
+  console.log(parsedLyrics.value)
 
   await nextTick()
   lyricsList=document.querySelectorAll('.lyrics');
 
 }, {immediate: true})
 
-
+const reLocal=()=>{
+  lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
+}
 
 function findCurrentLine(time) {
   let low = 0
@@ -79,10 +83,7 @@ watch(()=> currentSecMs,()=>{
     if (isScroll.value){
       return;
     }
-    lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    })
+    reLocal()
   }
 })
 
@@ -90,29 +91,6 @@ EventBus.on('setPauseBtn', flag => {
   playPause2.value.checked = flag
 })
 
-function parseLrc(data) {
-  parsedLyrics.value.length = 0;
-  const regex = new RegExp(/\[(\d{2}):(\d{2}\.\d{2})](.*?)(\r?\n|$)/g);  // 正则表达式，匹配时间戳和歌词行
-  let match;
-  while ((match = regex.exec(data)) !== null) {
-    const minutes = parseInt(match[1], 10);
-    const seconds = parseFloat(match[2]);
-    const lyricText = match[3].trim().split(' / ')[0];
-    const lyricTranslate = match[3].trim().split(' / ')[1];
-    // 将时间戳转换为秒数
-    const timestamp = minutes * 60 + seconds;
-    parsedLyrics.value.push({
-      timestamp,
-      lyricText,
-      lyricTranslate
-    });
-  }
-  parsedLyrics.value= parsedLyrics.value.map((item, index) => ({
-    ...item,
-    nextTime: parsedLyrics.value[index + 1]?.timestamp || Infinity
-  }))
-  console.log(parsedLyrics.value);
-}
 
 async function getCover() {
   if (!metadata.path) {
@@ -160,6 +138,7 @@ onMounted(async () => {
     isScroll.value=true
     const timer= setTimeout(()=> {
       isScroll.value = false
+      reLocal()
       clearTimeout(timer)
     },3000)
   },200)
@@ -513,12 +492,14 @@ function setVolumeValue(value) {
            class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8">
         <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-center justify-center gap-y-4 *:duration-500">
           <span class="h-[25vh] w-full"></span>
-          <p v-for="(data,index) in parsedLyrics"
+          <div v-for="(data,index) in parsedLyrics"
              :class="[lrcCurrentIndex===index? 'text-zinc-50 text-3xl':'text-2xl text-zinc-50/40',useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'' ]"
              :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
-             class="ml-4 w-full lyrics">
+             class="ml-4 w-full cursor-pointer hover:bg-zinc-100/10 rounded lyrics">
             {{ data.lyricText }}
-          </p>
+            <br v-if="data.translate">
+            <p v-if="data.translate" class="text-xl text-zinc-50/40 w-full">{{data.translate}}</p>
+          </div>
           <span class="h-[25vh] w-full"></span>
         </div>
         <p v-else>无歌词文件或歌词文件格式错误</p>

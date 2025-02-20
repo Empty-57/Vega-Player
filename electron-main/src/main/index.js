@@ -8,6 +8,7 @@ import {ByteVector, File, PictureType} from 'node-taglib-sharp'
 import axios from "axios";
 import sharp from "sharp";
 import fs from "fs";
+import {data} from "autoprefixer";
 
 let mainWindow = null;
 let tray = null;
@@ -252,9 +253,48 @@ ipcMain.on('setTrayTitle', (_, title) => {
     mainWindow.setTitle(title);
   }
 })
+function parseLrc(data,data_ts,type) {
+  let parsedLyrics = [];
+  let parsedLyricsTs = [];
+  const regex = new RegExp(/\[(\d{2}):(\d{2}\.\d{2})](.*?)(\r?\n|$)/g);  // 正则表达式，匹配时间戳和歌词行
+  let match;
+  let match_ts;
+  while ((match = regex.exec(data)) !== null) {
+    const minutes = parseInt(match[1], 10);
+    const seconds = parseFloat(match[2]);
+    const lyricText = match[3].trim();
+    // 将时间戳转换为秒数
+    const timestamp = minutes * 60 + seconds;
+    parsedLyrics.push({
+      timestamp,
+      lyricText
+    });
+  }
+
+  while ((match_ts = regex.exec(data_ts)) !== null) {
+    const minutes = parseInt(match_ts[1], 10);
+    const seconds = parseFloat(match_ts[2]);
+    const lyricTs = match_ts[3].trim();
+    // 将时间戳转换为秒数
+    const timestamp = minutes * 60 + seconds;
+    parsedLyricsTs.push({
+      timestamp,
+      lyricTs
+    });
+  }
+
+  parsedLyrics= parsedLyrics.map((item, index) => ({
+    ...item,
+    nextTime: parsedLyrics[index + 1]?.timestamp || Infinity,
+    translate:item.timestamp>=parsedLyricsTs[0]?.timestamp? parsedLyricsTs.shift().lyricTs:null
+  }))
+
+  return parsedLyrics
+}
 
 ipcMain.handle('getLyrics',async (_, path)=>{
-  return await getLyrics(path)
+  const lyrics_data =await getLyrics(path)
+  return parseLrc(lyrics_data?.lyrics,lyrics_data?.lyrics_ts,lyrics_data?.type)
 })
 
 app.on('window-all-closed', () => {

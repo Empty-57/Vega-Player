@@ -71,39 +71,77 @@ async function cacheSender(filePath, event, channel) {
   });
 }
 
-export async function getLyrics(filePath){
-  if (!filePath){return ;}
-  const metadata = await parseFile(filePath, {
-    skipPostHeaders: true,
-    includeChapters: false,
-    duration: false,
-    skipCovers: true
-  });
+const LYRIC_EXTS = ['.yrc', '.lrc'];
+const LYRIC_VTS_SUFFIX = '_Vts.lrc';
+const getLyricPaths = (filePath) => {
+  const dir = path.dirname(filePath);
+  const baseName = path.basename(filePath, path.extname(filePath));
 
-  let lyrics=metadata.common.lyrics? metadata.common.lyrics:metadata.common.lyricist;
-  if (lyrics){
-    return lyrics;
-  }else{
-    for (const ext of ['.lrc']) {
-      const path_ =
-        filePath.substring(0, filePath.lastIndexOf('\\')) +
-        '\\' +
-        path.basename(filePath, path.extname(filePath)) +
-        ext;
-      try {
-        await fs.promises.access(path_, fs.constants.F_OK);
-        const {encoding}=await languageEncoding(path_)
-        if (!encodingExists(encoding)) {
-          console.log(encoding,': 不支持的文件编码');
-          return null;
-        }
-        console.log(encoding,': 支持的文件编码');
-        lyrics =decode(await fs.promises.readFile(path_), encoding,{ defaultEncoding: 'utf8' })
-        return lyrics;
-      } catch (err) {
-      }
+  return {
+    mainPaths: LYRIC_EXTS.map(ext => path.join(dir, `${baseName}${ext}`)),
+    vtsPath: path.join(dir, `${baseName}${LYRIC_VTS_SUFFIX}`)
+  };
+};
+
+const safeReadFile = async (filePath) => {
+  try {
+    const { encoding } = await languageEncoding(filePath);
+    if (!encodingExists(encoding)) {
+      console.warn(`Unsupported encoding: ${encoding} for ${filePath}`);
+      return null;
+    }
+
+    const buffer = await fs.promises.readFile(filePath);
+    return decode(buffer, encoding, { defaultEncoding: 'utf8' });
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error(`Error reading ${filePath}:`, error.message);
+    }
+    return null;
+  }
+};
+
+export async function getLyrics(filePath) {
+  if (!filePath) return null;
+
+  // 1. 优先读取音频元数据中的歌词
+  try {
+    const metadata = await parseFile(filePath, {
+      skipPostHeaders: true,
+      includeChapters: false,
+      duration: false,
+      skipCovers: true
+    });
+
+    if (metadata.common?.lyrics || metadata.common?.lyricist) {
+      return {
+        lyrics: metadata.common.lyrics || metadata.common.lyricist,
+        lyrics_ts: null,
+        type: 'metadata'
+      };
+    }
+  } catch (error) {
+    console.error('Error reading audio metadata:', error.message);
+  }
+
+  // 2. 读取外部歌词文件
+  const { mainPaths, vtsPath } = getLyricPaths(filePath);
+
+  // 并行读取 VTS 歌词文件
+  const lyricsTsPromise = safeReadFile(vtsPath);
+
+  // 按优先级顺序检查主歌词文件
+  for (const lyricPath of mainPaths) {
+    const lyrics = await safeReadFile(lyricPath);
+    if (lyrics) {
+      return {
+        lyrics,
+        lyrics_ts: await lyricsTsPromise,
+        type: path.extname(lyricPath)
+      };
     }
   }
+  // 3. 所有途径都失败时返回 null
   return null;
 }
 
