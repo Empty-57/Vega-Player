@@ -219,8 +219,6 @@ EventBus.on('syncCache', args => {
         <div class="">
           <div
             class="h-8 flex items-center justify-center gap-x-2 text-zinc-900 dark:text-zinc-200 text-xs select-none dark:bg-neutral-700 bg-zinc-400/30 hover:bg-neutral-700/30 p-2 px-4 rounded duration-200 outline-none"
-            role="button"
-            tabindex="0"
             @click.stop="
               () => {
                 file_dropdown = !file_dropdown;

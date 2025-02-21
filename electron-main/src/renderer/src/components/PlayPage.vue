@@ -3,15 +3,16 @@ import placeholder from '../assets/placeholder.jpg';
 import {onMounted, ref, useTemplateRef, watch,nextTick} from "vue";
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
-
+import {vOnClickOutside} from '@vueuse/components';
 import {useDebounceFn} from "@vueuse/core";
+import axios from "axios";
 
 
 const colorThief = new ColorThief();
 const isMaximized = ref(false);
 const playPause2 = useTemplateRef('playPause2')
 
-const emit = defineEmits(['closePlayPage', 'onPlaySkip', 'updateBackColor', 'swLike', 'setPlayMode', 'TogglePlay', 'swPause', 'setVolume', 'setVolumeValue'])
+const emit = defineEmits(['closePlayPage', 'onPlaySkip', 'updateBackColor', 'swLike', 'setPlayMode', 'TogglePlay', 'swPause', 'setVolume', 'setVolumeValue','onPlaySkip_Lrc'])
 const {
   metadata,
   currentTime,
@@ -32,6 +33,14 @@ const useEffects = ref(true)
 const useGlow = ref(true)
 
 const isScroll=ref(false);
+
+const showPlayAction =ref(false);
+
+const showLrcModal=ref(false);
+
+const musicLrcData=ref([])
+
+const searchLrcOffset=ref(0)
 
 let coverImg = null;
 let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
@@ -170,6 +179,9 @@ function onPlaySkip(e) {
   emit('onPlaySkip', e)
 }
 
+function onPlaySkip_Lrc(timestamp){
+  emit('onPlaySkip_Lrc',timestamp)
+}
 function updateBackColor(e, duration) {
   emit('updateBackColor', {event: e, duration: duration});
 }
@@ -194,6 +206,56 @@ function setVolumeValue(value) {
   emit('setVolumeValue', value)
 }
 
+async function selectLrc() {
+  musicLrcData.value=[]
+  try {
+    const {data} = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
+      params: {
+        s: metadata.title,
+        type: 1,
+        offset: searchLrcOffset.value,
+        total: true,
+        limit: 5
+      }
+    })
+    if (!data?.result?.songs){
+      return;
+    }
+    for (const item of data.result.songs) {
+
+      const {data} = await axios.get(`https://music.163.com/api/song/lyric`, {
+        params: {
+          id:item.id,
+          lv:-1,
+          yv:-1,
+          tv:-1,
+          os:'pc'
+        }
+      })
+
+      musicLrcData.value.push({
+        name: item.name,
+        id: item.id,
+        artist: item.ar[0]?.name||'未知',
+        lrc:data?.lrc?.lyric,
+        yrc:data?.yrc?.lyric,
+        translate:data?.tlyric?.lyric
+      })
+    }
+    console.log(musicLrcData.value)
+  }catch (err){
+    console.error(err)
+  }
+
+}function switchLrc(){
+
+}
+
+async function openPath() {
+  showPlayAction.value=false
+  await window.electron.ipcRenderer.send('openPath', metadata.path)
+}
+
 </script>
 
 <template>
@@ -203,7 +265,7 @@ function setVolumeValue(value) {
       class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
     >
       <span class="no_drag p-3" @click="closePlayPage">
-        <svg class="fill-zinc-900 dark:fill-zinc-200 hover:fill-cyan-600" height="16"
+        <svg class="fill-zinc-200 hover:fill-cyan-600" height="16"
              viewBox="0 0 1024 1024" width="16" xmlns="http://www.w3.org/2000/svg"><path
           d="M185.884 327.55 146.3 367.133 512.021 732.779 877.7 367.133 838.117 327.55 511.997 653.676Z">
 
@@ -215,7 +277,7 @@ function setVolumeValue(value) {
         @click="windowAction('minimize')"
       >
       <svg
-        class="fill-zinc-900 dark:fill-zinc-200 hover:stroke-cyan-600"
+        class="fill-zinc-200 hover:stroke-cyan-600"
         height="16"
         viewBox="0 0 24 24"
         width="16"
@@ -230,7 +292,7 @@ function setVolumeValue(value) {
       >
       <svg
         v-if="!isMaximized"
-        class="stroke-zinc-900 dark:stroke-zinc-200 hover:stroke-cyan-600"
+        class="stroke-zinc-200 hover:stroke-cyan-600"
         height="16"
         viewBox="0 0 24 24"
         width="16"
@@ -240,7 +302,7 @@ function setVolumeValue(value) {
       </svg>
       <svg
         v-if="isMaximized"
-        class="fill-zinc-900 dark:fill-zinc-200 hover:fill-cyan-600"
+        class="fill-zinc-200 hover:fill-cyan-600"
         height="16"
         viewBox="0 0 1024 1024"
         width="16"
@@ -256,7 +318,7 @@ function setVolumeValue(value) {
         @click="windowAction('close')"
       >
       <svg
-        class="stroke-zinc-900 dark:stroke-zinc-200 hover:stroke-cyan-600"
+        class="stroke-zinc-200 hover:stroke-cyan-600"
         height="20"
         viewBox="0 0 24 24"
         width="20"
@@ -342,7 +404,7 @@ function setVolumeValue(value) {
         </span>
 
         </div>
-        <div class="w-3/5 flex items-center justify-between mt-4 h-4 *:duration-200">
+        <div class="w-3/5 relative flex items-center justify-between mt-4 h-4 *:duration-200">
           <div class="*:duration-200 w-4">
             <svg
               v-if="playMode === 'random'"
@@ -453,11 +515,45 @@ function setVolumeValue(value) {
             ></path>
           </svg>
           <svg class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer" height="18"
+               @click.stop="
+              () => {
+                showPlayAction = !showPlayAction;
+              }
+            "
                viewBox="0 0 1024 1024" width="18" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M150.528 431.104q37.888 0 58.368 24.064t20.48 51.712l0 11.264q0 34.816-17.92 58.88t-59.904 24.064l-7.168 0q-38.912 0-61.952-21.504t-23.04-59.392l0-14.336q0-13.312 5.632-26.624t15.872-24.064 25.6-17.408 33.792-6.656l10.24 0zM519.168 431.104q37.888 0 58.368 24.064t20.48 51.712l0 11.264q0 34.816-17.92 58.88t-59.904 24.064l-7.168 0q-38.912 0-61.952-21.504t-23.04-59.392l0-14.336q0-13.312 5.632-26.624t15.872-24.064 25.6-17.408 33.792-6.656l10.24 0zM887.808 431.104q37.888 0 58.368 24.064t20.48 51.712l0 11.264q0 34.816-17.92 58.88t-59.904 24.064l-7.168 0q-38.912 0-61.952-21.504t-23.04-59.392l0-14.336q0-13.312 5.632-26.624t15.872-24.064 25.6-17.408 33.792-6.656l10.24 0z">
             </path>
           </svg>
+          <ul
+            v-on-click-outside.bubble="
+              () => {
+                showPlayAction = false;
+              }
+            "
+            :class="[
+              showPlayAction ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            ]"
+            class="right-0 bottom-4 w-36 p-0 *:duration-200 duration-200 *:select-none py-2 absolute shadow-xl bg-zinc-100/20 backdrop-blur-md *:text-zinc-300 rounded *:text-[10px]"
+            tabindex="0"
+          >
+            <li
+              class="hover:bg-neutral-200/20 p-2 h-8"
+              @click.stop="()=>{
+                searchLrcOffset=0
+                showLrcModal = !showLrcModal
+                selectLrc()
+              }"
+            >
+              选择歌词
+            </li>
+            <li
+              class="hover:bg-neutral-200/20 p-2 h-8"
+              @click="openPath"
+            >
+              打开歌曲所在位置
+            </li>
+          </ul>
         </div>
         <div class="w-3/5 flex items-center justify-between mt-4 h-4">
           <svg class="fill-zinc-50/60 hover:fill-zinc-50 cursor-pointer"
@@ -495,7 +591,9 @@ function setVolumeValue(value) {
           <div v-for="(data,index) in parsedLyrics"
              :class="[lrcCurrentIndex===index? 'text-zinc-50 text-3xl':'text-2xl text-zinc-50/40',useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'' ]"
              :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
-             class="ml-4 w-full cursor-pointer hover:bg-zinc-100/10 rounded lyrics">
+             class="pl-4 w-full will-change-transform cursor-pointer hover:bg-zinc-100/10 rounded lyrics"
+               @dblclick="onPlaySkip_Lrc(data.timestamp)"
+          >
             {{ data.lyricText }}
             <br v-if="data.translate">
             <p v-if="data.translate" class="text-xl text-zinc-50/40 w-full">{{data.translate}}</p>
@@ -504,6 +602,36 @@ function setVolumeValue(value) {
         </div>
         <p v-else>无歌词文件或歌词文件格式错误</p>
       </div>
+    </div>
+
+    <div v-on-click-outside.bubble="
+              () => {
+                showLrcModal = false;
+              }"
+         v-if="showLrcModal"
+         class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-between backdrop-blur-lg p-4 **:text-zinc-200">
+
+      <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
+
+          <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.yrc? '逐字歌词':'逐行歌词'}}]</div>
+
+          <div class="w-full text-sm overflow-x-hidden overflow-y-scroll whitespace-pre-wrap p-4 max-h-36">
+            {{data.lrc}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
+          </div>
+
+          <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
+                @click="switchLrc"
+          >使用</span>
+
+        </div>
+
+      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center min-h-12"
+            @click.stop="()=>{
+                searchLrcOffset++
+                selectLrc()
+              }"
+      >换一批</span>
+
     </div>
 
     <div :class="[useEffects? 'effectCover':'simpleCover']"

@@ -429,6 +429,11 @@ function setPlay(path) {
   currentIndex.value = playList.value.findIndex(i => i.path === path);
   setIndex();
 }
+
+function onPlaySkip_Lrc(timestamp){
+  sound.seek(timestamp);
+}
+
 </script>
 
 <template>
@@ -734,6 +739,7 @@ function setPlay(path) {
       @update-back-color="args =>updateBackColor(args.event,args.duration)"
       @sw-like="args => SwitchLikes(args.event,args.args)"
       @close-play-page="()=>{isShowPlayPage=false}"
+      @on-play-skip_-lrc="timestamp => onPlaySkip_Lrc(timestamp)"
     ></play-page>
   </transition>
 

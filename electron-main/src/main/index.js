@@ -1,5 +1,5 @@
 import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray,screen} from 'electron';
-import {join} from 'path';
+import {join,dirname} from 'path';
 import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
@@ -253,48 +253,107 @@ ipcMain.on('setTrayTitle', (_, title) => {
     mainWindow.setTitle(title);
   }
 })
-function parseLrc(data,data_ts,type) {
-  let parsedLyrics = [];
-  let parsedLyricsTs = [];
-  const regex = new RegExp(/\[(\d{2}):(\d{2}\.\d{2})](.*?)(\r?\n|$)/g);  // 正则表达式，匹配时间戳和歌词行
-  let match;
-  let match_ts;
-  while ((match = regex.exec(data)) !== null) {
-    const minutes = parseInt(match[1], 10);
-    const seconds = parseFloat(match[2]);
-    const lyricText = match[3].trim();
-    // 将时间戳转换为秒数
-    const timestamp = minutes * 60 + seconds;
-    parsedLyrics.push({
-      timestamp,
-      lyricText
+function parseLrc(data, data_ts, type) {
+  const LRC_REGEX = /\[(\d{2}):(\d{2}\.\d{2,3})](.*?)(\r?\n|$)/g;
+
+  // 时间戳解析
+  const parseTime = (m, s) => {
+    const minutes = parseInt(m, 10);
+    const seconds = parseFloat(s);
+    return minutes * 60 + seconds;
+  };
+
+  // 歌词解析器（保持原有顺序）
+  const parseLyrics = (text) => {
+    const entries = [];
+    let match;
+    while ((match = LRC_REGEX.exec(text)) !== null) {
+      try {
+        entries.push({
+          timestamp: parseTime(match[1], match[2]),
+          text: match[3].trim()
+        });
+      } catch (err) {
+        console.warn('Invalid lyric line:', match[0], err.message);
+      }
+    }
+    return entries;
+  };
+
+  // 解析主歌词（保持原始顺序）
+  const mainLyrics = parseLyrics(data || '');
+
+  // 解析翻译歌词并建立查找队列
+  const transQueue = data_ts ? parseLyrics(data_ts) : [];
+  let transIndex = 0;  // 翻译指针（按时间顺序推进）
+
+  // 构建最终结果
+  return mainLyrics.map((mainEntry, index) => {
+    const nextTime = index < mainLyrics.length - 1
+      ? mainLyrics[index + 1].timestamp
+      : Infinity;
+
+    // 寻找匹配的翻译（满足：翻译时间 ≤ 主歌词时间）
+    let translate = '';
+    while (transIndex < transQueue.length) {
+      const transEntry = transQueue[transIndex];
+
+      // 主时间超前翻译时间
+      if (mainEntry.timestamp >= transEntry.timestamp) {
+        translate=transEntry.text;
+        transIndex++;
+      } else {
+        break; // 后续翻译时间更大，停止查找
+      }
+    }
+
+    return {
+      timestamp: mainEntry.timestamp,
+      lyricText: mainEntry.text,
+      nextTime,
+      translate
+    };
+  });
+}
+
+function parseKaraokeLyric(lyricData) {
+  const SEGMENT_REGEX = /\[(\d+),(\d+)]\s*((?:\(\d+,\d+,\d+\).*?)+)(?=\n\[|\n$)/g;
+  const WORD_REGEX = /\((\d+),(\d+),\d+\)\s*((?:.(?!\(\d+,))*?.)(?=\s*\(|\s*$)/gs; // 注意添加 s 标志允许 . 匹配换行符
+
+  const result = [];
+  let segmentMatch;
+
+  while ((segmentMatch = SEGMENT_REGEX.exec(lyricData)) !== null) {
+    const [_, segStart, segDuration, content] = segmentMatch;
+    const words = [];
+
+    let wordMatch;
+    while ((wordMatch = WORD_REGEX.exec(content)) !== null) {
+      const [_, start, duration, text] = wordMatch;
+      words.push({
+        start: parseInt(start, 10),
+        duration: parseInt(duration, 10),
+        text: text.trim()
+      });
+    }
+
+    result.push({
+      segmentStart: parseInt(segStart, 10),
+      segmentDuration: parseInt(segDuration, 10),
+      words
     });
   }
 
-  while ((match_ts = regex.exec(data_ts)) !== null) {
-    const minutes = parseInt(match_ts[1], 10);
-    const seconds = parseFloat(match_ts[2]);
-    const lyricTs = match_ts[3].trim();
-    // 将时间戳转换为秒数
-    const timestamp = minutes * 60 + seconds;
-    parsedLyricsTs.push({
-      timestamp,
-      lyricTs
-    });
-  }
-
-  parsedLyrics= parsedLyrics.map((item, index) => ({
-    ...item,
-    nextTime: parsedLyrics[index + 1]?.timestamp || Infinity,
-    translate:item.timestamp>=parsedLyricsTs[0]?.timestamp? parsedLyricsTs.shift().lyricTs:null
-  }))
-
-  return parsedLyrics
+  return result;
 }
 
 ipcMain.handle('getLyrics',async (_, path)=>{
   const lyrics_data =await getLyrics(path)
   return parseLrc(lyrics_data?.lyrics,lyrics_data?.lyrics_ts,lyrics_data?.type)
+})
+
+ipcMain.on('openPath',(_, path)=>{
+  shell.showItemInFolder(path)
 })
 
 app.on('window-all-closed', () => {
