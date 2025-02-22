@@ -63,6 +63,9 @@ watch(() => metadata.path, async () => {
 }, {immediate: true})
 
 const reLocal=()=>{
+  if (isScroll.value){
+    return;
+  }
   lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
     behavior: 'smooth',
     block: 'center',
@@ -153,7 +156,7 @@ onMounted(async () => {
       reLocal()
       clearTimeout(timer)
     },3000)
-  },200)
+  },300)
 
 })
 
@@ -251,8 +254,14 @@ async function selectLrc() {
   }
 }
 async function switchLrc(lrcData) {
-  const parsedLrc = await window.electron.ipcRenderer.invoke('switchLrc', toRaw(lrcData))
-  console.log("swLrc:",parsedLrc)
+  const data = await window.electron.ipcRenderer.invoke('switchLrc', toRaw(lrcData))
+  parsedLyrics.value=data?.parsedLrc||[]
+  lrcType.value=data?.type||''
+  showLrcModal.value=false
+  await nextTick()
+  lyricsList=document.querySelectorAll('.lyrics');
+
+  console.log(parsedLyrics.value)
 }
 
 async function openPath() {
@@ -343,8 +352,9 @@ async function openPath() {
              :src="src? src:placeholder"
              alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">
 
-        <span class="w-3/5 flex items-center justify-start h-16 mt-8">
-<span class="grow flex flex-col items-start justify-center truncate" id="musicInfo">
+        <div class="relative w-3/5 flex items-center justify-start h-16 mt-8 group">
+          <span class="group-hover:opacity-100 opacity-0 duration-200 text-[12px] text-zinc-50/70 absolute w-full max-h-10 bottom-14 text-clip">{{ metadata.title }}{{metadata.artist ? ' - '+metadata.artist : ' - 未知歌手'}}</span>
+          <span class="grow flex flex-col items-start justify-center truncate" id="musicInfo">
   <span class="text-zinc-50/80 text-xl truncate">{{ metadata.title }}</span>
   <span class="text-zinc-50/70 text-[14px] truncate font-light">{{
       metadata.artist ? metadata.artist : '未知歌手'
@@ -387,7 +397,8 @@ async function openPath() {
           </svg>
         </label>
 </span>
-      </span>
+      </div>
+
         <div class="w-3/5 flex flex-col items-center justify-center h-4 mt-4">
           <input
             id="playProcess2"
@@ -598,9 +609,9 @@ async function openPath() {
              class="pl-4 w-full will-change-transform cursor-pointer hover:bg-zinc-100/10 rounded lyrics"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
-            {{ data.lyricText }}
-            <br v-if="data.translate">
-            <p v-if="data.translate" class="text-xl text-zinc-50/40 w-full">{{data.translate}}</p>
+            {{ data.lyricText.split(' / ')[0] }}
+            <br v-if="data.translate||data.lyricText.split(' / ')[1]">
+            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="text-xl text-zinc-50/40 w-full">{{data.translate? data.translate:data.lyricText.split(' / ')[1]}}</p>
           </div>
           <span class="h-[25vh] w-full"></span>
         </div>

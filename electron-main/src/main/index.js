@@ -277,7 +277,7 @@ const parseLyrics = (text) => {
   return entries;
 };
 
-function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
+function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.8){
   // 解析翻译歌词并建立查找队列
   const transQueue = lyricData_ts ? parseLyrics(lyricData_ts) : [];
   let transIndex = 0;  // 翻译指针（按时间顺序推进）
@@ -303,10 +303,6 @@ function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
     while (transIndex < transQueue.length) {
       const transEntry = transQueue[transIndex];
 
-      if (!transEntry.lyricText){
-        transIndex++;
-        continue;
-      }
       // 主时间超前翻译时间(带容差)
       if (mainEntry.segmentStart >= transEntry.segmentStart-tolerance) {
         if (mainEntry.segmentStart <= transEntry.segmentStart + tolerance){
@@ -332,9 +328,26 @@ function parseLrc(lyricData, lyricData_ts) {
   return  mergeTranslations(mainLyrics, lyricData_ts)
 }
 
-function parseYrcLyric(lyricData, lyricData_ts) {
-  const SEGMENT_REGEX = /\[(\d+),(\d+)]\s*((?:\(\d+,\d+,\d+\).*?)+)(?=\n\[|\n$)/g;
-  const WORD_REGEX = /\((\d+),(\d+),\d+\)\s*((?:.(?!\(\d+,))*?.)(?=\s*\(|\s*$)/gs; // 注意添加 s 标志允许 . 匹配换行符
+function parseKaraOkLyric(lyricData, lyricData_ts,type) {
+  const SEGMENT_REGEX = /\[(\d+),(\d+)](.*?)(\r?\n|$)/g;
+
+  // 注意添加 s 标志允许 . 匹配换行符
+  let WORD_REGEX;
+  let startIndex;
+  let durationIndex;
+  let textIndex;
+  if (type ==='.yrc'){
+    WORD_REGEX = /\((\d+),(\d+),\d+\)\s*((?:.(?!\(\d+,))*.)/g;
+    startIndex=1;
+    durationIndex=2;
+    textIndex=3;
+  }
+  if (type === '.qrc'){
+    WORD_REGEX = /([^(]*?)((?:.(?!\(\d+,))*.)\((\d+),(\d+)\)/g;
+    startIndex=3;
+    durationIndex=4;
+    textIndex=2;
+  }
 
   // 毫秒转秒（保留3位小数）
   const msToSec = (ms) => parseFloat((parseInt(ms, 10) / 1000).toFixed(3));
@@ -348,11 +361,10 @@ function parseYrcLyric(lyricData, lyricData_ts) {
 
     let wordMatch;
     while ((wordMatch = WORD_REGEX.exec(content)) !== null) {
-      const [_, start, duration, text] = wordMatch;
       words.push({
-        start: msToSec(start),
-        duration: msToSec(duration),
-        lyricWord: text.trim()
+        start: msToSec(wordMatch[startIndex]),
+        duration: msToSec(wordMatch[durationIndex]),
+        lyricWord: wordMatch[textIndex].trim()
       });
     }
     result.push({
@@ -371,17 +383,17 @@ ipcMain.handle('getLyrics',async (_, path)=>{
   if (lyrics_data?.type==='.lrc'){
     return {parsedLrc:parseLrc(lyrics_data?.lyrics,lyrics_data?.lyrics_ts),type:lyrics_data?.type}
   }
-  if (lyrics_data?.type==='.yrc'){
-    return {parsedLrc:parseYrcLyric(lyrics_data?.lyrics,lyrics_data?.lyrics_ts),type:lyrics_data?.type}
+  if (lyrics_data?.type==='.yrc'||lyrics_data?.type==='.qrc'){
+    return {parsedLrc:parseKaraOkLyric(lyrics_data?.lyrics,lyrics_data?.lyrics_ts,lyrics_data?.type),type:lyrics_data?.type}
   }
 })
 
 ipcMain.handle('switchLrc',async (_, lrcData)=>{
 
   if (lrcData?.yrc){
-    return parseYrcLyric(lrcData?.yrc,lrcData?.translate)
+    return {parsedLrc:parseKaraOkLyric(lrcData?.yrc,lrcData?.translate,'.yrc'),type:'.yrc'}
   }
-  return parseLrc(lrcData?.yrc,lrcData?.translate)
+  return {parsedLrc:parseLrc(lrcData?.lrc,lrcData?.translate),type:'.lrc'}
 
 })
 
