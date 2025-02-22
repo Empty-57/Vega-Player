@@ -1,6 +1,6 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
-import {onMounted, ref, useTemplateRef, watch,nextTick} from "vue";
+import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw} from "vue";
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
@@ -26,6 +26,7 @@ const {
 const src = ref('')
 const isLoaded = ref(false)
 const parsedLyrics = ref([])
+const lrcType=ref('')
 
 const lrcCurrentIndex=ref(0)
 
@@ -51,7 +52,9 @@ watch(() => metadata.path, async () => {
   lrcCurrentIndex.value=0
   src.value = await getCover();
 
-  parsedLyrics.value = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
+  const data = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
+  parsedLyrics.value=data?.parsedLrc||[]
+  lrcType.value=data?.type||''
   console.log(parsedLyrics.value)
 
   await nextTick()
@@ -74,9 +77,9 @@ function findCurrentLine(time) {
     const mid = Math.floor((low + high) / 2)
     const current = parsedLyrics.value[mid]
 
-    if (time >= current.timestamp && time < current.nextTime) {
+    if (time >= current.segmentStart && time < current.nextTime) {
       return mid
-    } else if (time < current.timestamp) {
+    } else if (time < current.segmentStart) {
       high = mid - 1
     } else {
       low = mid + 1
@@ -246,9 +249,10 @@ async function selectLrc() {
   }catch (err){
     console.error(err)
   }
-
-}function switchLrc(){
-
+}
+async function switchLrc(lrcData) {
+  const parsedLrc = await window.electron.ipcRenderer.invoke('switchLrc', toRaw(lrcData))
+  console.log("swLrc:",parsedLrc)
 }
 
 async function openPath() {
@@ -592,7 +596,7 @@ async function openPath() {
              :class="[lrcCurrentIndex===index? 'text-zinc-50 text-3xl':'text-2xl text-zinc-50/40',useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'' ]"
              :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
              class="pl-4 w-full will-change-transform cursor-pointer hover:bg-zinc-100/10 rounded lyrics"
-               @dblclick="onPlaySkip_Lrc(data.timestamp)"
+               @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
             {{ data.lyricText }}
             <br v-if="data.translate">
@@ -620,12 +624,12 @@ async function openPath() {
           </div>
 
           <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
-                @click="switchLrc"
+                @click="switchLrc(data)"
           >使用</span>
 
         </div>
 
-      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center min-h-12"
+      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
             @click.stop="()=>{
                 searchLrcOffset++
                 selectLrc()

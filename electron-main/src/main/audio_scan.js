@@ -71,7 +71,7 @@ async function cacheSender(filePath, event, channel) {
   });
 }
 
-const LYRIC_EXTS = ['.yrc', '.lrc'];
+const LYRIC_EXTS = ['.qrc','.yrc', '.lrc'];
 const LYRIC_VTS_SUFFIX = '_Vts.lrc';
 const getLyricPaths = (filePath) => {
   const dir = path.dirname(filePath);

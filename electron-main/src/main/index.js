@@ -253,72 +253,91 @@ ipcMain.on('setTrayTitle', (_, title) => {
     mainWindow.setTitle(title);
   }
 })
-function parseLrc(data, data_ts, type) {
-  const LRC_REGEX = /\[(\d{2}):(\d{2}\.\d{2,3})](.*?)(\r?\n|$)/g;
-
-  // 时间戳解析
-  const parseTime = (m, s) => {
-    const minutes = parseInt(m, 10);
-    const seconds = parseFloat(s);
-    return minutes * 60 + seconds;
-  };
-
-  // 歌词解析器（保持原有顺序）
-  const parseLyrics = (text) => {
-    const entries = [];
-    let match;
-    while ((match = LRC_REGEX.exec(text)) !== null) {
-      try {
+const LRC_REGEX = /\[(\d{2}):(\d{2}\.\d{2,3})](.*?)(\r?\n|$)/g;
+// 时间戳解析
+const parseTime = (m, s) => {
+  const minutes = parseInt(m, 10);
+  const seconds = parseFloat(s);
+  return minutes * 60 + seconds;
+};
+// 歌词解析器（保持原有顺序）
+const parseLyrics = (text) => {
+  const entries = [];
+  let match;
+  while ((match = LRC_REGEX.exec(text)) !== null) {
+    try {
         entries.push({
-          timestamp: parseTime(match[1], match[2]),
-          text: match[3].trim()
+          segmentStart: parseTime(match[1], match[2]),
+          lyricText: match[3].trim()
         });
-      } catch (err) {
-        console.warn('Invalid lyric line:', match[0], err.message);
-      }
+    } catch (err) {
+      console.warn('Invalid lyric line:', match[0], err.message);
     }
-    return entries;
-  };
+  }
+  return entries;
+};
 
-  // 解析主歌词（保持原始顺序）
-  const mainLyrics = parseLyrics(data || '');
-
+function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
   // 解析翻译歌词并建立查找队列
-  const transQueue = data_ts ? parseLyrics(data_ts) : [];
+  const transQueue = lyricData_ts ? parseLyrics(lyricData_ts) : [];
   let transIndex = 0;  // 翻译指针（按时间顺序推进）
 
   // 构建最终结果
-  return mainLyrics.map((mainEntry, index) => {
-    const nextTime = index < mainLyrics.length - 1
-      ? mainLyrics[index + 1].timestamp
+  return parsedLrcData.map((mainEntry, index) => {
+    const nextTime = index < parsedLrcData.length - 1
+      ? parsedLrcData[index + 1].segmentStart
       : Infinity;
 
-    // 寻找匹配的翻译（满足：翻译时间 ≤ 主歌词时间）
+    // 寻找匹配的翻译（满足：翻译时间 ≤ 主歌词时间(带容差)）
     let translate = '';
+
+    if (!mainEntry.lyricText) {
+      return {
+        ...mainEntry,
+        nextTime,
+        translate
+      };
+    }
+
+
     while (transIndex < transQueue.length) {
       const transEntry = transQueue[transIndex];
 
-      // 主时间超前翻译时间
-      if (mainEntry.timestamp >= transEntry.timestamp) {
-        translate=transEntry.text;
+      if (!transEntry.lyricText){
         transIndex++;
+        continue;
+      }
+      // 主时间超前翻译时间(带容差)
+      if (mainEntry.segmentStart >= transEntry.segmentStart-tolerance) {
+        if (mainEntry.segmentStart <= transEntry.segmentStart + tolerance){
+          translate=transEntry.lyricText;
+        }
       } else {
         break; // 后续翻译时间更大，停止查找
       }
+      transIndex++;
     }
-
     return {
-      timestamp: mainEntry.timestamp,
-      lyricText: mainEntry.text,
+      ...mainEntry,
       nextTime,
       translate
     };
   });
 }
 
-function parseKaraokeLyric(lyricData) {
+function parseLrc(lyricData, lyricData_ts) {
+  // 解析主歌词（保持原始顺序）
+  const mainLyrics = parseLyrics(lyricData || '');
+
+  return  mergeTranslations(mainLyrics, lyricData_ts)
+}
+
+function parseYrcLyric(lyricData, lyricData_ts) {
   const SEGMENT_REGEX = /\[(\d+),(\d+)]\s*((?:\(\d+,\d+,\d+\).*?)+)(?=\n\[|\n$)/g;
   const WORD_REGEX = /\((\d+),(\d+),\d+\)\s*((?:.(?!\(\d+,))*?.)(?=\s*\(|\s*$)/gs; // 注意添加 s 标志允许 . 匹配换行符
+
+  // 毫秒转秒（保留3位小数）
+  const msToSec = (ms) => parseFloat((parseInt(ms, 10) / 1000).toFixed(3));
 
   const result = [];
   let segmentMatch;
@@ -331,25 +350,39 @@ function parseKaraokeLyric(lyricData) {
     while ((wordMatch = WORD_REGEX.exec(content)) !== null) {
       const [_, start, duration, text] = wordMatch;
       words.push({
-        start: parseInt(start, 10),
-        duration: parseInt(duration, 10),
-        text: text.trim()
+        start: msToSec(start),
+        duration: msToSec(duration),
+        lyricWord: text.trim()
       });
     }
-
     result.push({
-      segmentStart: parseInt(segStart, 10),
-      segmentDuration: parseInt(segDuration, 10),
-      words
+      segmentStart: msToSec(segStart),
+      segmentDuration: msToSec(segDuration),
+      words,
+      lyricText:words?.map(item => item.lyricWord).join(''),
     });
   }
 
-  return result;
+  return mergeTranslations(result, lyricData_ts);
 }
 
 ipcMain.handle('getLyrics',async (_, path)=>{
   const lyrics_data =await getLyrics(path)
-  return parseLrc(lyrics_data?.lyrics,lyrics_data?.lyrics_ts,lyrics_data?.type)
+  if (lyrics_data?.type==='.lrc'){
+    return {parsedLrc:parseLrc(lyrics_data?.lyrics,lyrics_data?.lyrics_ts),type:lyrics_data?.type}
+  }
+  if (lyrics_data?.type==='.yrc'){
+    return {parsedLrc:parseYrcLyric(lyrics_data?.lyrics,lyrics_data?.lyrics_ts),type:lyrics_data?.type}
+  }
+})
+
+ipcMain.handle('switchLrc',async (_, lrcData)=>{
+
+  if (lrcData?.yrc){
+    return parseYrcLyric(lrcData?.yrc,lrcData?.translate)
+  }
+  return parseLrc(lrcData?.yrc,lrcData?.translate)
+
 })
 
 ipcMain.on('openPath',(_, path)=>{
