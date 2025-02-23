@@ -311,7 +311,7 @@ setInterval(() => {
   if (!canListenTime.value) {
     return;
   }
-  if (count > 9) {
+  if (count >= 99) {
     count = 0;
     currentSec.value = sound.seek();
     playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
@@ -326,7 +326,7 @@ setInterval(() => {
   }
   count++;
   currentSecMs.value = sound.seek();
-}, 100 / rate.value);
+}, 10 / rate.value);
 
 function SwitchLikes(event, args) {
   if (currentLocal.value === 'Locals') {

@@ -331,7 +331,6 @@ function parseLrc(lyricData, lyricData_ts) {
 function parseKaraOkLyric(lyricData, lyricData_ts,type) {
   const SEGMENT_REGEX = /\[(\d+),(\d+)](.*?)(\r?\n|$)/g;
 
-  // 注意添加 s 标志允许 . 匹配换行符
   let WORD_REGEX;
   let startIndex;
   let durationIndex;
@@ -343,10 +342,10 @@ function parseKaraOkLyric(lyricData, lyricData_ts,type) {
     textIndex=3;
   }
   if (type === '.qrc'){
-    WORD_REGEX = /([^(]*?)((?:.(?!\(\d+,))*.)\((\d+),(\d+)\)/g;
-    startIndex=3;
-    durationIndex=4;
-    textIndex=2;
+    WORD_REGEX = /[^(]*?((?:.(?!\(\d+,))*.)\((\d+),(\d+)\)/g;
+    startIndex=2;
+    durationIndex=3;
+    textIndex=1;
   }
 
   // 毫秒转秒（保留3位小数）
