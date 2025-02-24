@@ -1,6 +1,6 @@
 <script setup>
 import placeholder from '../assets/placeholder.jpg';
-import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw} from "vue";
+import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw,computed} from "vue";
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
@@ -43,22 +43,41 @@ const musicLrcData=ref([])
 
 const searchLrcOffset=ref(0)
 
+const effectLrcProcess=ref('0%')
+
 let coverImg = null;
 let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
 let lyricsList=[]
 
+function decodeHTMLEntities(text) {
+  const textarea = document.createElement('div');
+  textarea.innerHTML = text;
+  return textarea.textContent || textarea.innerText || '';
+}
+
+
+async function syncLrc(data) {
+  parsedLyrics.value = data?.parsedLrc || []
+  lrcType.value = data?.type || ''
+
+  parsedLyrics.value=parsedLyrics.value.map(item =>{
+    return {
+      ...item,
+      lyricText:decodeHTMLEntities(item.lyricText),
+    }
+  })
+
+  console.log(parsedLyrics.value,lrcType.value)
+  await nextTick()
+  lyricsList = document.querySelectorAll('.lyrics');
+}
 
 watch(() => metadata.path, async () => {
   lrcCurrentIndex.value=0
   src.value = await getCover();
 
   const data = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
-  parsedLyrics.value=data?.parsedLrc||[]
-  lrcType.value=data?.type||''
-  console.log(parsedLyrics.value)
-
-  await nextTick()
-  lyricsList=document.querySelectorAll('.lyrics');
+  await syncLrc(data)
 
 }, {immediate: true})
 
@@ -71,6 +90,14 @@ const reLocal=()=>{
     block: 'center',
   })
 }
+
+const accumulated = ref(0)
+
+const wordIndex=ref(0)
+
+const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.start||1)
+const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||1)
+
 
 function findCurrentLine(time) {
   let low = 0
@@ -94,12 +121,25 @@ function findCurrentLine(time) {
 watch(()=> currentSecMs,()=>{
   const newIndex = findCurrentLine(currentSecMs)
   if (newIndex !== lrcCurrentIndex.value) {
+
     lrcCurrentIndex.value=newIndex
-    if (isScroll.value){
-      return;
+    accumulated.value = 0
+    wordIndex.value=0
+
+    if (!isScroll.value){
+      reLocal()
     }
-    reLocal()
   }
+
+  if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
+
+  if (currentSecMs >= start.value+duration.value) {
+    wordIndex.value++
+  }
+  accumulated.value += parsedLyrics.value[lrcCurrentIndex.value].lrcAverage/duration.value
+
+  effectLrcProcess.value = `${accumulated.value}%`
+
 })
 
 EventBus.on('setPauseBtn', flag => {
@@ -255,13 +295,10 @@ async function selectLrc() {
 }
 async function switchLrc(lrcData) {
   const data = await window.electron.ipcRenderer.invoke('switchLrc', toRaw(lrcData))
-  parsedLyrics.value=data?.parsedLrc||[]
-  lrcType.value=data?.type||''
-  showLrcModal.value=false
-  await nextTick()
-  lyricsList=document.querySelectorAll('.lyrics');
 
-  console.log(parsedLyrics.value)
+  await syncLrc(data)
+
+  showLrcModal.value=false
 }
 
 async function openPath() {
@@ -600,18 +637,25 @@ async function openPath() {
       </div>
 
       <div id="LrcBox"
-           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8">
-        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-center justify-center gap-y-4 *:duration-500">
+           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
+        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <span class="h-[25vh] w-full"></span>
           <div v-for="(data,index) in parsedLyrics"
-             :class="[lrcCurrentIndex===index? 'text-zinc-50 text-3xl':'text-2xl text-zinc-50/40',useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'' ]"
+               :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
              :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
-             class="pl-4 w-full will-change-transform cursor-pointer hover:bg-zinc-100/10 rounded lyrics"
+             class="will-change-transform cursor-pointer lyrics"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
-            {{ data.lyricText.split(' / ')[0] }}
-            <br v-if="data.translate||data.lyricText.split(' / ')[1]">
-            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="text-xl text-zinc-50/40 w-full">{{data.translate? data.translate:data.lyricText.split(' / ')[1]}}</p>
+            <p
+              class="will-change-transform origin-left text-2xl duration-500 mb-1"
+              :class="[lrcCurrentIndex===index? (lrcType==='.lrc'? 'text-zinc-50': 'effectLrc text-zinc-50/40')+' scale-115':'text-zinc-50/40',]"
+            >
+              {{ data.lyricText.split(' / ')[0] }}
+            </p>
+            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="text-xl text-zinc-50/40 w-full whitespace-pre-line">
+
+              {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
+            </p>
           </div>
           <span class="h-[25vh] w-full"></span>
         </div>
@@ -662,6 +706,14 @@ async function openPath() {
 
 #musicInfo{
   mask: linear-gradient(to left, transparent 0%, #000 10%);
+}
+
+.effectLrc{
+  background-image:linear-gradient(to right,
+  #fafafa v-bind(effectLrcProcess),
+  transparent v-bind(effectLrcProcess)
+  );
+  background-clip: text;
 }
 
 .simpleCover {

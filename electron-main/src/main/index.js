@@ -349,7 +349,13 @@ function parseKaraOkLyric(lyricData, lyricData_ts,type) {
   }
 
   // 毫秒转秒（保留3位小数）
-  const msToSec = (ms) => parseFloat((parseInt(ms, 10) / 1000).toFixed(3));
+  const msToSec = (ms) => {
+    let sec=parseFloat((parseInt(ms, 10) / 1000).toFixed(3))
+    if (sec ===0.0){
+      sec = 0.01
+    }
+    return sec;
+  };
 
   const result = [];
   let segmentMatch;
@@ -363,7 +369,7 @@ function parseKaraOkLyric(lyricData, lyricData_ts,type) {
       words.push({
         start: msToSec(wordMatch[startIndex]),
         duration: msToSec(wordMatch[durationIndex]),
-        lyricWord: wordMatch[textIndex].trim()
+        lyricWord: wordMatch[textIndex].replace('\n','')
       });
     }
     result.push({
@@ -371,6 +377,7 @@ function parseKaraOkLyric(lyricData, lyricData_ts,type) {
       segmentDuration: msToSec(segDuration),
       words,
       lyricText:words?.map(item => item.lyricWord).join(''),
+      lrcAverage:1/words.length,
     });
   }
 
