@@ -336,7 +336,7 @@ function parseKaraOkLyric(lyricData, lyricData_ts,type) {
   let durationIndex;
   let textIndex;
   if (type ==='.yrc'){
-    WORD_REGEX = /\((\d+),(\d+),\d+\)\s*((?:.(?!\(\d+,))*.)/g;
+    WORD_REGEX = /\((\d+),(\d+),\d+\)[^(]*?((?:.(?!\(\d+,))*.)/g;
     startIndex=1;
     durationIndex=2;
     textIndex=3;

@@ -55,6 +55,15 @@ function decodeHTMLEntities(text) {
   return textarea.textContent || textarea.innerText || '';
 }
 
+const reLocal=()=>{
+  if (isScroll.value){
+    return;
+  }
+  lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
+}
 
 async function syncLrc(data) {
   parsedLyrics.value = data?.parsedLrc || []
@@ -74,6 +83,7 @@ async function syncLrc(data) {
 
 watch(() => metadata.path, async () => {
   lrcCurrentIndex.value=0
+  reLocal()
   src.value = await getCover();
 
   const data = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
@@ -81,17 +91,7 @@ watch(() => metadata.path, async () => {
 
 }, {immediate: true})
 
-const reLocal=()=>{
-  if (isScroll.value){
-    return;
-  }
-  lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'center',
-  })
-}
-
-const accumulated = ref(0)
+let accumulated = 0
 
 const wordIndex=ref(0)
 
@@ -99,12 +99,29 @@ const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIn
 const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||1)
 
 
-function findCurrentLine(time) {
+function findCurrentLine(time,hint) {
+
+  const lyrics = parsedLyrics.value;
+  const n = lyrics.length;
+
+  // 检查提示位置附近
+  if (hint > 0 && hint < n) {
+    if (time >= lyrics[hint].segmentStart &&
+      time < lyrics[hint].nextTime) {
+      return hint;
+    }
+    if (hint + 1 < n &&
+      time >= lyrics[hint+1].segmentStart &&
+      time < lyrics[hint+1].nextTime) {
+      return hint + 1;
+    }
+  }
+
   let low = 0
   let high = parsedLyrics.value.length - 1
 
   while (low <= high) {
-    const mid = Math.floor((low + high) / 2)
+    const mid = (low + high) >> 1; // 位运算优化
     const current = parsedLyrics.value[mid]
 
     if (time >= current.segmentStart && time < current.nextTime) {
@@ -119,11 +136,11 @@ function findCurrentLine(time) {
 }
 
 watch(()=> currentSecMs,()=>{
-  const newIndex = findCurrentLine(currentSecMs)
+  const newIndex = findCurrentLine(currentSecMs,lrcCurrentIndex.value)
   if (newIndex !== lrcCurrentIndex.value) {
 
     lrcCurrentIndex.value=newIndex
-    accumulated.value = 0
+    accumulated = 0
     wordIndex.value=0
 
     if (!isScroll.value){
@@ -133,17 +150,19 @@ watch(()=> currentSecMs,()=>{
 
   if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
 
-  if (currentSecMs >= start.value+duration.value) {
+  if (currentSecMs >= start.value+duration.value&&wordIndex.value<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length) {
     wordIndex.value++
   }
-  accumulated.value += parsedLyrics.value[lrcCurrentIndex.value].lrcAverage/duration.value
+  accumulated += (parsedLyrics.value[lrcCurrentIndex.value]?.lrcAverage/duration.value)||0
 
-  effectLrcProcess.value = `${accumulated.value}%`
+  effectLrcProcess.value = `${accumulated}%`
 
 })
 
 EventBus.on('setPauseBtn', flag => {
-  playPause2.value.checked = flag
+  if (playPause2.value){
+    playPause2.value.checked = flag
+  }
 })
 
 
@@ -191,10 +210,11 @@ onMounted(async () => {
 
   lrc_box.onmousewheel = useDebounceFn(() => {
     isScroll.value=true
-    const timer= setTimeout(()=> {
+    let timer= setTimeout(()=> {
       isScroll.value = false
       reLocal()
       clearTimeout(timer)
+      timer = null
     },3000)
   },300)
 
@@ -643,23 +663,26 @@ async function openPath() {
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
              :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
-             class="will-change-transform cursor-pointer lyrics"
+             class="cursor-pointer lyrics"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
-            <p
-              class="will-change-transform origin-left text-2xl duration-500 mb-1"
-              :class="[lrcCurrentIndex===index? (lrcType==='.lrc'? 'text-zinc-50': 'effectLrc text-zinc-50/40')+' scale-115':'text-zinc-50/40',]"
-            >
-              {{ data.lyricText.split(' / ')[0] }}
-            </p>
-            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="text-xl text-zinc-50/40 w-full whitespace-pre-line">
 
+            <p :class="{'scale-115':lrcCurrentIndex===index}" class="origin-left duration-500 will-change-transform">
+              <span
+                class="text-2xl"
+                :class="[lrcCurrentIndex===index? (lrcType==='.lrc'? 'text-zinc-50': 'effectLrc text-zinc-50/40'):'text-zinc-50/40']"
+              >
+              {{ data.lyricText.split(' / ')[0] }}
+            </span>
+            </p>
+
+            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="mt-1 text-xl text-zinc-50/40 w-full">
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
           </div>
           <span class="h-[25vh] w-full"></span>
         </div>
-        <p v-else>无歌词文件或歌词文件格式错误</p>
+        <p v-else class="h-fit absolute m-auto top-0 bottom-0">无歌词文件或歌词文件格式错误</p>
       </div>
     </div>
 
@@ -693,8 +716,8 @@ async function openPath() {
 
     </div>
 
-    <div :class="[useEffects? 'effectCover':'simpleCover']"
-         class="w-full h-screen absolute left-0 right-0 brightness-65 z-22 will-change-transform"></div>
+    <div :class="[useEffects? 'effectCover will-change-transform':'simpleCover']"
+         class="w-full h-screen absolute left-0 right-0 brightness-65 z-22"></div>
 
   </div>
 </template>
@@ -709,10 +732,9 @@ async function openPath() {
 }
 
 .effectLrc{
-  background-image:linear-gradient(to right,
-  #fafafa v-bind(effectLrcProcess),
-  transparent v-bind(effectLrcProcess)
-  );
+  background:linear-gradient(to right,
+  #fafafa v-bind(effectLrcProcess) ,
+  transparent calc(v-bind(effectLrcProcess) + 10%)) no-repeat;
   background-clip: text;
 }
 
