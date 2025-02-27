@@ -311,6 +311,7 @@ setInterval(() => {
   if (!canListenTime.value) {
     return;
   }
+  currentSecMs.value = sound.seek();
   if (count >= 99) {
     count = 0;
     currentSec.value = sound.seek();
@@ -325,7 +326,6 @@ setInterval(() => {
         .padStart(2, '0');
   }
   count++;
-  currentSecMs.value = sound.seek();
 }, 10 / rate.value);
 
 function SwitchLikes(event, args) {
@@ -444,6 +444,7 @@ function onPlaySkip_Lrc(timestamp){
       <img
         :src="metadata.src ? metadata.src : placeholder"
         alt=""
+        style="-webkit-user-drag: none;"
         class="size-11 object-cover rounded-sm cursor-pointer hover:brightness-60 duration-200"
         @click="() =>{isShowPlayPage=true}"
       />

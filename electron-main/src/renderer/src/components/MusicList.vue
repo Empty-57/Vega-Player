@@ -604,6 +604,7 @@ function editMetadata() {
           <img
             :src="metadata.data.src ? metadata.data.src : placeholder"
             alt=""
+            style="-webkit-user-drag: none;"
             class="rounded size-10 object-cover"
             loading="lazy"
           />
