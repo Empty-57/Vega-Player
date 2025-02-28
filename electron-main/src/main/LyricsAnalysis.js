@@ -110,6 +110,16 @@ export function parseKaraOkLyric(lyricData, lyricData_ts,type) {
 
     let wordMatch;
     while ((wordMatch = WORD_REGEX.exec(content)) !== null) {
+
+      if (msToSec(wordMatch[startIndex])===words[words.length - 1]?.start){
+        words[words.length - 1]={
+          start: msToSec(wordMatch[startIndex]),
+          duration: msToSec(wordMatch[durationIndex]),
+          lyricWord: (words[words.length - 1].lyricWord+wordMatch[textIndex]).replace('\n','')
+        }
+        continue;
+      }
+
       words.push({
         start: msToSec(wordMatch[startIndex]),
         duration: msToSec(wordMatch[durationIndex]),
@@ -121,7 +131,6 @@ export function parseKaraOkLyric(lyricData, lyricData_ts,type) {
       segmentDuration: msToSec(segDuration),
       words,
       lyricText:words?.map(item => item.lyricWord).join(''),
-      lrcAverage:1/words.length,
     });
   }
 

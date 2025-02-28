@@ -5,7 +5,8 @@ import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
 import {useDebounceFn} from "@vueuse/core";
-import axios from "axios";
+
+import {getLrcBySearch} from '../../../Api/apis.js'
 
 
 const colorThief = new ColorThief();
@@ -45,6 +46,8 @@ const searchLrcOffset=ref(0)
 
 const effectLrcProcess=ref('0%')
 
+const apiSource=ref(0)
+
 let coverImg = null;
 let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
 let lyricsList=[]
@@ -83,11 +86,11 @@ async function syncLrc(data) {
 
 watch(() => metadata.path, async () => {
   lrcCurrentIndex.value=0
-  reLocal()
   src.value = await getCover();
 
   const data = await window.electron.ipcRenderer.invoke('getLyrics', metadata.path)
   await syncLrc(data)
+  reLocal()
 
 }, {immediate: true})
 
@@ -95,8 +98,20 @@ let accumulated = 0
 
 const wordIndex=ref(0)
 
-const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.start||1)
-const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||1)
+const lrcAverage=computed(() => parsedLyrics.value[lrcCurrentIndex.value]?.lrcAverage||0)
+const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.start||undefined)
+const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||undefined)
+const correction=ref(0)
+
+watch(wordIndex,() => {
+  if (duration.value&&start.value&&Math.abs(currentSecMs-start.value)>=0.01){
+    correction.value = (currentSecMs-start.value)/duration.value/(duration.value-currentSecMs+start.value)
+  }else {
+    correction.value =0
+  }
+
+  console.log(correction.value)
+})
 
 
 function findCurrentLine(time,hint) {
@@ -152,9 +167,11 @@ watch(()=> currentSecMs,()=>{
 
   if (currentSecMs >= start.value+duration.value&&wordIndex.value<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length) {
     wordIndex.value++
+    accumulated=0
   }
-  accumulated += (parsedLyrics.value[lrcCurrentIndex.value]?.lrcAverage/duration.value)||0
 
+  // accumulated += lrcAverage.value/duration.value
+  accumulated+=(1/duration.value+correction.value)||0
   effectLrcProcess.value = `${accumulated}%`
 
 })
@@ -216,7 +233,7 @@ onMounted(async () => {
       clearTimeout(timer)
       timer = null
     },3000)
-  },300)
+  },100)
 
 })
 
@@ -275,39 +292,7 @@ function setVolumeValue(value) {
 async function selectLrc() {
   musicLrcData.value=[]
   try {
-    const {data} = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
-      params: {
-        s: metadata.title,
-        type: 1,
-        offset: searchLrcOffset.value,
-        total: true,
-        limit: 5
-      }
-    })
-    if (!data?.result?.songs){
-      return;
-    }
-    for (const item of data.result.songs) {
-
-      const {data} = await axios.get(`https://music.163.com/api/song/lyric`, {
-        params: {
-          id:item.id,
-          lv:-1,
-          yv:-1,
-          tv:-1,
-          os:'pc'
-        }
-      })
-
-      musicLrcData.value.push({
-        name: item.name,
-        id: item.id,
-        artist: item.ar[0]?.name||'未知',
-        lrc:data?.lrc?.lyric,
-        yrc:data?.yrc?.lyric,
-        translate:data?.tlyric?.lyric
-      })
-    }
+    musicLrcData.value=await getLrcBySearch(metadata.title,searchLrcOffset.value,5,apiSource.value)
     console.log(musicLrcData.value)
   }catch (err){
     console.error(err)
@@ -407,6 +392,7 @@ async function openPath() {
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
         <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
+             style="-webkit-user-drag: none;"
              alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">
 
         <div class="relative w-3/5 flex items-center justify-start h-16 mt-8 group">
@@ -662,15 +648,22 @@ async function openPath() {
           <span class="h-[25vh] w-full"></span>
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
-             :style="{'filter':lrcCurrentIndex===index ||isScroll? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
+             :style="{'filter':lrcCurrentIndex===index ||isScroll ||Math.abs((index - lrcCurrentIndex))>4 ? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
              class="cursor-pointer lyrics"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
-            <p :class="{'scale-115':lrcCurrentIndex===index}" class="origin-left duration-500 will-change-transform">
-              <span
-                class="text-2xl"
-                :class="[lrcCurrentIndex===index? (lrcType==='.lrc'? 'text-zinc-50': 'effectLrc text-zinc-50/40'):'text-zinc-50/40']"
+            <p :class="{'scale-115':lrcCurrentIndex===index}" class="text-2xl origin-left duration-500 will-change-transform">
+              <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
+              >
+                <span
+                  :class="[index2===wordIndex? 'effectLrc text-zinc-50/40':index2<wordIndex? 'text-zinc-50':'text-zinc-50/40',]"
+                  v-for="(word,index2) in data.words">
+                  {{word.lyricWord}}
+                </span>
+              </span>
+              <span v-else
+                :class="[lrcCurrentIndex===index&&lrcType==='.lrc'? 'text-zinc-50':'text-zinc-50/40']"
               >
               {{ data.lyricText.split(' / ')[0] }}
             </span>
@@ -693,12 +686,13 @@ async function openPath() {
          v-if="showLrcModal"
          class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-between backdrop-blur-lg p-4 **:text-zinc-200">
 
+      <p>API：{{['QQ音乐','网易云'][apiSource]}}</p>
       <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
 
-          <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.yrc? '逐字歌词':'逐行歌词'}}]</div>
+          <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
 
           <div class="w-full text-sm overflow-x-hidden overflow-y-scroll whitespace-pre-wrap p-4 max-h-36">
-            {{data.lrc}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
+            {{data.lrc||data.qrc||data.yrc}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
           </div>
 
           <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
