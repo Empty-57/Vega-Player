@@ -10,11 +10,11 @@ import sharp from "sharp";
 import {parseKaraOkLyric,parseLrc} from "./LyricsAnalysis.js";
 
 import {qrc_decrypt} from "./qrcDecrypt.js";
-import {data} from "autoprefixer";
 
 let mainWindow = null;
 let tray = null;
 const singleInstanceLock = app.requestSingleInstanceLock();
+Menu.setApplicationMenu(null)
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -170,7 +170,7 @@ ipcMain.on('saveNetCover', async (_, args) => {
       .resize(800, 800)
       .toBuffer()
 
-    const myFile = File.createFromPath(args.path);
+    const myFile = File.createFromPath(args.songPath);
 
     const pic = {
       data: ByteVector.fromByteArray(picData),

@@ -5,8 +5,8 @@ import {nextTick, onActivated, onDeactivated, ref, useTemplateRef} from 'vue';
 import {useScroll, useVirtualList, watchDebounced} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import EventBus from '../assets/EventBus';
-import axios from "axios";
 import ShowMetadata from "./ShowMetadata.vue";
+import {saveColorByText} from "../../../Api/apis.js";
 
 const emit = defineEmits([
   'SwitchLikes',
@@ -51,6 +51,8 @@ const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list
 const music_list = containerProps.ref;
 const {arrivedState} = useScroll(music_list);
 
+const apiSource=ref(0)
+
 async function getCover(path, flag) {
   let src = await window.electron.ipcRenderer.invoke('getCovers', {path: path, flag: flag});
 
@@ -69,25 +71,12 @@ watchDebounced(
         .map(async item => {
           const path = item.data.path;
           const title = item.data.title;
-          const artist = item.data.artist ? '-' + item.data.artist : '';
+          const artist = item.data.artist ? ' - ' + item.data.artist : '';
 
           const src = await getCover(path, 1);
 
           if (!src) {
-            const {data} = await axios.get(`https://music.163.com/api/cloudsearch/pc`, {
-              params: {
-                s: title + artist,
-                type: 1,
-                offset: 0,
-                total: true,
-                limit: 1
-              }
-            });
-
-            if (data.result?.songCount > 0) {
-              const picUrl = data.result.songs[0].al.picUrl;
-              await window.electron.ipcRenderer.send('saveNetCover', {path, picUrl});
-            }
+            await saveColorByText(title+artist,path,apiSource.value);
           }
 
           if (src) {

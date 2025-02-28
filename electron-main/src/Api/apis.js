@@ -65,6 +65,18 @@ async function neGetLrcBySearch(text,offset,limit){
   }
 }
 
+async function neSaveColorByText(text,songPath){
+  try {
+    const data=await neSearchByText(text,1,1)
+    if (data?.result?.songCount > 0){
+      const picUrl = data.result.songs[0].al.picUrl;
+      await window.electron.ipcRenderer.send('saveNetCover', {songPath, picUrl});
+    }
+  }catch (err){
+    console.error(err)
+  }
+}
+
 
 
 async function qmSearchByText(text,offset,limit){
@@ -135,6 +147,19 @@ async function qmGetLrcBySearch(text,offset,limit){
   }
 }
 
+async function qmSaveColorByText(text,songPath){
+  try {
+    const data=await qmSearchByText(text,1,1)
+    const mid=data?.data?.song?.list[0]?.albummid
+    if (mid){
+        const picUrl = `https://y.gtimg.cn/music/photo_new/T002R800x800M000${mid}.jpg`;
+        await window.electron.ipcRenderer.send('saveNetCover', {songPath, picUrl});
+    }
+  }catch (err){
+    console.error(err)
+  }
+}
+
 export async function searchByText(text,offset,limit,apiSource){
   return await [qmSearchByText,neSearchByText][apiSource](text,offset,limit)
 }
@@ -145,4 +170,8 @@ export async function getLrcById(id,apiSource){
 
 export async function getLrcBySearch(text,offset,limit,apiSource){
   return await [qmGetLrcBySearch,neGetLrcBySearch][apiSource](text,offset,limit)
+}
+
+export async function saveColorByText(text,songPath,apiSource){
+  return [qmSaveColorByText,neSaveColorByText][apiSource](text,songPath)
 }

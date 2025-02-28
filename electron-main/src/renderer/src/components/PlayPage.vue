@@ -98,7 +98,6 @@ let accumulated = 0
 
 const wordIndex=ref(0)
 
-const lrcAverage=computed(() => parsedLyrics.value[lrcCurrentIndex.value]?.lrcAverage||0)
 const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.start||undefined)
 const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||undefined)
 const correction=ref(0)
@@ -109,8 +108,6 @@ watch(wordIndex,() => {
   }else {
     correction.value =0
   }
-
-  console.log(correction.value)
 })
 
 
@@ -215,6 +212,7 @@ function getPalette() {
   }
 }
 
+let timer=null;
 
 onMounted(async () => {
   coverImg = document.getElementById("coverImg")
@@ -227,7 +225,9 @@ onMounted(async () => {
 
   lrc_box.onmousewheel = useDebounceFn(() => {
     isScroll.value=true
-    let timer= setTimeout(()=> {
+    clearTimeout(timer)
+    timer = null
+    timer= setTimeout(()=> {
       isScroll.value = false
       reLocal()
       clearTimeout(timer)
@@ -692,7 +692,7 @@ async function openPath() {
           <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
 
           <div class="w-full text-sm overflow-x-hidden overflow-y-scroll whitespace-pre-wrap p-4 max-h-36">
-            {{data.lrc||data.qrc||data.yrc}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
+            {{data.lrc||data.qrc||data.yrc||'无歌词'}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
           </div>
 
           <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
