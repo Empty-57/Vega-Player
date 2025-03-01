@@ -31,7 +31,7 @@ const lrcType=ref('')
 
 const lrcCurrentIndex=ref(0)
 
-const useEffects = ref(true)
+const useEffects = ref(false)
 const useGlow = ref(true)
 
 const isScroll=ref(false);
@@ -81,7 +81,7 @@ async function syncLrc(data) {
 
   console.log(parsedLyrics.value,lrcType.value)
   await nextTick()
-  lyricsList = document.querySelectorAll('.lyrics');
+  lyricsList = document.querySelectorAll('.lyrics div');
 }
 
 watch(() => metadata.path, async () => {
@@ -97,17 +97,21 @@ watch(() => metadata.path, async () => {
 let accumulated = 0
 
 const wordIndex=ref(0)
-
-const start=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.start||undefined)
-const duration=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value]?.duration||undefined)
-const correction=ref(0)
+const wordInfo=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value])
+const start=ref(0)
+const duration=ref(0.01)
+let correction=0
 
 watch(wordIndex,() => {
-  if (duration.value&&start.value&&Math.abs(currentSecMs-start.value)>=0.01){
-    correction.value = (currentSecMs-start.value)/duration.value/(duration.value-currentSecMs+start.value)
+  start.value=wordInfo.value?.start||null
+  duration.value=wordInfo.value?.duration||null
+
+  if (duration.value&&start.value){
+    correction= 2/(duration.value-currentSecMs+start.value)
   }else {
-    correction.value =0
+    correction =0
   }
+
 })
 
 
@@ -151,9 +155,11 @@ watch(()=> currentSecMs,()=>{
   const newIndex = findCurrentLine(currentSecMs,lrcCurrentIndex.value)
   if (newIndex !== lrcCurrentIndex.value) {
 
-    lrcCurrentIndex.value=newIndex
     accumulated = 0
-    wordIndex.value=0
+    if (lrcType.value!=='.lrc'){
+      wordIndex.value=-1
+    }
+    lrcCurrentIndex.value=newIndex
 
     if (!isScroll.value){
       reLocal()
@@ -162,13 +168,13 @@ watch(()=> currentSecMs,()=>{
 
   if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
 
-  if (currentSecMs >= start.value+duration.value&&wordIndex.value<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length) {
-    wordIndex.value++
+  if (currentSecMs >= start.value+duration.value&&wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length) {
     accumulated=0
+    wordIndex.value++
   }
 
   // accumulated += lrcAverage.value/duration.value
-  accumulated+=(1/duration.value+correction.value)||0
+  accumulated+=correction
   effectLrcProcess.value = `${accumulated}%`
 
 })
@@ -644,12 +650,11 @@ async function openPath() {
 
       <div id="LrcBox"
            class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
-        <div v-if="parsedLyrics.length>0" class="w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
-          <span class="h-[25vh] w-full"></span>
+        <div class="h-[25vh] w-full"></div>
+        <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
-             :style="{'filter':lrcCurrentIndex===index ||isScroll ||Math.abs((index - lrcCurrentIndex))>4 ? 'none':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
-             class="cursor-pointer lyrics"
+             :style="{'filter':lrcCurrentIndex===index ||isScroll ||Math.abs((index - lrcCurrentIndex))>4 ? '':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
@@ -673,9 +678,9 @@ async function openPath() {
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
           </div>
-          <span class="h-[25vh] w-full"></span>
         </div>
         <p v-else class="h-fit absolute m-auto top-0 bottom-0">无歌词文件或歌词文件格式错误</p>
+        <div class="h-[25vh] w-full"></div>
       </div>
     </div>
 
@@ -684,9 +689,15 @@ async function openPath() {
                 showLrcModal = false;
               }"
          v-if="showLrcModal"
-         class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-between backdrop-blur-lg p-4 **:text-zinc-200">
+         class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-start backdrop-blur-lg p-4 **:text-zinc-200">
 
       <p>API：{{['QQ音乐','网易云'][apiSource]}}</p>
+      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
+            @click.stop="()=>{
+                searchLrcOffset++
+                selectLrc()
+              }"
+      >换一批</span>
       <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
 
           <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
@@ -701,17 +712,10 @@ async function openPath() {
 
         </div>
 
-      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
-            @click.stop="()=>{
-                searchLrcOffset++
-                selectLrc()
-              }"
-      >换一批</span>
-
     </div>
 
     <div :class="[useEffects? 'effectCover will-change-transform':'simpleCover']"
-         class="w-full h-screen absolute left-0 right-0 brightness-65 z-22"></div>
+         class="w-full h-screen absolute left-0 right-0 brightness-50 z-22"></div>
 
   </div>
 </template>

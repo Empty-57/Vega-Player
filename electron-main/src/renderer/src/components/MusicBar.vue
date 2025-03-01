@@ -1,7 +1,7 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {onMounted, ref, useTemplateRef, watch} from 'vue';
+import {onMounted, ref, useTemplateRef, watch,onUnmounted} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
@@ -306,27 +306,38 @@ window.electron.ipcRenderer.on('TogglePlay', (_, flag) => {
 })
 
 let count = 0;
+let lrcTimer=null;
+function syncCurrentTime(){
+  lrcTimer = setInterval(() => {
+    if (!canListenTime.value) {
+      return;
+    }
+    currentSecMs.value = sound.seek();
+    if (count >= 49) {
+      count = 0;
+      currentSec.value = sound.seek();
+      playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
+      currentTime.value =
+        Math.floor(currentSec.value / 60)
+          .toString()
+          .padStart(2, '0') +
+        ':' +
+        Math.floor(currentSec.value % 60)
+          .toString()
+          .padStart(2, '0');
+    }
+    count++;
+  }, 20 / rate.value);
+}
 
-setInterval(() => {
-  if (!canListenTime.value) {
-    return;
-  }
-  currentSecMs.value = sound.seek();
-  if (count >= 99) {
-    count = 0;
-    currentSec.value = sound.seek();
-    playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
-    currentTime.value =
-      Math.floor(currentSec.value / 60)
-        .toString()
-        .padStart(2, '0') +
-      ':' +
-      Math.floor(currentSec.value % 60)
-        .toString()
-        .padStart(2, '0');
-  }
-  count++;
-}, 10 / rate.value);
+onMounted(()=>{
+  syncCurrentTime()
+})
+
+onUnmounted(()=>{
+  clearInterval(lrcTimer);
+  lrcTimer = null;
+})
 
 function SwitchLikes(event, args) {
   if (currentLocal.value === 'Locals') {

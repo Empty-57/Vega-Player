@@ -7,6 +7,7 @@ import pLimit from 'p-limit';
 import sharp from "sharp";
 import languageEncoding from 'detect-file-encoding-and-language'
 import iconv_pkg from "iconv-lite";
+import {qrc_decrypt} from "./qrcDecrypt.js";
 
 const {encodingExists,decode}=iconv_pkg;
 
@@ -86,12 +87,18 @@ const getLyricPaths = (filePath) => {
 const safeReadFile = async (filePath) => {
   try {
     const { encoding } = await languageEncoding(filePath);
-    if (!encodingExists(encoding)) {
+    if (!encodingExists(encoding)&&path.extname(filePath) === '.lrc') {
       console.warn(`Unsupported encoding: ${encoding} for ${filePath}`);
       return null;
     }
 
     const buffer = await fs.promises.readFile(filePath);
+    if (path.extname(filePath) === '.qrc'){
+      const lrc=buffer.toString('utf-8')
+      if (!lrc.startsWith('<?xml')){
+        return await qrc_decrypt(buffer, true)
+      }
+    }
     return decode(buffer, encoding, { defaultEncoding: 'utf8' });
   } catch (error) {
     if (error.code !== 'ENOENT') {
