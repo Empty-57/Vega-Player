@@ -114,7 +114,7 @@ export function parseKaraOkLyric(lyricData, lyricData_ts,type) {
       if (msToSec(wordMatch[startIndex])===words[words.length - 1]?.start){
         words[words.length - 1]={
           start: msToSec(wordMatch[startIndex]),
-          duration: msToSec(wordMatch[durationIndex]),
+          duration: msToSec(wordMatch[durationIndex])+words[words.length - 1].duration,
           lyricWord: (words[words.length - 1].lyricWord+wordMatch[textIndex]).replace('\n','')
         }
         continue;

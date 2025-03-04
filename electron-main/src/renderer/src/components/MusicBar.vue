@@ -306,38 +306,54 @@ window.electron.ipcRenderer.on('TogglePlay', (_, flag) => {
 })
 
 let count = 0;
-let lrcTimer=null;
 function syncCurrentTime(){
-  lrcTimer = setInterval(() => {
-    if (!canListenTime.value) {
-      return;
-    }
-    currentSecMs.value = sound.seek();
-    if (count >= 49) {
-      count = 0;
-      currentSec.value = sound.seek();
-      playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
-      currentTime.value =
-        Math.floor(currentSec.value / 60)
-          .toString()
-          .padStart(2, '0') +
-        ':' +
-        Math.floor(currentSec.value % 60)
-          .toString()
-          .padStart(2, '0');
-    }
-    count++;
-  }, 20 / rate.value);
+  if (!canListenTime.value) {
+    return;
+  }
+  currentSecMs.value = sound.seek();
+  if (count >= 49) {
+    count = 0;
+    currentSec.value = sound.seek();
+    playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';
+    currentTime.value =
+      Math.floor(currentSec.value / 60)
+        .toString()
+        .padStart(2, '0') +
+      ':' +
+      Math.floor(currentSec.value % 60)
+        .toString()
+        .padStart(2, '0');
+  }
+  count++;
 }
 
-onMounted(()=>{
-  syncCurrentTime()
-})
+function loopTimer(){ //第2个方案
+  let timer=setTimeout(()=>{
+    syncCurrentTime()
+    clearTimeout(timer);
+    return loopTimer()
+  },20)
+}
+// loopTimer()
 
-onUnmounted(()=>{
-  clearInterval(lrcTimer);
-  lrcTimer = null;
-})
+function accurateInterval(callback, interval) {
+  let expected = performance.now() + interval;
+  const tick = () => {
+    const drift = performance.now() - expected; // 计算时间偏差
+    expected += interval; // 更新下一次预期时间
+    let timer=setTimeout(()=>{
+      callback();
+      clearTimeout(timer);
+      return tick()
+    }, Math.max(0, interval - drift))
+  };
+  setTimeout(tick, interval);
+}
+
+accurateInterval(() => {
+  syncCurrentTime()
+}, 20);
+
 
 function SwitchLikes(event, args) {
   if (currentLocal.value === 'Locals') {
@@ -733,6 +749,7 @@ function onPlaySkip_Lrc(timestamp){
   <transition mode="out-in" name="page-fade">
     <play-page
       v-show="isShowPlayPage"
+      :is-show-play-page="isShowPlayPage"
       :current-index="currentIndex"
       :current-sec="currentSec"
       :current-sec-ms="currentSecMs"

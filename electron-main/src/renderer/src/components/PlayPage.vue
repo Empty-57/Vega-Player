@@ -7,6 +7,7 @@ import {vOnClickOutside} from '@vueuse/components';
 import {useDebounceFn} from "@vueuse/core";
 
 import {getLrcBySearch} from '../../../Api/apis.js'
+import {info} from "autoprefixer";
 
 
 const colorThief = new ColorThief();
@@ -21,8 +22,8 @@ const {
   currentSec,
   currentSecMs,
   playProcess,
-  playMode, volume, volumeProcess
-} = defineProps(['metadata', 'currentTime', 'currentIndex', 'currentSec', 'playProcess', 'playMode', 'volume', 'volumeProcess','currentSecMs'])
+  playMode, volume, volumeProcess,isShowPlayPage
+} = defineProps(['metadata', 'currentTime', 'currentIndex', 'currentSec', 'playProcess', 'playMode', 'volume', 'volumeProcess','currentSecMs','isShowPlayPage'])
 
 const src = ref('')
 const isLoaded = ref(false)
@@ -93,6 +94,13 @@ watch(() => metadata.path, async () => {
   reLocal()
 
 }, {immediate: true})
+
+watch(()=> isShowPlayPage,async () => {
+  if (isShowPlayPage && parsedLyrics.value.length > 0) {
+    await nextTick()
+    reLocal()
+  }
+})
 
 let accumulated = 0
 
@@ -168,7 +176,11 @@ watch(()=> currentSecMs,()=>{
 
   if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
 
-  if (currentSecMs >= start.value+duration.value&&wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length) {
+  if (
+    (currentSecMs >= start.value+duration.value)
+    &&(currentSecMs>=(parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity))
+    &&(wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
+  ) {
     accumulated=0
     wordIndex.value++
   }
@@ -654,7 +666,7 @@ async function openPath() {
         <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
-             :style="{'filter':lrcCurrentIndex===index ||isScroll ||Math.abs((index - lrcCurrentIndex))>4 ? '':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 4)+'px)'}"
+             :style="{'filter':lrcCurrentIndex===index ||isScroll? '':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 6)+'px)'}"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
