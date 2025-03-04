@@ -4,10 +4,9 @@ import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw,computed} from "vue
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
-import {useDebounceFn} from "@vueuse/core";
+import {useDebounceFn,watchDebounced} from "@vueuse/core";
 
 import {getLrcBySearch} from '../../../Api/apis.js'
-import {info} from "autoprefixer";
 
 
 const colorThief = new ColorThief();
@@ -48,6 +47,10 @@ const searchLrcOffset=ref(0)
 const effectLrcProcess=ref('0%')
 
 const apiSource=ref(0)
+
+const lrcSearchText=ref('')
+
+const showApiList=ref(false)
 
 let coverImg = null;
 let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
@@ -307,10 +310,15 @@ function setVolumeValue(value) {
   emit('setVolumeValue', value)
 }
 
+watchDebounced(lrcSearchText,async()=>{
+  searchLrcOffset.value=0
+  await selectLrc();
+},{debounce:500})
+
 async function selectLrc() {
   musicLrcData.value=[]
   try {
-    musicLrcData.value=await getLrcBySearch(metadata.title,searchLrcOffset.value,5,apiSource.value)
+    musicLrcData.value=await getLrcBySearch(lrcSearchText.value,searchLrcOffset.value,5,apiSource.value)
     console.log(musicLrcData.value)
   }catch (err){
     console.error(err)
@@ -327,6 +335,12 @@ async function switchLrc(lrcData) {
 async function openPath() {
   showPlayAction.value=false
   await window.electron.ipcRenderer.send('openPath', metadata.path)
+}
+
+async function selectApi(index){
+  apiSource.value=index
+  showApiList.value = false
+  await selectLrc();
 }
 
 </script>
@@ -618,6 +632,7 @@ async function openPath() {
               @click.stop="()=>{
                 searchLrcOffset=0
                 showLrcModal = !showLrcModal
+                lrcSearchText=metadata.title
                 selectLrc()
               }"
             >
@@ -699,17 +714,46 @@ async function openPath() {
     <div v-on-click-outside.bubble="
               () => {
                 showLrcModal = false;
+                lrcSearchText=''
               }"
          v-if="showLrcModal"
          class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-start backdrop-blur-lg p-4 **:text-zinc-200">
 
-      <p>API：{{['QQ音乐','网易云'][apiSource]}}</p>
-      <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
+      <div class="sticky top-0 w-full flex h-16 items-center justify-between gap-x-4 *:text-sm bg-zinc-800 rounded backdrop-blur-3xl p-4">
+        <p @click.stop="()=>{showApiList=!showApiList}" class="text-center w-36 duration-200 hover:bg-neutral-600/60 bg-neutral-600/40 p-2 rounded">API：{{['QQ音乐','网易云'][apiSource]}}</p>
+        <ul
+          v-on-click-outside.bubble="
+              () => {
+                showApiList = false;
+              }
+            "
+          :class="[
+              showApiList ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+            ]"
+          class="left-0 top-17 w-36 p-0 *:duration-200 duration-200 *:select-none py-2 absolute shadow-xl bg-zinc-900/80 backdrop-blur-md *:text-zinc-300 rounded *:text-[10px]"
+          tabindex="0"
+        >
+          <li
+            class="hover:bg-neutral-200/20 p-2 h-8"
+            @click.stop="selectApi(0)"
+          >
+            QQ音乐
+          </li>
+          <li
+            class="hover:bg-neutral-200/20 p-2 h-8"
+            @click="selectApi(1)"
+          >
+            网易云
+          </li>
+        </ul>
+        <input v-model="lrcSearchText" placeholder="搜索" class="w-36 outline-0 border-0 bg-neutral-600/20 p-2 rounded">
+      <span class="w-36 hover:bg-neutral-600/60 bg-neutral-600/40 p-2 px-4 rounded duration-200 text-center"
             @click.stop="()=>{
                 searchLrcOffset++
                 selectLrc()
               }"
       >换一批</span>
+      </div>
       <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
 
           <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>

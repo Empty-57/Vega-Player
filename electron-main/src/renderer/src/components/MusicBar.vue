@@ -1,7 +1,7 @@
 <script setup>
 import EventBus from '../assets/EventBus.js';
 import {Howl} from 'howler';
-import {onMounted, ref, useTemplateRef, watch,onUnmounted} from 'vue';
+import {onMounted, ref, useTemplateRef, watch} from 'vue';
 import placeholder from '../assets/placeholder.jpg';
 import {useCycleList, useStorage} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
@@ -352,7 +352,7 @@ function accurateInterval(callback, interval) {
 
 accurateInterval(() => {
   syncCurrentTime()
-}, 20);
+}, 20/rate.value);
 
 
 function SwitchLikes(event, args) {
