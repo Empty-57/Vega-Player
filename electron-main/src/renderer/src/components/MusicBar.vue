@@ -232,19 +232,23 @@ function onend() {
 }
 
 function setIndex() {
-  if (!playList.value[currentIndex.value]?.path) {
-    return;
-  }
-  sound.unload();
-  sound = null;
-  soundInit.value.src = [playList.value[currentIndex.value]?.path];
+  try {
+    if (!playList.value[currentIndex.value]?.path) {
+      return;
+    }
+    sound.unload();
+    sound = null;
+    soundInit.value.src = [playList.value[currentIndex.value]?.path];
 
-  sound = new Howl(soundInit.value);
-  sound.play();
-  EventBus.emit('setCurrentMusic', {
-    localName: currentLocal.value,
-    path: playList.value[currentIndex.value]?.path
-  });
+    sound = new Howl(soundInit.value);
+    sound.play();
+    EventBus.emit('setCurrentMusic', {
+      localName: currentLocal.value,
+      path: playList.value[currentIndex.value]?.path
+    });
+  }catch (e) {
+    console.error(e);
+  }
 }
 
 function setNext() {

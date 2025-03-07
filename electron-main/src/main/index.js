@@ -3,13 +3,15 @@ import {join} from 'path';
 import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
-import {audio_scan, getCover, getLocalCover,getLyrics} from './audio_scan';
+import {audio_scan, getCover, getLocalCover,getLyrics,audio_scan2} from './audio_scan';
 import {ByteVector, File, PictureType} from 'node-taglib-sharp'
 import axios from "axios";
 import sharp from "sharp";
 import {parseKaraOkLyric,parseLrc} from "./LyricsAnalysis.js";
 
 import {qrc_decrypt} from "./qrcDecrypt.js";
+
+import {rwMusicFolders} from "./rwConfig.mjs";
 
 let mainWindow = null;
 let tray = null;
@@ -146,12 +148,12 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
-ipcMain.on('select_files', async (event, args) => {
+ipcMain.on('select_files', async (event) => {
   if (!app.isReady()) {
     return null;
   }
   const startTime = performance.now();
-  await audio_scan(event, args.flag, args.cacheList);
+  await audio_scan(event);
   const endTime = performance.now();
   console.log(`Execution Time: ${(endTime - startTime).toFixed(2)}ms`);
 });
@@ -278,7 +280,33 @@ ipcMain.handle('qrc_decrypt',async (_, data) => {
 })
 
 ipcMain.on('openPath',(_, path)=>{
-  shell.showItemInFolder(path)
+  if (path){
+    shell.showItemInFolder(path)
+  }
+})
+
+ipcMain.handle('getMusicFolder',async()=>{
+  return await rwMusicFolders([],'r')
+})
+
+ipcMain.handle('addMusicFolder',async ()=>{
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  });
+  if (result.canceled) {
+    return null;
+  }
+  return result.filePaths[0];
+})
+
+ipcMain.on('updateMusicFolder',async (event, {folders,cache_list})=>{
+  await rwMusicFolders(folders,'w')
+  await audio_scan2(event,folders,cache_list)
+})
+
+ipcMain.on('syncMusicCache',async (event, {cache_list})=>{
+  const folders=await rwMusicFolders([],'r')
+  await audio_scan2(event,folders,cache_list)
 })
 
 app.on('window-all-closed', () => {

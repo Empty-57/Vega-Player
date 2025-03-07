@@ -68,7 +68,8 @@ async function cacheSender(filePath, event, channel) {
     // bitrate: metadata.format.bitrate,//比特率
     path: filePath,
     src: null,
-    isLike: false
+    isLike: false,
+    isManual:channel==='update_cache_file'
   });
 }
 
@@ -190,53 +191,49 @@ export async function getCover(filePath, flag = 1) {
   return nativeImage.createFromBuffer(picData).toDataURL();
 }
 
-export async function audio_scan(event, flag, cacheList) {
+export async function audio_scan(event) {
   const window = BrowserWindow.getFocusedWindow();
-  if (flag === 'file') {
-    const result = await dialog.showOpenDialog(window, {
-      properties: ['openFile'], // 打开文件选择对话框
-      filters: [
-        {name: 'Audio Files', extensions: _ext} // 只显示音频文件
-      ]
-    });
-    if (result.canceled) {
-      event.sender.send('load_end');
-      return null;
-    } // 如果用户取消选择
+  const result = await dialog.showOpenDialog(window, {
+    properties: ['openFile'], // 打开文件选择对话框
+    filters: [
+      {name: 'Audio Files', extensions: _ext} // 只显示音频文件
+    ]
+  });
+  if (result.canceled) {
+    event.sender.send('load_end');
+    return null;
+  } // 如果用户取消选择
 
-    const filePath = result.filePaths[0];
+  const filePath = result.filePaths[0];
 
-    Promise.all([await cacheSender(filePath, event, 'update_cache_file')]).then(() => {
-      event.sender.send('load_end');
-    });
+  Promise.all([await cacheSender(filePath, event, 'update_cache_file')]).then(() => {
+    event.sender.send('load_end');
+  });
+}
+
+export async function audio_scan2(event, folderList, cacheList) {
+  if (!folderList){
+    return;
   }
-
-  if (flag === 'folder') {
-    const result = await dialog.showOpenDialog(window, {
-      properties: ['openDirectory'] // 打开文件夹选择对话框
-    });
-    if (result.canceled) {
-      event.sender.send('load_end');
-      return null;
-    } // 如果用户取消选择
-    event.sender.send('load_start');
-
-    const folderPath = result.filePaths[0];
+  event.sender.send('load_start');
     const audioFiles = []; // 过滤音频文件
-
-    const files = await fs.promises.readdir(folderPath, {recursive: true});
+  for (const folder of folderList) {
+    const files = await fs.promises.readdir(folder, {recursive: true});
     files.forEach((file) => {
-      const filePath = path.join(folderPath, file);
+      const filePath = path.join(folder, file);
       if (audio_ext.has(path.extname(file))) {
         audioFiles.push(filePath);
       }
     });
+  }
 
-    const setAudioFiles = new Set(audioFiles);
+  const setAudioFiles = new Set(audioFiles);
     const itemsToRemove = cacheList.filter((value) => !setAudioFiles.has(value.path)); //删除缓存里面缓存有而文件夹没有的内容
 
     itemsToRemove.forEach((item, index) => {
-      event.sender.send('delete_db', item.path, cacheList.indexOf(item) - index, item.isLike);
+      if (!item.isManual){
+        event.sender.send('delete_db', item.path, cacheList.indexOf(item) - index, item.isLike);
+      }
     });
 
     cacheList = cacheList.filter((value) => setAudioFiles.has(value.path));
@@ -258,5 +255,4 @@ export async function audio_scan(event, flag, cacheList) {
 
     await Promise.all(tasks);
     event.sender.send('load_end');
-  }
 }

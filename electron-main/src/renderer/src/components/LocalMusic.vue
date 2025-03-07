@@ -16,18 +16,25 @@ const file_dropdown = ref(false);
 const loadCount = ref(0);
 const delCount = ref(0);
 const local_cfg = useStorage('local_cfg', {sort_key: 'title', isReverse: false});
-let sort_key = ref(local_cfg.value.sort_key);
-let isReverse = ref(local_cfg.value.isReverse);
+const sort_key = ref(local_cfg.value.sort_key);
+const isReverse = ref(local_cfg.value.isReverse);
+
+const musicFolders = ref([]);
+const showFolderCard=ref(false);
 
 db.init_DB().then(() => {
-  db.searchData('', 0).then((data) => {
+  db.searchData('', 0).then(async (data) => {
     cache_list.value.push(...data);
     cache_list.value.sort((item1, item2) =>
       isReverse.value
         ? compareSorts(item2[sort_key.value], item1[sort_key.value])
         : compareSorts(item1[sort_key.value], item2[sort_key.value])
     );
-    search(f_cache_list.value,cache_list.value)
+    search(f_cache_list.value, cache_list.value)
+
+    await window.electron.ipcRenderer.send('syncMusicCache', {
+      cache_list: toRaw(cache_list.value)
+    });
   });
 });
 
@@ -44,9 +51,30 @@ watch(
   {immediate: true}
 );
 
-function SelectFile(flag, cacheList = []) {
-  window.electron.ipcRenderer.send('select_files', {flag: flag, cacheList: toRaw(cacheList)});
+function SelectFile() {
+  window.electron.ipcRenderer.send('select_files');
   file_dropdown.value = false;
+}
+
+async function openFolderCard() {
+  showFolderCard.value = true;
+  musicFolders.value = await window.electron.ipcRenderer.invoke('getMusicFolder')
+  file_dropdown.value = false;
+}
+
+async function addMusicFolder() {
+  const data = await window.electron.ipcRenderer.invoke('addMusicFolder');
+  musicFolders.value.push(data)
+  musicFolders.value=Array.from(new Set(musicFolders.value))
+}
+
+function deleteMusicFolder(path){
+  musicFolders.value.splice(musicFolders.value.findIndex(path_ => path_ === path),1)
+}
+
+async function updateMusicFolders() {
+  showFolderCard.value = false;
+  await window.electron.ipcRenderer.send('updateMusicFolder',{folders:toRaw(musicFolders.value),cache_list:toRaw(cache_list.value)});
 }
 
 window.electron.ipcRenderer.on('load_end', () => {
@@ -250,15 +278,15 @@ EventBus.on('syncCache', args => {
           >
             <li
               class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="SelectFile('file')"
+              @click="SelectFile"
             >
               手动添加
             </li>
             <li
               class="dark:hover:bg-neutral-700/40 hover:bg-neutral-400/20 p-2 h-8"
-              @click="SelectFile('folder', cache_list)"
+              @click="openFolderCard"
             >
-              扫描文件夹
+              添加文件夹
             </li>
           </ul>
         </div>
@@ -273,6 +301,33 @@ EventBus.on('syncCache', args => {
         <br/>
         已删除：{{ delCount }}
       </div>
+    </div>
+    <div v-if="showFolderCard" class="z-11 w-[60%] h-[80%] m-auto dark:bg-zinc-900 bg-zinc-300 shadow-md rounded fixed left-0 right-0 top-0 bottom-0 flex flex-col items-center justify-between gap-y-4 p-4">
+      <div class="w-full flex items-end justify-between text-xs dark:text-zinc-300 text-zinc-900 *:select-none">
+        <span>当前监控的文件夹：</span>
+        <div class="duration-200 dark:hover:bg-zinc-700 hover:bg-zinc-400/60 dark:bg-zinc-800 bg-zinc-400/40 p-2 h-8 rounded cursor-pointer" @click="addMusicFolder">添加文件夹</div>
+      </div>
+      <div class="flex flex-col items-start justify-start gap-y-1 p-2 grow dark:bg-neutral-800/60 bg-neutral-400/20 rounded w-full *:w-full *:truncate *:text-[14px] dark:text-zinc-300 text-zinc-900">
+        <div v-for="path in musicFolders" class="w-full flex items-center justify-between">
+          <span>{{path}}</span>
+          <svg
+            @click="deleteMusicFolder(path)"
+            class="dark:stroke-zinc-200 stroke-zinc-900 hover:stroke-red-600"
+            height="20"
+            viewBox="0 0 24 24"
+            width="20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M6 18L18 6M6 6l12 12"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1"
+            />
+          </svg>
+        </div>
+      </div>
+      <div class="text-md dark:text-zinc-300 text-zinc-900 text-center duration-200 dark:hover:bg-zinc-700 hover:bg-zinc-400/60 dark:bg-zinc-800 bg-zinc-400/40 w-full p-2 h-10 rounded cursor-pointer" @click.stop="updateMusicFolders">确定</div>
     </div>
   </div>
 </template>
