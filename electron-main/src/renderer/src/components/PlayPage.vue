@@ -118,11 +118,14 @@ watch(wordIndex,() => {
   duration.value=wordInfo.value?.duration||null
 
   if (duration.value&&start.value){
-    correction= 2/(duration.value-currentSecMs+start.value)
+    if (currentSecMs-start.value>=0.02){
+      correction= 2/(duration.value-currentSecMs+start.value)
+    }else{
+      correction= 2/duration.value
+    }
   }else {
     correction =0
   }
-
 })
 
 
