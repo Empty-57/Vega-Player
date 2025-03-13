@@ -42,11 +42,17 @@ const limit = pLimit(maxConcurrency);
 
 
 async function cacheSender(filePath, event, channel) {
-  const metadata = await parseFile(filePath, {
-    skipPostHeaders: true,
-    includeChapters: false,
-    skipCovers: true
-  });
+  let metadata;
+  try {
+    metadata = await parseFile(filePath, {
+      skipPostHeaders: true,
+      includeChapters: false,
+      skipCovers: true
+    });
+  }catch (e) {
+    return;
+  }
+
   event.sender.send(channel, {
     title: metadata.common.title
       ? metadata.common.title
@@ -217,15 +223,22 @@ export async function audio_scan2(event, folderList, cacheList) {
   }
   event.sender.send('load_start');
     const audioFiles = []; // 过滤音频文件
-  for (const folder of folderList) {
-    const files = await fs.promises.readdir(folder, {recursive: true});
-    files.forEach((file) => {
-      const filePath = path.join(folder, file);
-      if (audio_ext.has(path.extname(file))) {
-        audioFiles.push(filePath);
-      }
-    });
+  try {
+    for (const folder of folderList) {
+      const files = await fs.promises.readdir(folder, {recursive: true});
+      files.forEach((file) => {
+        const filePath = path.join(folder, file);
+        if (audio_ext.has(path.extname(file))) {
+          audioFiles.push(filePath);
+        }
+      });
+    }
+  }catch (e){
+    console.error(`Error reading audio file: ${e.message}`);
+    event.sender.send('load_end');
+    return ;
   }
+
 
   const setAudioFiles = new Set(audioFiles);
     const itemsToRemove = cacheList.filter((value) => !setAudioFiles.has(value.path)); //删除缓存里面缓存有而文件夹没有的内容

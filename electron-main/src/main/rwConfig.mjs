@@ -14,5 +14,6 @@ export async function rwMusicFolders(folders,flag){
     }
   }catch (e){
     console.error(e);
+    return null;
   }
 }

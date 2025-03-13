@@ -286,7 +286,10 @@ ipcMain.on('openPath',(_, path)=>{
 })
 
 ipcMain.handle('getMusicFolder',async()=>{
-  return await rwMusicFolders([],'r')
+  const folders=await rwMusicFolders([],'r')
+  if (folders){
+    return folders
+  }
 })
 
 ipcMain.handle('addMusicFolder',async ()=>{
@@ -306,7 +309,9 @@ ipcMain.on('updateMusicFolder',async (event, {folders,cache_list})=>{
 
 ipcMain.on('syncMusicCache',async (event, {cache_list})=>{
   const folders=await rwMusicFolders([],'r')
-  await audio_scan2(event,folders,cache_list)
+  if (folders){
+    await audio_scan2(event,folders,cache_list)
+  }
 })
 
 app.on('window-all-closed', () => {
