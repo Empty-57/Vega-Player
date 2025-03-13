@@ -118,30 +118,10 @@ const safeReadFile = async (filePath) => {
 export async function getLyrics(filePath) {
   if (!filePath) return null;
 
-  // 1. 优先读取音频元数据中的歌词
-  try {
-    const metadata = await parseFile(filePath, {
-      skipPostHeaders: true,
-      includeChapters: false,
-      duration: false,
-      skipCovers: true
-    });
-
-    if (metadata.common?.lyrics || metadata.common?.lyricist) {
-      return {
-        lyrics: metadata.common.lyrics || metadata.common.lyricist,
-        lyrics_ts: null,
-        type: 'metadata'
-      };
-    }
-  } catch (error) {
-    console.error('Error reading audio metadata:', error.message);
-  }
-
-  // 2. 读取外部歌词文件
+  // 读取外部歌词文件
   const { mainPaths, vtsPath } = getLyricPaths(filePath);
 
-  // 并行读取 VTS 歌词文件
+  // 并行读取歌词翻译文件
   const lyricsTsPromise = safeReadFile(vtsPath);
 
   // 按优先级顺序检查主歌词文件
@@ -155,7 +135,7 @@ export async function getLyrics(filePath) {
       };
     }
   }
-  // 3. 所有途径都失败时返回 null
+  // 所有途径都失败时返回 null
   return null;
 }
 
