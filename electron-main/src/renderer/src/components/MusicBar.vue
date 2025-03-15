@@ -796,6 +796,18 @@ html.dark {
       #00000000 v-bind(volumeProcess)
     );
   }
+  #playProcess {
+    background: linear-gradient(
+      to right,
+      #06b6d455 v-bind(playProcess),
+      #00000000 v-bind(playProcess)
+    );
+  }
+  #playProcess::-webkit-slider-thumb,
+  #volume::-webkit-slider-thumb {
+    background-color: #0e7490;
+    box-shadow: 0 0 8px 0 #0e7490;
+  }
 }
 
 #playProcess {
@@ -806,15 +818,7 @@ html.dark {
   );
 }
 
-html.dark {
-  #playProcess {
-    background: linear-gradient(
-      to right,
-      #06b6d455 v-bind(playProcess),
-      #00000000 v-bind(playProcess)
-    );
-  }
-}
+
 
 #playProcess::-webkit-slider-thumb,
 #volume::-webkit-slider-thumb {
@@ -823,21 +827,11 @@ html.dark {
   width: 6px;
   height: 6px;
   rotate: 45deg;
-}
 
-#playProcess::-webkit-slider-thumb,
-#volume::-webkit-slider-thumb {
   background-color: #dc2626;
   box-shadow: 0 0 4px 0 #dc2626;
 }
 
-html.dark {
-  #playProcess::-webkit-slider-thumb,
-  #volume::-webkit-slider-thumb {
-    background-color: #0e7490;
-    box-shadow: 0 0 8px 0 #0e7490;
-  }
-}
 
 .list-fade-enter-active {
   transition: all 0.1s ease-out;

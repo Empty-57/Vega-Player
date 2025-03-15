@@ -762,7 +762,7 @@ async function selectApi(index){
           <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
 
           <div class="w-full text-sm overflow-x-hidden overflow-y-scroll whitespace-pre-wrap p-4 max-h-36">
-            {{data.lrc||data.qrc||data.yrc||'无歌词'}}翻译：<br>{{data.translate? data.translate:'无翻译'}}
+            {{data.lrc||data.qrc||data.yrc||'无歌词'}}<br>翻译：<br>{{data.translate? data.translate:'无翻译'}}
           </div>
 
           <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"

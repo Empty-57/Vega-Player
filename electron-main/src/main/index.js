@@ -27,7 +27,6 @@ function createWindow() {
     maxWidth:screen.getPrimaryDisplay().workAreaSize.width+50,
     maxHeight: screen.getPrimaryDisplay().workAreaSize.height+50,
     title: 'Vega Player',
-    backgroundColor: '0x00000000',
     show: false,
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明
@@ -36,7 +35,15 @@ function createWindow() {
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
-      webSecurity: false
+      webSecurity: false,
+      spellcheck:false,
+      webgl: true,
+      devTools: !app.isPackaged,
+      nodeIntegrationInSubFrames: false,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      contextIsolation: true,
+      enableWebSQL: false,
     }
   });
   mainWindow.setMenu(null);
@@ -50,11 +57,8 @@ function createWindow() {
     shell.openExternal(details.url);
     return {action: 'deny'};
   });
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
-  }
+
+  mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
 
   mainWindow.on(
     'resize',
