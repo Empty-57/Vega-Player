@@ -58,7 +58,7 @@ function createWindow() {
     return {action: 'deny'};
   });
 
-  mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+  mainWindow.loadURL('http://localhost:5173')
 
   mainWindow.on(
     'resize',
