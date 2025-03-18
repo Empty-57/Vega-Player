@@ -32,7 +32,7 @@ const lrcType=ref('')
 const lrcCurrentIndex=ref(0)
 
 const useEffects = ref(false)
-const useGlow = ref(true)
+const useGlow = ref(false)
 
 const isScroll=ref(false);
 
@@ -44,7 +44,7 @@ const musicLrcData=ref([])
 
 const searchLrcOffset=ref(0)
 
-const effectLrcProcess=ref('0%')
+const effectLrcProcess=ref(0)
 
 const apiSource=ref(0)
 
@@ -85,7 +85,7 @@ async function syncLrc(data) {
 
   console.log(parsedLyrics.value,lrcType.value)
   await nextTick()
-  lyricsList = document.querySelectorAll('.lyrics div');
+  lyricsList = document.querySelectorAll('.lyrics > div');
 }
 
 watch(() => metadata.path, async () => {
@@ -109,19 +109,28 @@ let accumulated = 0
 
 const wordIndex=ref(0)
 const wordInfo=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value])
-const start=ref(0)
-const duration=ref(0.01)
+const wordStart=ref(0)
+const wordDuration=ref(0.01)
 let correction=0
 
-watch(wordIndex,() => {
-  start.value=wordInfo.value?.start||null
-  duration.value=wordInfo.value?.duration||null
+const lrcBlur=computed(()=>index=>{
+  const shouldBlur = !(lrcCurrentIndex.value === index || isScroll.value)
+  const blurValue = shouldBlur
+    ? `blur(${Math.min(Math.abs(index - lrcCurrentIndex.value)*1.5, 6)}px)`
+    : 'none'
 
-  if (duration.value&&start.value){
-    if (currentSecMs-start.value>=0.02){
-      correction= 2/(duration.value-currentSecMs+start.value)
+  return { filter: blurValue }
+})
+
+watch(wordIndex,() => {
+  wordStart.value=wordInfo.value?.start||null
+  wordDuration.value=wordInfo.value?.duration||null
+
+  if (wordDuration.value&&wordStart.value){
+    if (currentSecMs-wordStart.value>=0.02){
+      correction= 2/(wordDuration.value-currentSecMs+wordStart.value)
     }else{
-      correction= 2/duration.value
+      correction= 2/wordDuration.value
     }
   }else {
     correction =0
@@ -183,7 +192,7 @@ watch(()=> currentSecMs,()=>{
   if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
 
   if (
-    (currentSecMs >= start.value+duration.value)
+    (currentSecMs >= wordStart.value+wordDuration.value)
     &&(currentSecMs>=(parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity))
     &&(wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
   ) {
@@ -191,10 +200,8 @@ watch(()=> currentSecMs,()=>{
     wordIndex.value++
   }
 
-  // accumulated += lrcAverage.value/duration.value
   accumulated+=correction
-  effectLrcProcess.value = `${accumulated}%`
-
+  effectLrcProcess.value = accumulated
 })
 
 EventBus.on('setPauseBtn', flag => {
@@ -349,7 +356,7 @@ async function selectApi(index){
 </script>
 
 <template>
-  <div class="z-25 fixed w-full h-screen left-0 top-0 **:select-none">
+  <div class="z-25 fixed w-full h-screen left-0 top-0">
     <div
       id="diy_bar"
       class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
@@ -423,7 +430,7 @@ async function selectApi(index){
       </svg>
     </span>
     </div>
-    <div class="absolute w-full h-screen left-0 top-0 z-23 flex items-center justify-center">
+    <div class="absolute w-full h-screen left-0 top-0 z-23 flex items-center justify-center **:select-none">
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
         <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
@@ -684,16 +691,22 @@ async function selectApi(index){
         <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
-             :style="{'filter':lrcCurrentIndex===index ||isScroll? '':'blur('+Math.min(Math.abs((index - lrcCurrentIndex) / 1.5), 6)+'px)'}"
+             :style="lrcBlur(index)"
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
             <p :class="{'scale-115':lrcCurrentIndex===index}" class="text-2xl origin-left duration-500 will-change-transform">
-              <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
+              <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'" class="*:inline-block *:will-change-transform  *:whitespace-pre-wrap mt-2"
               >
                 <span
-                  :class="[index2===wordIndex? 'effectLrc text-zinc-50/40':index2<wordIndex? 'text-zinc-50':'text-zinc-50/40',]"
-                  v-for="(word,index2) in data.words">
+                  :class="{
+                  'effectLrc text-zinc-50/40': index2 === wordIndex,
+                  'text-zinc-50/40': index2 > wordIndex,
+                  'wordAnimation1': index2 <= wordIndex,
+                  'text-zinc-50': index2 < wordIndex
+                }"
+                  v-for="(word,index2) in data.words"
+                  :style="{'--wordDuration':word.duration}">
                   {{word.lyricWord}}
                 </span>
               </span>
@@ -722,7 +735,7 @@ async function selectApi(index){
          v-if="showLrcModal"
          class="absolute m-auto left-0 right-0 top-0 bottom-0 rounded overflow-x-hidden overflow-y-scroll gap-y-2 w-2/3 h-[90%] z-25 bg-zinc-600/40 flex flex-col items-center justify-start backdrop-blur-lg p-4 **:text-zinc-200">
 
-      <div class="sticky top-0 w-full flex h-16 items-center justify-between gap-x-4 *:text-sm bg-zinc-800 rounded backdrop-blur-3xl p-4">
+      <div class="sticky top-0 w-full flex h-16 items-center justify-between gap-x-4 *:text-sm bg-zinc-800 rounded p-4">
         <p @click.stop="()=>{showApiList=!showApiList}" class="text-center w-36 duration-200 hover:bg-neutral-600/60 bg-neutral-600/40 p-2 rounded">API：{{['QQ音乐','网易云'][apiSource]}}</p>
         <ul
           v-on-click-outside.bubble="
@@ -759,13 +772,13 @@ async function selectApi(index){
       </div>
       <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
 
-          <div class="font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
+          <div class="select-none font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
 
           <div class="w-full text-sm overflow-x-hidden overflow-y-scroll whitespace-pre-wrap p-4 max-h-36">
             {{data.lrc||data.qrc||data.yrc||'无歌词'}}<br>翻译：<br>{{data.translate? data.translate:'无翻译'}}
           </div>
 
-          <span class="hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
+          <span class="select-none hover:bg-zinc-800/40 w-full bg-zinc-800/20 p-4 rounded duration-200 text-center"
                 @click="switchLrc(data)"
           >使用</span>
 
@@ -788,11 +801,40 @@ async function selectApi(index){
   mask: linear-gradient(to left, transparent 0%, #000 10%);
 }
 
+.wordAnimation1{
+  animation: wordToTop calc(var(--wordDuration) * 1.8s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
+}
+
+@keyframes wordToTop {
+  25%{
+    transform: translateY(-0.25px);
+  }
+  50%{
+    transform: translateY(-0.5px);
+  }
+  75%{
+    transform: translateY(-0.75px);
+  }
+  100%{
+    transform: translateY(-1px);
+  }
+}
+
 .effectLrc{
   background:linear-gradient(to right,
-  #fafafa v-bind(effectLrcProcess) ,
-  transparent calc(v-bind(effectLrcProcess) + 10%)) no-repeat;
+  #fafafa v-bind('effectLrcProcess + "%"') ,
+  transparent v-bind('effectLrcProcess + "%"')) no-repeat;
   background-clip: text;
+
+  /*
+  mask: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) v-bind('effectLrcProcess + "%"'),
+    rgba(0, 0, 0, 0.4) v-bind('effectLrcProcess + "%"')
+  );
+  mask-repeat: no-repeat;
+  */
+
 }
 
 .simpleCover {
