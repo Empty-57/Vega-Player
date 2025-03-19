@@ -356,7 +356,14 @@ async function selectApi(index){
 </script>
 
 <template>
-  <div class="z-25 fixed w-full h-screen left-0 top-0">
+  <div class="z-25 fixed w-full h-screen left-0 top-0"
+       :style="{'--playProcess':playProcess,
+       '--volumeProcess':volumeProcess,
+       '--imgColor0':colors[0],
+       '--imgColor1':colors[1],
+       '--imgColor2':colors[2],
+  }"
+  >
     <div
       id="diy_bar"
       class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
@@ -686,6 +693,7 @@ async function selectApi(index){
       </div>
 
       <div id="LrcBox"
+           :style="{ '--wordProgress': effectLrcProcess}"
            class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
         <div class="h-[25vh] w-full"></div>
         <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
@@ -696,14 +704,14 @@ async function selectApi(index){
           >
 
             <p :class="{'scale-115':lrcCurrentIndex===index}" class="text-2xl origin-left duration-500 will-change-transform">
-              <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'" class="*:inline-block *:will-change-transform  *:whitespace-pre-wrap mt-2"
+              <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
+                    class="*:inline-block *:antialiased text-zinc-50 *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
                   :class="{
-                  'effectLrc text-zinc-50/40': index2 === wordIndex,
+                  'effectLrc': index2 === wordIndex,
                   'text-zinc-50/40': index2 > wordIndex,
                   'wordAnimation1': index2 <= wordIndex,
-                  'text-zinc-50': index2 < wordIndex
                 }"
                   v-for="(word,index2) in data.words"
                   :style="{'--wordDuration':word.duration}">
@@ -802,7 +810,7 @@ async function selectApi(index){
 }
 
 .wordAnimation1{
-  animation: wordToTop calc(var(--wordDuration) * 1.8s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
+  animation: wordToTop calc(var(--wordDuration) * 2s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
 }
 
 @keyframes wordToTop {
@@ -821,29 +829,39 @@ async function selectApi(index){
 }
 
 .effectLrc{
-  background:linear-gradient(to right,
-  #fafafa v-bind('effectLrcProcess + "%"') ,
-  transparent v-bind('effectLrcProcess + "%"')) no-repeat;
-  background-clip: text;
+  --dynamic-width: min(var(--wordProgress) * 0.5%, 20%);
+
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1% - var(--dynamic-width)), /* 动态过渡宽度 */
+    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1%),
+    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1% + var(--dynamic-width))
+  );
+  mask-repeat: no-repeat;
+  text-rendering: optimizeLegibility;
+
 
   /*
   mask: linear-gradient(
     to right,
-    rgba(0, 0, 0, 1) v-bind('effectLrcProcess + "%"'),
-    rgba(0, 0, 0, 0.4) v-bind('effectLrcProcess + "%"')
+    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1%),
+    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1%)
   );
   mask-repeat: no-repeat;
+
+  transform: translateZ(0);
+  will-change: mask-image;
   */
 
 }
 
 .simpleCover {
-  background-color: v-bind('colors[0]');
+  background-color: var(--imgColor0);
 }
 
 .effectCover {
-  background-color: v-bind('colors[0]');
-  background-image: linear-gradient(125deg, v-bind('colors[0]'), v-bind('colors[1]'), v-bind('colors[2]'));
+  background-color: var(--imgColor0);
+  background-image: linear-gradient(125deg, var(--imgColor0), var(--imgColor1), var(--imgColor2));
   background-size: 500%;
   animation: 15s coverAnimation linear infinite;
   transform: translateZ(0);
@@ -885,8 +903,8 @@ html.dark {
 #playProcess2 {
   background: linear-gradient(
     to right,
-    #ffffff99 v-bind(playProcess),
-    #00000000 v-bind(playProcess)
+    #ffffff99 var(--playProcess),
+    #00000000 var(--playProcess)
   );
 }
 
@@ -901,8 +919,8 @@ html.dark {
 #volume2 {
   background: linear-gradient(
     to right,
-    #ffffff99 v-bind(volumeProcess),
-    #00000000 v-bind(volumeProcess)
+    #ffffff99 var(--volumeProcess),
+    #00000000 var(--volumeProcess)
   );
 }
 

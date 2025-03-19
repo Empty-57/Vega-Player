@@ -470,6 +470,7 @@ function onPlaySkip_Lrc(timestamp){
 <template>
   <div
     class="fixed w-screen h-16 dark:bg-neutral-900 bg-neutral-200 border-t-[0.1px] dark:border-neutral-700 border-gray-400 bottom-0 left-0 flex items-center justify-start px-3 **:select-none z-10"
+    :style="{'--playProcess':playProcess,'--volumeProcess':volumeProcess}"
   >
     <div class="flex items-center justify-start min-w-1/3 max-w-1/3">
       <img
@@ -792,15 +793,15 @@ html.dark {
   #volume {
     background: linear-gradient(
       to right,
-      #06b6d455 v-bind(volumeProcess),
-      #00000000 v-bind(volumeProcess)
+      #06b6d455 var(--volumeProcess),
+      #00000000 var(--volumeProcess)
     );
   }
   #playProcess {
     background: linear-gradient(
       to right,
-      #06b6d455 v-bind(playProcess),
-      #00000000 v-bind(playProcess)
+      #06b6d455 var(--playProcess),
+      #00000000 var(--playProcess)
     );
   }
   #playProcess::-webkit-slider-thumb,
@@ -813,8 +814,8 @@ html.dark {
 #playProcess {
   background: linear-gradient(
     to right,
-    #ef4444aa v-bind(playProcess),
-    #00000000 v-bind(playProcess)
+    #ef4444aa var(--playProcess),
+    #00000000 var(--playProcess)
   );
 }
 
