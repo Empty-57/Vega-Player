@@ -356,14 +356,7 @@ async function selectApi(index){
 </script>
 
 <template>
-  <div class="z-25 fixed w-full h-screen left-0 top-0"
-       :style="{'--playProcess':playProcess,
-       '--volumeProcess':volumeProcess,
-       '--imgColor0':colors[0],
-       '--imgColor1':colors[1],
-       '--imgColor2':colors[2],
-  }"
-  >
+  <div class="z-25 fixed w-full h-screen left-0 top-0">
     <div
       id="diy_bar"
       class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
@@ -493,6 +486,7 @@ async function selectApi(index){
 
         <div class="w-3/5 flex flex-col items-center justify-center h-4 mt-4">
           <input
+            :style="{'--playProcess':playProcess}"
             id="playProcess2"
             :class="[
             currentIndex !== -1 && metadata.path ? 'pointer-events-auto' : 'pointer-events-none'
@@ -670,6 +664,7 @@ async function selectApi(index){
             <path d="M128 384l0 256 170.668 0L512 863.086 512 160.916 298.668 384 128 384z"></path>
           </svg>
           <input
+            :style="{'--volumeProcess':volumeProcess}"
             id="volume2"
             :value="volume * 100"
             class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 bg-zinc-300/40 rounded-sm"
@@ -693,7 +688,6 @@ async function selectApi(index){
       </div>
 
       <div id="LrcBox"
-           :style="{ '--wordProgress': effectLrcProcess}"
            class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
         <div class="h-[25vh] w-full"></div>
         <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
@@ -703,9 +697,11 @@ async function selectApi(index){
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
-            <p :class="{'scale-115':lrcCurrentIndex===index}" class="text-2xl origin-left duration-500 will-change-transform">
+            <p :class="{'scale-115':lrcCurrentIndex===index&&(effectLrcProcess<140||wordIndex!==data.words.length-1)}" class="text-2xl origin-left duration-500 will-change-transform">
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
-                    class="*:inline-block *:antialiased text-zinc-50 *:will-change-transform *:whitespace-pre-wrap"
+                    :style="{ '--wordProgress': effectLrcProcess}"
+                    :class="{'text-zinc-50/40':effectLrcProcess>=140&&wordIndex===data.words.length-1}"
+                    class="*:inline-block duration-200 *:antialiased text-zinc-50 *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
                   :class="{
@@ -795,6 +791,11 @@ async function selectApi(index){
     </div>
 
     <div :class="[useEffects? 'effectCover will-change-transform':'simpleCover']"
+         :style="{
+       '--imgColor0':colors[0],
+       '--imgColor1':colors[1],
+       '--imgColor2':colors[2],
+  }"
          class="w-full h-screen absolute left-0 right-0 brightness-50 z-22"></div>
 
   </div>
@@ -810,7 +811,7 @@ async function selectApi(index){
 }
 
 .wordAnimation1{
-  animation: wordToTop calc(var(--wordDuration) * 2s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
+  animation: wordToTop calc(var(--wordDuration) * 1.8s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
 }
 
 @keyframes wordToTop {

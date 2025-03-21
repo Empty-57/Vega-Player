@@ -470,7 +470,6 @@ function onPlaySkip_Lrc(timestamp){
 <template>
   <div
     class="fixed w-screen h-16 dark:bg-neutral-900 bg-neutral-200 border-t-[0.1px] dark:border-neutral-700 border-gray-400 bottom-0 left-0 flex items-center justify-start px-3 **:select-none z-10"
-    :style="{'--playProcess':playProcess,'--volumeProcess':volumeProcess}"
   >
     <div class="flex items-center justify-start min-w-1/3 max-w-1/3">
       <img
@@ -532,6 +531,7 @@ function onPlaySkip_Lrc(timestamp){
       >
         <span>{{ currentTime }}</span>
         <input
+          :style="{'--playProcess':playProcess}"
           id="playProcess"
           :class="[
             currentIndex !== -1 && metadata.path ? 'pointer-events-auto' : 'pointer-events-none'
@@ -685,6 +685,7 @@ function onPlaySkip_Lrc(timestamp){
             class="absolute left-4 flex items-center justify-start duration-200"
           >
             <input
+              :style="{'--volumeProcess':volumeProcess}"
               id="volume"
               :value="volume * 100"
               class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm"
