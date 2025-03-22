@@ -109,8 +109,8 @@ let accumulated = 0
 
 const wordIndex=ref(0)
 const wordInfo=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value])
-const wordStart=ref(0)
-const wordDuration=ref(0.01)
+let wordStart=0
+let wordDuration=0.01
 let correction=0
 
 const lrcBlur=computed(()=>index=>{
@@ -123,14 +123,14 @@ const lrcBlur=computed(()=>index=>{
 })
 
 watch(wordIndex,() => {
-  wordStart.value=wordInfo.value?.start||null
-  wordDuration.value=wordInfo.value?.duration||null
+  wordStart=wordInfo.value?.start||null
+  wordDuration=wordInfo.value?.duration||null
 
-  if (wordDuration.value&&wordStart.value){
-    if (currentSecMs-wordStart.value>=0.02){
-      correction= 2/(wordDuration.value-currentSecMs+wordStart.value)
+  if (wordDuration&&wordStart){
+    if (currentSecMs-wordStart>=0.02){
+      correction= 2/(wordDuration-currentSecMs+wordStart)
     }else{
-      correction= 2/wordDuration.value
+      correction= 2/wordDuration
     }
   }else {
     correction =0
@@ -192,7 +192,7 @@ watch(()=> currentSecMs,()=>{
   if (lrcType.value==='.lrc' || lrcCurrentIndex.value===-1){return}
 
   if (
-    (currentSecMs >= wordStart.value+wordDuration.value)
+    (currentSecMs >= wordStart+wordDuration)
     &&(currentSecMs>=(parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity))
     &&(wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
   ) {
@@ -697,16 +697,19 @@ async function selectApi(index){
                @dblclick="onPlaySkip_Lrc(data.segmentStart)"
           >
 
-            <p :class="{'scale-115':lrcCurrentIndex===index&&(effectLrcProcess<140||wordIndex!==data.words.length-1)}" class="text-2xl origin-left duration-500 will-change-transform">
+            <p
+              :class="{'scale-115':lrcCurrentIndex===index&&(effectLrcProcess<140||wordIndex!==data.words.length-1)}"
+              class="text-2xl origin-left duration-500 will-change-transform"
+            >
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
                     :style="{ '--wordProgress': effectLrcProcess}"
-                    :class="{'text-zinc-50/40':effectLrcProcess>=140&&wordIndex===data.words.length-1}"
-                    class="*:inline-block duration-200 *:antialiased text-zinc-50 *:will-change-transform *:whitespace-pre-wrap"
+                    :class="{'text-white/40':effectLrcProcess>=140&&wordIndex===data.words.length-1}"
+                    class="*:inline-block duration-200 *:antialiased text-white *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
                   :class="{
                   'effectLrc': index2 === wordIndex,
-                  'text-zinc-50/40': index2 > wordIndex,
+                  'text-white/40': index2 > wordIndex,
                   'wordAnimation1': index2 <= wordIndex,
                 }"
                   v-for="(word,index2) in data.words"
@@ -715,13 +718,13 @@ async function selectApi(index){
                 </span>
               </span>
               <span v-else
-                :class="[lrcCurrentIndex===index&&lrcType==='.lrc'? 'text-zinc-50':'text-zinc-50/40']"
+                :class="[lrcCurrentIndex===index&&lrcType==='.lrc'? 'text-white':'text-white/40']"
               >
               {{ data.lyricText.split(' / ')[0] }}
             </span>
             </p>
 
-            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="mt-1 text-xl text-zinc-50/40 w-full">
+            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="mt-1 text-xl text-white/40 w-full">
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
           </div>
