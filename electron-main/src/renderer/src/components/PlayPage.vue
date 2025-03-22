@@ -113,6 +113,11 @@ let wordStart=0
 let wordDuration=0.01
 let correction=0
 
+const interludeProcess=ref(0)
+const lrcInterval=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.nextTime-parsedLyrics.value[lrcCurrentIndex.value]?.words?.at(-1).start-parsedLyrics.value[lrcCurrentIndex.value]?.words?.at(-1).duration)
+const wordsLen=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
+const wordNext=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity)
+
 const lrcBlur=computed(()=>index=>{
   const shouldBlur = !(lrcCurrentIndex.value === index || isScroll.value)
   const blurValue = shouldBlur
@@ -176,7 +181,7 @@ function findCurrentLine(time,hint) {
 
 watch(()=> currentSecMs,()=>{
   const newIndex = findCurrentLine(currentSecMs,lrcCurrentIndex.value)
-  if (newIndex !== lrcCurrentIndex.value) {
+  if (newIndex !== lrcCurrentIndex.value ||currentSecMs<wordStart) {
 
     accumulated = 0
     if (lrcType.value!=='.lrc'){
@@ -193,15 +198,20 @@ watch(()=> currentSecMs,()=>{
 
   if (
     (currentSecMs >= wordStart+wordDuration)
-    &&(currentSecMs>=(parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity))
-    &&(wordIndex.value+1<parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
+    &&(currentSecMs>=wordNext.value)
+    &&(wordIndex.value+1<wordsLen.value)
   ) {
+    interludeProcess.value=0
     accumulated=0
     wordIndex.value++
   }
 
   accumulated+=correction
   effectLrcProcess.value = accumulated
+
+  if (effectLrcProcess.value>=100&&wordIndex.value===wordsLen.value-1){
+    interludeProcess.value+= 2/lrcInterval.value
+  }
 })
 
 EventBus.on('setPauseBtn', flag => {
@@ -690,7 +700,7 @@ async function selectApi(index){
       <div id="LrcBox"
            class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
         <div class="h-[25vh] w-full"></div>
-        <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
+        <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full *:w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <div v-for="(data,index) in parsedLyrics"
                :class="[useGlow &&lrcCurrentIndex===index? 'drop-shadow-[0px_0px_2px_#fafafabb]':'']"
              :style="lrcBlur(index)"
@@ -698,12 +708,12 @@ async function selectApi(index){
           >
 
             <p
-              :class="{'scale-115':lrcCurrentIndex===index&&(effectLrcProcess<140||wordIndex!==data.words.length-1)}"
-              class="text-2xl origin-left duration-500 will-change-transform"
+              :class="{'scale-110 opacity-85':lrcCurrentIndex===index&&(effectLrcProcess<150||wordIndex!==data?.words?.length-1)}"
+              class="text-2xl origin-left delay-100 duration-300 w-fit will-change-transform"
             >
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
                     :style="{ '--wordProgress': effectLrcProcess}"
-                    :class="{'text-white/40':effectLrcProcess>=140&&wordIndex===data.words.length-1}"
+                    :class="{'text-white/40':effectLrcProcess>=150&&wordIndex===data.words.length-1}"
                     class="*:inline-block duration-200 *:antialiased text-white *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
@@ -727,6 +737,16 @@ async function selectApi(index){
             <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="mt-1 text-xl text-white/40 w-full">
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
+            <transition mode="out-in" name="interlude-fade">
+              <div v-if="lrcCurrentIndex===index&&lrcInterval>=4&&effectLrcProcess>=160&&wordIndex===data.words.length-1&&interludeProcess<=95"
+                   :style="{'--interludeProcess':interludeProcess}"
+                   class="w-fit interludeFade *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </transition>
+
           </div>
         </div>
         <p v-else class="h-fit absolute m-auto top-0 bottom-0">无歌词文件或歌词文件格式错误</p>
@@ -813,6 +833,10 @@ async function selectApi(index){
   mask: linear-gradient(to left, transparent 0%, #000 10%);
 }
 
+.lyrics>div{
+  contain: content;
+}
+
 .wordAnimation1{
   animation: wordToTop calc(var(--wordDuration) * 1.8s) ease-in-out forwards calc(var(--wordDuration) * 0.2s);
 }
@@ -833,7 +857,7 @@ async function selectApi(index){
 }
 
 .effectLrc{
-  --dynamic-width: min(var(--wordProgress) * 0.5%, 20%);
+  --dynamic-width: min(var(--wordProgress) * 0%, 20%);
 
   mask-image: linear-gradient(
     to right,
@@ -843,20 +867,38 @@ async function selectApi(index){
   );
   mask-repeat: no-repeat;
   text-rendering: optimizeLegibility;
+}
 
-
-  /*
-  mask: linear-gradient(
+.interludeFade{
+  mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1%),
-    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1%)
+    rgba(0, 0, 0, 1) calc(var(--interludeProcess) * 1%),
+    rgba(0, 0, 0, 0.4) calc(var(--interludeProcess) * 1% + 10%)
   );
   mask-repeat: no-repeat;
+}
 
-  transform: translateZ(0);
-  will-change: mask-image;
-  */
 
+.interlude{
+  height: 2.5rem;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  opacity: 0.85;
+}
+
+.interlude-fade-enter-active {
+  transition: all 0.5s ease-out;
+}
+
+.interlude-fade-leave-active {
+  transition: all 0.5s ease-in;
+}
+
+.interlude-fade-enter-from,
+.interlude-fade-leave-to {
+  opacity: 0;
+  height: 0;
+  margin: 0;
 }
 
 .simpleCover {
