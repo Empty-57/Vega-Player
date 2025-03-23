@@ -1,6 +1,6 @@
 import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray,screen} from 'electron';
 import {join} from 'path';
-import {electronApp, is, optimizer} from '@electron-toolkit/utils';
+import {electronApp, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
 import {audio_scan, getCover, getLocalCover,getLyrics,audio_scan2} from './audio_scan';
