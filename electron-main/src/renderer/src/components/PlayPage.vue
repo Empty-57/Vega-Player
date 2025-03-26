@@ -127,6 +127,42 @@ const lrcBlur=computed(()=>index=>{
   return { filter: blurValue }
 })
 
+const readDeps = () => [
+  lrcCurrentIndex.value,
+  wordIndex.value,
+  wordsLen.value,
+  lrcInterval.value,
+  effectLrcProcess.value,
+  interludeProcess.value
+];
+
+const lrcEffect1 = computed(() => {
+  const [current, wordIdx, wordsLen_, interval, process] = readDeps();
+
+  const threshold = interval >= 4 ? 90 : 150;
+  const isNotLast = wordIdx !== wordsLen_ - 1;
+  const isThresholdValid = process < threshold;
+
+  return (index) => current === index && (isNotLast || isThresholdValid)
+});
+
+
+const lrcEffect2 = computed(() => {
+  const [_, wordIdx, len, interval, process] = readDeps();
+
+  const isLast = wordIdx === len-1;
+  const threshold = interval >= 4 ? 90 : 150;
+
+  return isLast && process >= threshold;
+});
+
+
+const showInterlude = computed(() => {
+  const [current, wordIdx, len, interval, process, interlude] = readDeps();
+  const isLast = wordIdx === len-1;
+  return (index) => (current === index) && isLast&&interval >= 4&&process>=100&&interlude<=95;
+});
+
 watch(wordIndex,() => {
   wordStart=wordInfo.value?.start||null
   wordDuration=wordInfo.value?.duration||null
@@ -708,12 +744,12 @@ async function selectApi(index){
           >
 
             <p
-              :class="{'scale-110 opacity-85':lrcCurrentIndex===index&&(effectLrcProcess<150||wordIndex!==data?.words?.length-1)}"
+              :class="{'scale-110 opacity-85':lrcEffect1(index)}"
               class="text-2xl origin-left delay-100 duration-300 w-fit will-change-transform"
             >
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
                     :style="{ '--wordProgress': effectLrcProcess}"
-                    :class="{'text-white/40':effectLrcProcess>=150&&wordIndex===data.words.length-1}"
+                    :class="{'text-white/40':lrcEffect2}"
                     class="*:inline-block duration-200 *:antialiased text-white *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
@@ -738,7 +774,7 @@ async function selectApi(index){
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
             <transition mode="out-in" name="interlude-fade">
-              <div v-if="lrcCurrentIndex===index&&lrcInterval>=4&&effectLrcProcess>=160&&wordIndex===data.words.length-1&&interludeProcess<=95"
+              <div v-if="showInterlude(index)"
                    :style="{'--interludeProcess':interludeProcess}"
                    class="w-fit interludeFade *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
                 <span></span>
