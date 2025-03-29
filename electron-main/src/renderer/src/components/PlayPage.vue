@@ -160,7 +160,7 @@ const lrcEffect2 = computed(() => {
 const showInterlude = computed(() => {
   const [current, wordIdx, len, interval, process, interlude] = readDeps();
   const isLast = wordIdx === len-1;
-  return (index) => (current === index) && isLast&&interval >= 4&&process>=100&&interlude<=95;
+  return (index) => (current === index) && isLast&&interval >= 4&&process>=100&&interlude<=95&&lrcCurrentIndex.value<parsedLyrics.value.length-1;
 });
 
 watch(wordIndex,() => {
@@ -699,7 +699,7 @@ async function selectApi(index){
               class="hover:bg-neutral-200/20 p-2 h-8"
               @click="openPath"
             >
-              打开歌曲所在位置
+              从文件夹打开
             </li>
           </ul>
         </div>

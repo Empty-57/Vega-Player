@@ -307,6 +307,11 @@ function editMetadata() {
   music_dropdown.value = false;
 }
 
+async function openPath() {
+  music_dropdown.value = false;
+  await window.electron.ipcRenderer.send('openPath', music_local.value.path)
+}
+
 </script>
 
 <template>
@@ -815,6 +820,18 @@ function editMetadata() {
         </path></svg>
 
         <span class="px-2">修改元数据</span>
+
+      </span>
+
+      <span class="h-8 dark:hover:bg-neutral-800/40 hover:bg-gray-300/80 flex items-center justify-start"
+            @click="openPath"
+      >
+
+        <svg class="fill-zinc-900 dark:fill-zinc-200" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="14" height="14">
+          <path d="M870.4 217.6c14.1 0 25.6 11.5 25.6 25.6v537.6c0 14.1-11.5 25.6-25.6 25.6H153.6c-14.1 0-25.6-11.5-25.6-25.6v-448c0-14.1 11.5-25.6 25.6-25.6h384.9l18.7-18.7 70.9-70.9h242.3m0-64H620.2c-11.9 0-23.3 4.7-31.7 13.1L512 243.2H153.6c-49.5 0-89.6 40.1-89.6 89.6v448c0 49.5 40.1 89.6 89.6 89.6h716.8c49.5 0 89.6-40.1 89.6-89.6V243.2c0-49.5-40.1-89.6-89.6-89.6z"></path><path d="M768 741.4H256c-17.7 0-32-14.3-32-32s14.3-32 32-32h512c17.7 0 32 14.3 32 32s-14.3 32-32 32z">
+        </path></svg>
+
+        <span class="px-2">从文件夹打开</span>
 
       </span>
 
