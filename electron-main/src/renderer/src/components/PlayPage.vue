@@ -4,9 +4,20 @@ import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw,computed} from "vue
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
-import {useDebounceFn,watchDebounced} from "@vueuse/core";
+import {useDebounceFn,watchDebounced,useStorage} from "@vueuse/core";
 
 import {getLrcBySearch} from '../../../Api/apis.js'
+
+const lrc_cfg = useStorage('lrc_cfg', {showTranslate: true,lrcSpacing:0,lrcWeight:700});
+let showTranslate=lrc_cfg.value.showTranslate
+const lrcWeight=ref(lrc_cfg.value.lrcWeight)
+const letterSpacing=ref(lrc_cfg.value.lrcSpacing/10+'rem')
+watch(lrc_cfg,()=>{
+  showTranslate=lrc_cfg.value.showTranslate
+  letterSpacing.value=lrc_cfg.value.lrcSpacing/10+'rem'
+  lrcWeight.value=lrc_cfg.value.lrcWeight
+})
+
 
 
 const colorThief = new ColorThief();
@@ -405,7 +416,7 @@ async function selectApi(index){
   <div class="z-25 fixed w-full h-screen left-0 top-0">
     <div
       id="diy_bar"
-      class="fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
+      class="*:cursor-pointer fixed z-24 w-screen h-11 bg-transparent top-0 left-0 flex items-center justify-center *:duration-200"
     >
       <span class="no_drag p-3" @click="closePlayPage">
         <svg class="fill-zinc-200 hover:fill-cyan-600" height="16"
@@ -478,7 +489,7 @@ async function selectApi(index){
     </div>
     <div class="absolute w-full h-screen left-0 top-0 z-23 flex items-center justify-center **:select-none">
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
-        <img id="coverImg" :class="[isLoaded? 'opacity-100':'opacity-0']"
+        <img :class="[isLoaded? 'opacity-100':'opacity-0']"
              :src="src? src:placeholder"
              style="-webkit-user-drag: none;"
              alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">
@@ -734,7 +745,7 @@ async function selectApi(index){
       </div>
 
       <div id="LrcBox"
-           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:font-bold **:text-pretty **:text-left pr-8 pl-2">
+           class="w-4/7 h-[65%] relative right-0 top-0 overflow-x-hidden overflow-y-scroll **:text-pretty **:text-left pr-8 pl-2">
         <div class="h-[25vh] w-full"></div>
         <div v-if="parsedLyrics.length>0" class="*:cursor-pointer lyrics w-full *:w-full flex flex-col items-start justify-center gap-y-4 *:duration-500">
           <div v-for="(data,index) in parsedLyrics"
@@ -770,7 +781,7 @@ async function selectApi(index){
             </span>
             </p>
 
-            <p v-if="data.translate||data.lyricText.split(' / ')[1]" class="mt-1 text-xl text-white/40 w-full">
+            <p v-if="showTranslate&&(data.translate||data.lyricText.split(' / ')[1])" class="mt-1 text-xl text-white/40 w-full">
               {{data.translate? data.translate:data.lyricText.split(' / ')[1]}}
             </p>
             <transition mode="out-in" name="interlude-fade">
@@ -865,12 +876,20 @@ async function selectApi(index){
   mask: linear-gradient(to top, transparent 0%, #000 10%, #000 90%, transparent 100%);
 }
 
+#LrcBox p{
+  font-weight: v-bind(lrcWeight);
+}
+
 #musicInfo{
   mask: linear-gradient(to left, transparent 0%, #000 10%);
 }
 
 .lyrics>div{
   contain: content;
+}
+
+.lyrics>div p{
+  letter-spacing: v-bind(letterSpacing);
 }
 
 .wordAnimation1{
@@ -1013,11 +1032,6 @@ html.dark {
   height: 4px;
   background-color: #ffffff00;
 }
-
-#coverImg {
-  box-shadow: 0 0 48px 2px #18181b99;
-}
-
 
 #diy_bar {
   -webkit-app-region: drag;

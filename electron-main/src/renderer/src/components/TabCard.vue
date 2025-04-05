@@ -41,7 +41,7 @@ const tabs = {
             ? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40'
             : 'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20'
         ]"
-        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        class="cursor-pointer select-none py-2 h-10 rounded flex items-center justify-center duration-200"
         @click="() => (tabIndex = 'LocalMusic')"
       >
         <svg
@@ -62,7 +62,7 @@ const tabs = {
             ? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40'
             : 'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20'
         ]"
-        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        class="cursor-pointer select-none py-2 h-10 rounded flex items-center justify-center duration-200"
         @click="() => (tabIndex = 'Likes')"
       >
         <svg
@@ -84,7 +84,7 @@ const tabs = {
             ? 'dark:text-zinc-200 text-zinc-900 dark:bg-zinc-800 bg-zinc-400/40'
             : 'text-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800/40 hover:bg-zinc-400/20'
         ]"
-        class="select-none py-2 h-10 rounded flex items-center justify-center duration-200"
+        class="cursor-pointer select-none py-2 h-10 rounded flex items-center justify-center duration-200"
         @click="() => (tabIndex = 'Setting')"
       >
         <svg
