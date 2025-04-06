@@ -133,9 +133,22 @@ let wordDuration=0.01
 let correction=0
 
 const interludeProcess=ref(0)
-const lrcInterval=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.nextTime-parsedLyrics.value[lrcCurrentIndex.value]?.words?.at(-1).start-parsedLyrics.value[lrcCurrentIndex.value]?.words?.at(-1).duration)
-const wordsLen=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words?.length)
-const wordNext=computed(()=>parsedLyrics.value[lrcCurrentIndex.value]?.words[wordIndex.value+1]?.start||Infinity)
+
+const lyricComputed = computed(() => {
+  const currentLyric = parsedLyrics.value[lrcCurrentIndex.value]
+  if (!currentLyric) return { interval: 1, wordsLen: undefined, wordNext: Infinity }
+
+  const { nextTime, words = [] } = currentLyric
+  const lastWord = words[words.length - 1] || {}
+  return {
+    interval: nextTime - (lastWord.start + lastWord.duration),
+    wordsLen: words.length,
+    wordNext: words[wordIndex.value + 1]?.start || Infinity
+  }
+})
+const lrcInterval = computed(() => lyricComputed.value.interval)
+const wordsLen = computed(() => lyricComputed.value.wordsLen)
+const wordNext = computed(() => lyricComputed.value.wordNext)
 
 const lrcBlur=computed(()=>index=>{
   const shouldBlur = !(lrcCurrentIndex.value === index || isScroll.value)

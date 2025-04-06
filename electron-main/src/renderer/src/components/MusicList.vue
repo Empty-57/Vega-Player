@@ -2,7 +2,7 @@
 import placeholder from '../assets/placeholder.jpg';
 import FloatLocalTopBtn from './FloatLocalTopBtn.vue';
 import {nextTick, onActivated, onDeactivated, ref, useTemplateRef} from 'vue';
-import {useScroll, useVirtualList, watchDebounced} from '@vueuse/core';
+import {useScroll, useStorage, useVirtualList, watchDebounced} from '@vueuse/core';
 import {vOnClickOutside} from '@vueuse/components';
 import EventBus from '../assets/EventBus';
 import ShowMetadata from "./ShowMetadata.vue";
@@ -51,7 +51,14 @@ const {list, containerProps, wrapperProps, scrollTo} = useVirtualList(cache_list
 const music_list = containerProps.ref;
 const {arrivedState} = useScroll(music_list);
 
-const apiSource=ref(0)
+const lrc_cfg = useStorage('lrc_cfg', {
+  showTranslate: true,
+  lrcSpacing:0,
+  lrcWeight:700,
+  lrcGlow:false,
+  autoDownloadLrc:true,
+  api:0
+});
 
 async function getCover(path, flag) {
   let src = await window.electron.ipcRenderer.invoke('getCovers', {path: path, flag: flag});
@@ -76,7 +83,7 @@ watchDebounced(
           const src = await getCover(path, 1);
 
           if (!src) {
-            await saveColorByText(title+artist,path,apiSource.value);
+            await saveColorByText(title+artist,path,lrc_cfg.value.api);
           }
 
           if (src) {
