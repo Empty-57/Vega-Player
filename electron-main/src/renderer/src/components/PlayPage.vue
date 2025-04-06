@@ -8,14 +8,23 @@ import {useDebounceFn,watchDebounced,useStorage} from "@vueuse/core";
 
 import {getLrcBySearch} from '../../../Api/apis.js'
 
-const lrc_cfg = useStorage('lrc_cfg', {showTranslate: true,lrcSpacing:0,lrcWeight:700});
+const lrc_cfg = useStorage('lrc_cfg', {
+  showTranslate: true,
+  lrcSpacing:0,
+  lrcWeight:700,
+  lrcGlow:false
+});
+
 let showTranslate=lrc_cfg.value.showTranslate
 const lrcWeight=ref(lrc_cfg.value.lrcWeight)
 const letterSpacing=ref(lrc_cfg.value.lrcSpacing/10+'rem')
+let useGlow = lrc_cfg.value.lrcGlow
+
 watch(lrc_cfg,()=>{
   showTranslate=lrc_cfg.value.showTranslate
   letterSpacing.value=lrc_cfg.value.lrcSpacing/10+'rem'
   lrcWeight.value=lrc_cfg.value.lrcWeight
+  useGlow = lrc_cfg.value.lrcGlow
 })
 
 
@@ -43,7 +52,6 @@ const lrcType=ref('')
 const lrcCurrentIndex=ref(0)
 
 const useEffects = ref(false)
-const useGlow = ref(false)
 
 const isScroll=ref(false);
 
@@ -64,7 +72,7 @@ const lrcSearchText=ref('')
 const showApiList=ref(false)
 
 let coverImg = null;
-let colors = ref(['#FF5733', '#33FF57', '#3357FF']);
+let colors = ref(['#A0A0A0', '#F0F0F0', '#F0F0F0']);
 let lyricsList=[]
 
 function decodeHTMLEntities(text) {
@@ -490,6 +498,7 @@ async function selectApi(index){
     <div class="absolute w-full h-screen left-0 top-0 z-23 flex items-center justify-center **:select-none">
       <div class="flex relative left-0 top-0 flex-col items-center justify-center w-3/7 h-screen py-4">
         <img :class="[isLoaded? 'opacity-100':'opacity-0']"
+             id="coverImg"
              :src="src? src:placeholder"
              style="-webkit-user-drag: none;"
              alt="" class="rounded w-3/5 aspect-square duration-200 object-cover">

@@ -1,6 +1,11 @@
 <script setup>
 import {useStorage} from '@vueuse/core';
-const lrc_cfg = useStorage('lrc_cfg', {showTranslate: true,lrcSpacing:0,lrcWeight:700});
+const lrc_cfg = useStorage('lrc_cfg', {
+  showTranslate: true,
+  lrcSpacing:0,
+  lrcWeight:700,
+  lrcGlow:false
+});
 </script>
 
 <template>
@@ -12,7 +17,7 @@ const lrc_cfg = useStorage('lrc_cfg', {showTranslate: true,lrcSpacing:0,lrcWeigh
         <input type="checkbox" :checked="lrc_cfg.showTranslate" @change="e=>{lrc_cfg.showTranslate=e.target.checked}" class="toggle toggle-sm border-0 dark:bg-gray-600/40 bg-gray-600/20 before:text-white dark:checked:bg-cyan-600 checked:bg-red-400" />
       </div>
 
-      <div class="w-full flex flex-col items-center justify-start gap-y-2 border rounded p-3 dark:bg-gray-900/10 bg-gray-600/10 dark:border-white/20 border-black/20">
+      <div class="w-full flex flex-col items-center justify-start gap-y-4 border rounded p-3 dark:bg-gray-900/10 bg-gray-600/10 dark:border-white/20 border-black/20">
         <div class="w-full flex items-center justify-between">
           <span class="text-md font-medium">
           歌词间距
@@ -37,17 +42,30 @@ const lrc_cfg = useStorage('lrc_cfg', {showTranslate: true,lrcSpacing:0,lrcWeigh
                  min="0" max="1000">
         </div>
 
+        <div class="w-full flex items-center justify-between">
+          <span class="text-md font-medium">启用辉光</span>
+          <input type="checkbox" :checked="lrc_cfg.lrcGlow" @change="e=>{lrc_cfg.lrcGlow=e.target.checked}"
+                 class="toggle toggle-sm border-0 dark:bg-gray-600/40 bg-gray-600/20 before:text-white dark:checked:bg-cyan-600 checked:bg-red-400" />
+        </div>
+
         <div class="w-full flex flex-col items-center justify-center"
         :style="{'--lrcWeight':lrc_cfg.lrcWeight,
         '--letterSpacing':lrc_cfg.lrcSpacing/10+'rem'
         }"
         >
           <span class="text-md font-medium self-start">样式预览</span>
-          <p class="font-(--lrcWeight) tracking-(--letterSpacing) text-2xl">样式预览 Style preview スタイルプレビュー</p>
-          <p class="font-(--lrcWeight) tracking-(--letterSpacing) text-xl opacity-40">样式预览 Style preview スタイルプレビュー</p>
+          <p class="font-(--lrcWeight) tracking-(--letterSpacing) text-2xl"
+             :class="{'drop-shadow-[0px_0px_2px_#fafafabb]':lrc_cfg.lrcGlow}"
+          >样式预览 Style preview スタイルプレビュー</p>
+          <p class="font-(--lrcWeight) tracking-(--letterSpacing) text-xl opacity-40"
+             :class="{'drop-shadow-[0px_0px_2px_#fafafabb]':lrc_cfg.lrcGlow}"
+          >样式预览 Style preview スタイルプレビュー</p>
         </div>
 
         </div>
+
+
+
     </div>
     <span class="grow"></span>
   </div>
