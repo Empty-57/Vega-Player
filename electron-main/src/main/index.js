@@ -3,7 +3,7 @@ import {join} from 'path';
 import {electronApp, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
-import {audio_scan, getCover, getLocalCover,getLyrics,audio_scan2} from './audio_scan';
+import {getCover, getLocalCover, getLyrics, audio_scanMul, saveLyrics, audio_scan} from './audioTool.js';
 import {ByteVector, File, PictureType} from 'node-taglib-sharp'
 import axios from "axios";
 import sharp from "sharp";
@@ -308,14 +308,19 @@ ipcMain.handle('addMusicFolder',async ()=>{
 
 ipcMain.on('updateMusicFolder',async (event, {folders,cache_list})=>{
   await rwMusicFolders(folders,'w')
-  await audio_scan2(event,folders,cache_list)
+  await audio_scanMul(event,folders,cache_list)
 })
 
 ipcMain.on('syncMusicCache',async (event, {cache_list})=>{
   const folders=await rwMusicFolders([],'r')
   if (folders){
-    await audio_scan2(event,folders,cache_list)
+    await audio_scanMul(event,folders,cache_list)
   }
+})
+
+ipcMain.on('downloadLrc',async (_, lrcData)=>{
+  if (!lrcData){return;}
+  await saveLyrics(lrcData)
 })
 
 app.on('window-all-closed', () => {

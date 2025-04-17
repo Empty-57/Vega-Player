@@ -19,7 +19,7 @@ const parseLyrics = (text) => {
   }
   return entries;
 };
-function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
+function mergeTranslations(parsedLrcData,lyricData_ts,type='.lrc',tolerance=0.3){
   // 解析翻译歌词并建立查找队列
   const transQueue = lyricData_ts ? parseLyrics(lyricData_ts) : [];
   let transIndex = 0;  // 翻译指针（按时间顺序推进）
@@ -32,6 +32,13 @@ function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
 
     // 寻找匹配的翻译（满足：翻译时间 ≤ 主歌词时间(带容差)）
     let translate = '';
+
+    const getTranslate=type !=='.qrc'? transEntry => transEntry.lyricText : transEntry => {
+      if (transEntry.lyricText==='//'){
+        return ' '
+      }
+      return  transEntry.lyricText
+    }
 
     if (!mainEntry.lyricText) {
       return {
@@ -48,7 +55,7 @@ function mergeTranslations(parsedLrcData,lyricData_ts,tolerance=0.3){
       // 主时间超前翻译时间(带容差)
       if (mainEntry.segmentStart >= transEntry.segmentStart-tolerance) {
         if (mainEntry.segmentStart <= transEntry.segmentStart + tolerance){
-          translate=transEntry.lyricText;
+          translate=getTranslate(transEntry);
         }
       } else {
         break; // 后续翻译时间更大，停止查找
@@ -150,5 +157,5 @@ export function parseKaraOkLyric(lyricData, lyricData_ts,type) {
     });
   }
 
-  return mergeTranslations(result, lyricData_ts);
+  return mergeTranslations(result, lyricData_ts,type);
 }

@@ -6,7 +6,7 @@ import {useScroll, useStorage, useVirtualList, watchDebounced} from '@vueuse/cor
 import {vOnClickOutside} from '@vueuse/components';
 import EventBus from '../assets/EventBus';
 import ShowMetadata from "./ShowMetadata.vue";
-import {saveColorByText} from "../../../Api/apis.js";
+import {saveCoverByText} from "../../../Api/apis.js";
 
 const emit = defineEmits([
   'SwitchLikes',
@@ -83,7 +83,7 @@ watchDebounced(
           const src = await getCover(path, 1);
 
           if (!src) {
-            await saveColorByText(title+artist,path,lrc_cfg.value.api);
+            await saveCoverByText(title+artist,path,lrc_cfg.value.api);
           }
 
           if (src) {

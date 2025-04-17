@@ -139,6 +139,39 @@ export async function getLyrics(filePath) {
   return null;
 }
 
+export async function saveLyrics(lrcData) {
+  const filePath=lrcData.path
+  if (!filePath) return null;
+
+  const dir = path.dirname(filePath);
+  const baseName = path.basename(filePath, path.extname(filePath));
+
+  const lrcContent=lrcData[lrcData?.type.split('.')[1]]
+  const translate=lrcData.translate
+
+  try {
+    if (!lrcContent) return;
+
+    await fs.promises.writeFile(path.join(dir, `${baseName}${lrcData.type}`), lrcContent, 'utf-8');
+    await fs.promises.writeFile(path.join(dir, `${baseName}${LYRIC_VTS_SUFFIX}`), translate, 'utf-8');
+
+    if (lrcData.type==='.qrc') return;
+
+    const files = await fs.promises.readdir(dir, {recursive: false});
+    for (const file of files) {
+      const qrcFile = path.basename(filePath, path.extname(filePath))+'.qrc';
+      if (file === qrcFile){
+        await fs.promises.unlink(path.join(dir,file));
+        break;
+      }
+    }
+
+  }catch (err){
+    console.error('saveLrc err: ',err);
+  }
+
+}
+
 export async function getLocalCover(filePath, flag = 1) {
   const size = flag === 1 ? 150 : 800
   for (const ext of ['.png', '.jpg', '.jpeg']) {
@@ -197,7 +230,7 @@ export async function audio_scan(event) {
   });
 }
 
-export async function audio_scan2(event, folderList, cacheList) {
+export async function audio_scanMul(event, folderList, cacheList) {
   if (!folderList){
     return;
   }

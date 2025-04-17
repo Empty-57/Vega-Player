@@ -12,7 +12,9 @@ const lrc_cfg = useStorage('lrc_cfg', {
   showTranslate: true,
   lrcSpacing:0,
   lrcWeight:700,
-  lrcGlow:false
+  lrcGlow:false,
+  autoDownloadLrc:true,
+  api:0
 });
 
 let showTranslate=lrc_cfg.value.showTranslate
@@ -20,11 +22,14 @@ const lrcWeight=ref(lrc_cfg.value.lrcWeight)
 const letterSpacing=ref(lrc_cfg.value.lrcSpacing/10+'rem')
 let useGlow = lrc_cfg.value.lrcGlow
 
+let autoDownloadLrc_=lrc_cfg.value.autoDownloadLrc
+
 watch(lrc_cfg,()=>{
   showTranslate=lrc_cfg.value.showTranslate
   letterSpacing.value=lrc_cfg.value.lrcSpacing/10+'rem'
   lrcWeight.value=lrc_cfg.value.lrcWeight
   useGlow = lrc_cfg.value.lrcGlow
+  autoDownloadLrc_=lrc_cfg.value.autoDownloadLrc
 })
 
 
@@ -418,6 +423,10 @@ async function switchLrc(lrcData) {
   await syncLrc(data)
 
   showLrcModal.value=false
+
+  if (autoDownloadLrc_){
+    await window.electron.ipcRenderer.send('downloadLrc', toRaw({...lrcData, path:metadata.path}))
+  }
 }
 
 async function openPath() {
@@ -778,12 +787,12 @@ async function selectApi(index){
 
             <p
               :class="{'scale-110 opacity-85':lrcEffect1(index)}"
-              class="text-2xl origin-left delay-100 duration-300 w-fit will-change-transform"
+              class="text-2xl origin-left delay-100 duration-300 w-fit will-change-transform will-change-[opacity]"
             >
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
                     :style="{ '--wordProgress': effectLrcProcess}"
                     :class="{'text-white/40':lrcEffect2}"
-                    class="*:inline-block duration-200 *:antialiased text-white *:will-change-transform *:whitespace-pre-wrap"
+                    class="*:inline-block duration-200 *:antialiased text-white will-change-transform  *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
                   :class="{

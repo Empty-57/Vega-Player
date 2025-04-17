@@ -65,7 +65,7 @@ async function neGetLrcBySearch(text,offset,limit){
   }
 }
 
-async function neSaveColorByText(text,songPath){
+async function neSaveCoverByText(text,songPath){
   try {
     const data=await neSearchByText(text,1,1)
     if (data?.result?.songCount > 0){
@@ -147,7 +147,7 @@ async function qmGetLrcBySearch(text,offset,limit){
   }
 }
 
-async function qmSaveColorByText(text,songPath){
+async function qmSaveCoverByText(text,songPath){
   try {
     const data=await qmSearchByText(text,1,1)
     const mid=data?.data?.song?.list[0]?.albummid
@@ -172,6 +172,6 @@ export async function getLrcBySearch(text,offset,limit,apiSource){
   return await [qmGetLrcBySearch,neGetLrcBySearch][apiSource](text,offset,limit)
 }
 
-export async function saveColorByText(text,songPath,apiSource){
-  return [qmSaveColorByText,neSaveColorByText][apiSource](text,songPath)
+export async function saveCoverByText(text, songPath, apiSource){
+  return [qmSaveCoverByText,neSaveCoverByText][apiSource](text,songPath)
 }

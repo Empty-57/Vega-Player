@@ -83,7 +83,7 @@ watchEffect(()=>{
           <span class="text-md font-medium">Api</span>
           <select
             v-model="api"
-            class="select select-sm *:rounded *:dark:bg-gray-800/40 *:bg-gray-600/20 dark:bg-gray-600/40 bg-gray-600/20 focus:outline-none focus:border-0">
+            class="select select-sm rounded *:dark:bg-gray-800/40 *:bg-gray-600/20 dark:bg-gray-600/40 bg-gray-600/20 focus:outline-none outline-0 focus:border-0">
             <option value=0>QQ音乐</option>
             <option value=1>网易云音乐</option>
           </select>
