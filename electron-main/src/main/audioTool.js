@@ -152,19 +152,16 @@ export async function saveLyrics(lrcData) {
   try {
     if (!lrcContent) return;
 
-    await fs.promises.writeFile(path.join(dir, `${baseName}${lrcData.type}`), lrcContent, 'utf-8');
-    await fs.promises.writeFile(path.join(dir, `${baseName}${LYRIC_VTS_SUFFIX}`), translate, 'utf-8');
-
-    if (lrcData.type==='.qrc') return;
-
     const files = await fs.promises.readdir(dir, {recursive: false});
     for (const file of files) {
-      const qrcFile = path.basename(filePath, path.extname(filePath))+'.qrc';
-      if (file === qrcFile){
+      const baseName = path.basename(filePath, path.extname(filePath));
+      if (file === baseName+LYRIC_EXTS[0] || file === baseName+LYRIC_EXTS[1]){
         await fs.promises.unlink(path.join(dir,file));
-        break;
       }
     }
+
+    await fs.promises.writeFile(path.join(dir, `${baseName}${lrcData.type}`), lrcContent, 'utf-8');
+    await fs.promises.writeFile(path.join(dir, `${baseName}${LYRIC_VTS_SUFFIX}`), translate, 'utf-8');
 
   }catch (err){
     console.error('saveLrc err: ',err);
