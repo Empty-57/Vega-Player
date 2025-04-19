@@ -1,6 +1,6 @@
 import {app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray,screen} from 'electron';
 import {join} from 'path';
-import {electronApp, optimizer} from '@electron-toolkit/utils';
+import {electronApp, is, optimizer} from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 import {useDebounceFn} from '@vueuse/core';
 import {getCover, getLocalCover, getLyrics, audio_scanMul, saveLyrics, audio_scan} from './audioTool.js';
@@ -58,8 +58,6 @@ function createWindow() {
     return {action: 'deny'};
   });
 
-  mainWindow.loadURL('http://localhost:5173')
-
   mainWindow.on(
     'resize',
     useDebounceFn(() => {
@@ -79,6 +77,12 @@ function createWindow() {
     }
     mainWindow.webContents.send('resize', mainWindow.isMaximized());
   })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL('http://localhost:5173')
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
 
   mainWindow.webContents.openDevTools();
 }
