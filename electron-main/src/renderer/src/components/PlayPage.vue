@@ -6,7 +6,7 @@ import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
 import {useDebounceFn,watchDebounced,useStorage} from "@vueuse/core";
 
-import {getLrcBySearch} from '../../../Api/apis.js'
+import {getLrcBySearch, saveCoverByText} from '../../../Api/apis.js'
 
 const lrc_cfg = useStorage('lrc_cfg', {
   showTranslate: true,
@@ -300,9 +300,13 @@ async function getCover() {
   }
   isLoaded.value = false
   let src_ = await window.electron.ipcRenderer.invoke('getCovers', {path: metadata.path, flag: 2});
-  if (!src_) {
-    src_ = await window.electron.ipcRenderer.invoke('getLocalCovers', {path: metadata.path, flag: 2});
+
+  const title = metadata.title;
+  const artist = metadata.artist ? ' - ' + metadata.artist : '';
+  if (!src) {
+    await saveCoverByText(title+artist,metadata.path,lrc_cfg.value.api);
   }
+
   isLoaded.value = true
   return src_;
 }
