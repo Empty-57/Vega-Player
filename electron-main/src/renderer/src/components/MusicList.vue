@@ -606,7 +606,8 @@ async function openPath() {
             :src="metadata.data.src ? metadata.data.src : placeholder"
             alt=""
             style="-webkit-user-drag: none;"
-            class="rounded size-10 object-cover"
+            :class="[metadata.data.src? 'opacity-100':'opacity-0']"
+            class="rounded size-10 object-cover duration-200"
             loading="lazy"
           />
 

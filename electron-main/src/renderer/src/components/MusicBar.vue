@@ -538,7 +538,7 @@ function onPlaySkip_Lrc(timestamp){
           ]"
           :max="metadata.duration"
           :value="currentSec"
-          class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] rounded-sm"
+          class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 dark:bg-neutral-600/40 bg-neutral-300 h-[3px] hover:h-2 duration-200 rounded-xs"
           min="0"
           type="range"
           @change="onPlaySkip"
@@ -834,6 +834,10 @@ html.dark {
   box-shadow: 0 0 4px 0 #dc2626;
 }
 
+#playProcess:hover::-webkit-slider-thumb{
+  transition: 300ms;
+  opacity: 0;
+}
 
 .list-fade-enter-active {
   transition: all 0.1s ease-out;

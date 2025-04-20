@@ -4,7 +4,7 @@ import {onMounted, ref, useTemplateRef, watch,nextTick,toRaw,computed} from "vue
 import ColorThief from "../assets/color-thief.mjs";
 import EventBus from "../assets/EventBus.js";
 import {vOnClickOutside} from '@vueuse/components';
-import {useDebounceFn,watchDebounced,useStorage} from "@vueuse/core";
+import {useDebounceFn,watchDebounced,useStorage,useOnline} from "@vueuse/core";
 
 import {getLrcBySearch, saveCoverByText} from '../../../Api/apis.js'
 
@@ -32,7 +32,7 @@ watch(lrc_cfg,()=>{
   autoDownloadLrc_=lrc_cfg.value.autoDownloadLrc
 })
 
-
+const online=useOnline()
 
 const colorThief = new ColorThief();
 const isMaximized = ref(false);
@@ -576,7 +576,7 @@ async function selectApi(index){
 </span>
       </div>
 
-        <div class="w-3/5 flex flex-col items-center justify-center h-4 mt-4">
+        <div class="w-3/5 flex flex-col items-center justify-center h-6 mt-4">
           <input
             :style="{'--playProcess':playProcess}"
             id="playProcess2"
@@ -585,7 +585,7 @@ async function selectApi(index){
           ]"
             :max="metadata.duration"
             :value="currentSec"
-            class="cursor-pointer w-full appearance-none outline-0 border-0 bg-zinc-300/40 rounded-sm"
+            class="cursor-pointer w-full appearance-none outline-0 h-1 hover:h-2 duration-200 border-0 bg-zinc-300/40 rounded-xs"
             min="0"
             type="range"
             @change="onPlaySkip"
@@ -759,7 +759,7 @@ async function selectApi(index){
             :style="{'--volumeProcess':volumeProcess}"
             id="volume2"
             :value="volume * 100"
-            class="cursor-pointer mx-2 w-full appearance-none outline-0 border-0 bg-zinc-300/40 rounded-sm"
+            class="cursor-pointer h-1 hover:h-2 duration-200 mx-2 w-full appearance-none outline-0 border-0 bg-zinc-300/40 rounded-xs"
             max="100"
             min="0"
             type="range"
@@ -822,7 +822,7 @@ async function selectApi(index){
             <transition mode="out-in" name="interlude-fade">
               <div v-if="showInterlude(index)"
                    :style="{'--interludeProcess':interludeProcess}"
-                   class="w-fit interludeFade *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
+                   class="w-fit interludeFade will-change-transform will-change-[opacity] *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -879,6 +879,11 @@ async function selectApi(index){
               }"
       >换一批</span>
       </div>
+
+      <p v-if="!online">网络未连接</p>
+
+      <p v-if="musicLrcData?.length===0">加载中……</p>
+
       <div v-for="data in musicLrcData" class="w-full bg-zinc-800/20 rounded flex flex-col items-center justify-center">
 
           <div class="select-none font-semibold w-full p-4">{{data.name}} - {{data.artist}} [{{data.translate? '有翻译':'无翻译'}} - {{data.type==='.lrc'? '逐行歌词':'逐字歌词'}}]</div>
@@ -987,6 +992,7 @@ async function selectApi(index){
 .interlude-fade-enter-from,
 .interlude-fade-leave-to {
   opacity: 0;
+  transform: scale(0);
   height: 0;
   margin: 0;
 }
