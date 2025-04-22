@@ -315,7 +315,7 @@ function syncCurrentTime(){
     return;
   }
   currentSecMs.value = sound.seek();
-  if (count >= 49) {
+  if (count > 48) {
     count = 0;
     currentSec.value = sound.seek();
     playProcess.value = (currentSec.value / metadata.value.duration) * 100 + '%';

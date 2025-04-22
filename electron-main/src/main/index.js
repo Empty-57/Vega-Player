@@ -27,6 +27,7 @@ function createWindow() {
     maxWidth:screen.getPrimaryDisplay().workAreaSize.width+50,
     maxHeight: screen.getPrimaryDisplay().workAreaSize.height+50,
     title: 'Vega Player',
+    titleBarStyle:'hidden',
     show: false,
     frame: false, // 禁用默认边框
     transparent: false, // 可选：让窗口背景透明

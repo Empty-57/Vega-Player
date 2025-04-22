@@ -173,10 +173,12 @@ const readDeps = () => [
   interludeProcess.value
 ];
 
+const lowThreshold=90
+
 const lrcEffect1 = computed(() => {
   const [current, wordIdx, wordsLen_, interval, process] = readDeps();
 
-  const threshold = interval >= 4 ? 90 : 150;
+  const threshold = interval >= 4 ? lowThreshold : 150;
   const isNotLast = wordIdx !== wordsLen_ - 1;
   const isThresholdValid = process < threshold;
 
@@ -188,7 +190,7 @@ const lrcEffect2 = computed(() => {
   const [_, wordIdx, len, interval, process] = readDeps();
 
   const isLast = wordIdx === len-1;
-  const threshold = interval >= 4 ? 90 : 150;
+  const threshold = interval >= 4 ? lowThreshold : 150;
 
   return isLast && process >= threshold;
 });
@@ -197,7 +199,7 @@ const lrcEffect2 = computed(() => {
 const showInterlude = computed(() => {
   const [current, wordIdx, len, interval, process, interlude] = readDeps();
   const isLast = wordIdx === len-1;
-  return (index) => (current === index) && isLast&&interval >= 4&&process>=100&&interlude<=95&&lrcCurrentIndex.value<parsedLyrics.value.length-1;
+  return (index) => (current === index) && isLast&&interval >= 4&&process>=(lowThreshold+10)&&interlude<=95&&lrcCurrentIndex.value<parsedLyrics.value.length-1;
 });
 
 watch(wordIndex,() => {
@@ -282,7 +284,7 @@ watch(()=> currentSecMs,()=>{
   accumulated+=correction
   effectLrcProcess.value = accumulated
 
-  if (effectLrcProcess.value>=100&&wordIndex.value===wordsLen.value-1){
+  if (effectLrcProcess.value>=lowThreshold+10&&wordIndex.value===wordsLen.value-1){
     interludeProcess.value+= 2/lrcInterval.value
   }
 })

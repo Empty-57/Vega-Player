@@ -19,10 +19,20 @@ const parseLyrics = (text) => {
   }
   return entries;
 };
-function mergeTranslations(parsedLrcData,lyricData_ts,type='.lrc',tolerance=0.3){
+function mergeTranslations(parsedLrcData,lyricData_ts,type='.lrc'){
   // 解析翻译歌词并建立查找队列
   const transQueue = lyricData_ts ? parseLyrics(lyricData_ts) : [];
   let transIndex = 0;  // 翻译指针（按时间顺序推进）
+
+  const getTranslate=type !=='.qrc'? transEntry => transEntry.lyricText : transEntry => {
+    if (transEntry.lyricText==='//'){
+      return ' '
+    }
+    return  transEntry.lyricText
+  }
+
+  const tolerance_ = (type==='.qrc'||type==='.lrc')? 0.3:0.8
+
 
   // 构建最终结果
   return parsedLrcData.map((mainEntry, index) => {
@@ -32,13 +42,6 @@ function mergeTranslations(parsedLrcData,lyricData_ts,type='.lrc',tolerance=0.3)
 
     // 寻找匹配的翻译（满足：翻译时间 ≤ 主歌词时间(带容差)）
     let translate = '';
-
-    const getTranslate=type !=='.qrc'? transEntry => transEntry.lyricText : transEntry => {
-      if (transEntry.lyricText==='//'){
-        return ' '
-      }
-      return  transEntry.lyricText
-    }
 
     if (!mainEntry.lyricText) {
       return {
@@ -53,8 +56,8 @@ function mergeTranslations(parsedLrcData,lyricData_ts,type='.lrc',tolerance=0.3)
       const transEntry = transQueue[transIndex];
 
       // 主时间超前翻译时间(带容差)
-      if (mainEntry.segmentStart >= transEntry.segmentStart-tolerance) {
-        if (mainEntry.segmentStart <= transEntry.segmentStart + tolerance){
+      if (mainEntry.segmentStart >= transEntry.segmentStart-tolerance_) {
+        if (mainEntry.segmentStart <= transEntry.segmentStart + tolerance_){
           translate=getTranslate(transEntry);
         }
       } else {
