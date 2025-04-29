@@ -446,6 +446,14 @@ async function selectApi(index){
   await selectLrc();
 }
 
+//方案2：过渡
+// :class="{
+//   'effectLrcCurrent': index2 === wordIndex,
+//   'effectLrcNext effectLrcSetLeft': index2 === wordIndex + 1 && effectLrcProcess>=105,
+//   'effectLrcSetLeft': index2 < wordIndex,
+//   'wordAnimation1': index2 <= wordIndex,
+// }"
+
 </script>
 
 <template>
@@ -954,16 +962,41 @@ async function selectApi(index){
 }
 
 .effectLrc{
-  --dynamic-width: min(var(--wordProgress) * 0%, 20%);
 
   mask-image: linear-gradient(
     to right,
-    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1% - var(--dynamic-width)), /* 动态过渡宽度 */
     rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1%),
-    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1% + var(--dynamic-width))
+    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1%)
   );
   mask-repeat: no-repeat;
   text-rendering: optimizeLegibility;
+
+}
+
+.effectLrcBase{
+  mask-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0%,
+    rgba(0, 0, 0, 1) 33.33%,
+    rgba(0, 0, 0, 0.4) 66.66%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  mask-repeat: no-repeat;
+  mask-size: 300% 100%;
+  mask-position: right;
+  text-rendering: optimizeLegibility;
+}
+
+.effectLrcSetLeft{
+  mask-position: left;
+}
+
+.effectLrcCurrent{
+  mask-position: min(calc(100% - var(--wordProgress) * 1%),0%);
+}
+
+.effectLrcNext{
+  mask-position: min(calc(100% - var(--wordProgress) * 1% + 100%),60%);
 }
 
 .interludeFade{
