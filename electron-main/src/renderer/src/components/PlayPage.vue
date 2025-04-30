@@ -87,7 +87,7 @@ function decodeHTMLEntities(text) {
 }
 
 const reLocal=()=>{
-  if (isScroll.value){
+  if (isScroll.value&&!lyricsList[lrcCurrentIndex.value]){
     return;
   }
   lyricsList[lrcCurrentIndex.value]?.scrollIntoView({
@@ -446,14 +446,6 @@ async function selectApi(index){
   await selectLrc();
 }
 
-//方案2：过渡
-// :class="{
-//   'effectLrcCurrent': index2 === wordIndex,
-//   'effectLrcNext effectLrcSetLeft': index2 === wordIndex + 1 && effectLrcProcess>=105,
-//   'effectLrcSetLeft': index2 < wordIndex,
-//   'wordAnimation1': index2 <= wordIndex,
-// }"
-
 </script>
 
 <template>
@@ -801,16 +793,16 @@ async function selectApi(index){
 
             <p
               :class="{'scale-110 opacity-85':lrcEffect1(index)}"
-              class="text-2xl origin-left delay-100 duration-300 w-fit will-change-transform will-change-[opacity]"
+              class="text-2xl origin-left delay-100 duration-300 w-fit will-change-[transform,opacity]"
             >
               <span v-if="index === lrcCurrentIndex&&lrcType!=='.lrc'"
                     :style="{ '--wordProgress': effectLrcProcess}"
                     :class="{'text-white/40':lrcEffect2}"
-                    class="*:inline-block duration-200 *:antialiased text-white will-change-transform  *:will-change-transform *:whitespace-pre-wrap"
+                    class="*:inline-block duration-200 *:antialiased text-white will-change-transform *:will-change-transform *:whitespace-pre-wrap"
               >
                 <span
                   :class="{
-                  'effectLrc': index2 === wordIndex,
+                  'effectLrcCurrent': index2 === wordIndex,
                   'text-white/40': index2 > wordIndex,
                   'wordAnimation1': index2 <= wordIndex,
                 }"
@@ -832,7 +824,7 @@ async function selectApi(index){
             <transition mode="out-in" name="interlude-fade">
               <div v-if="showInterlude(index)"
                    :style="{'--interludeProcess':interludeProcess}"
-                   class="w-fit interludeFade will-change-transform will-change-[opacity] *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
+                   class="w-fit interludeFade interludeBreath ml-3 will-change-[transform,opacity] *:size-2.5 *:bg-white *:rounded-[50%] gap-x-2.5 flex items-center justify-start interlude">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -948,47 +940,52 @@ async function selectApi(index){
 
 @keyframes wordToTop {
   25%{
-    transform: translateY(-0.25px);
+    transform: matrix3d(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, -0.25, 0, 1
+    );
   }
   50%{
-    transform: translateY(-0.5px);
+    transform: matrix3d(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, -0.5, 0, 1
+    );
   }
   75%{
-    transform: translateY(-0.75px);
+    transform: matrix3d(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, -0.75, 0, 1
+    );
   }
   100%{
-    transform: translateY(-1px);
+    transform: matrix3d(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, -1, 0, 1
+    );
   }
 }
 
-.effectLrc{
-
-  mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 1) calc(var(--wordProgress) * 1%),
-    rgba(0, 0, 0, 0.4) calc(var(--wordProgress) * 1%)
-  );
-  mask-repeat: no-repeat;
-  text-rendering: optimizeLegibility;
-
-}
-
-.effectLrcBase{
+.effectLrcCurrent,
+.effectLrcNext,
+.interludeFade{
   mask-image: linear-gradient(
     to right,
     rgba(0, 0, 0, 1) 0%,
-    rgba(0, 0, 0, 1) 33.33%,
-    rgba(0, 0, 0, 0.4) 66.66%,
-    rgba(0, 0, 0, 0.4) 100%
+    rgba(0, 0, 0, 1) 30%,
+    rgba(0, 0, 0, 0.4) 60%
   );
   mask-repeat: no-repeat;
-  mask-size: 300% 100%;
-  mask-position: right;
+  mask-size: 200% 100%;
+  mask-position: 100%;
   text-rendering: optimizeLegibility;
-}
-
-.effectLrcSetLeft{
-  mask-position: left;
 }
 
 .effectLrcCurrent{
@@ -996,18 +993,25 @@ async function selectApi(index){
 }
 
 .effectLrcNext{
-  mask-position: min(calc(100% - var(--wordProgress) * 1% + 100%),60%);
+  mask-position: min(calc(100% - var(--wordProgress) * 1% + 105%),80%);
 }
 
 .interludeFade{
-  mask-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 1) calc(var(--interludeProcess) * 1%),
-    rgba(0, 0, 0, 0.4) calc(var(--interludeProcess) * 1% + 10%)
-  );
-  mask-repeat: no-repeat;
+  mask-position: min(calc(100% - var(--interludeProcess) * 1%),0%);
 }
 
+.interludeBreath{
+animation: interludeBreathe 4s 1.1s ease-in-out infinite;
+}
+
+@keyframes interludeBreathe{
+  0%,100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
 
 .interlude{
   height: 2.5rem;
@@ -1018,6 +1022,7 @@ async function selectApi(index){
 
 .interlude-fade-enter-active {
   transition: all 0.5s ease-out;
+  animation: bounce-in 1s;
 }
 
 .interlude-fade-leave-active {
@@ -1030,6 +1035,18 @@ async function selectApi(index){
   transform: scale(0);
   height: 0;
   margin: 0;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .simpleCover {
